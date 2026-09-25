@@ -3,6 +3,7 @@ import { BOOKS } from './bible/books';
 import type { VerseHit } from './bible/search';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
+export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
 /** "1 John 4:8" → "First John 4, verse 8" so it isn't read as a time or a list of numbers. */
@@ -50,6 +51,17 @@ export function useReader(onDone: () => void) {
       // storage unavailable; setting lasts for this visit
     }
   }, []);
+  // Reading speed multiplier; remembered per device
+  const [speed, setSpeedState] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('speed'));
+      return SPEEDS.includes(saved) ? saved : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -67,11 +79,15 @@ export function useReader(onDone: () => void) {
     finish();
   }, [finish]);
 
+  const queue = useRef<VerseHit[]>([]);
+  const index = useRef(0); // verse being read, so a speed change can restart it
+
   const play = useCallback(
-    (verses: VerseHit[]) => {
+    (verses: VerseHit[], from = 0) => {
       if (!synth || !verses.length) return;
       const id = ++run.current;
       synth.cancel();
+      queue.current = verses;
       setPlaying(verses);
       const voice = pickVoice();
 
@@ -82,13 +98,14 @@ export function useReader(onDone: () => void) {
           else finish();
           return;
         }
+        index.current = i;
         const verse = verses[i];
         const parts = [...(sayRefsRef.current ? [spokenReference(verse)] : []), ...chunks(verse.text)];
         parts.forEach((text, j) => {
           const u = new SpeechSynthesisUtterance(text);
           if (voice) u.voice = voice;
           u.lang = voice?.lang ?? 'en-US';
-          u.rate = 0.95;
+          u.rate = 0.95 * speedRef.current;
           if (j === 0) u.onstart = () => id === run.current && setCurrent(verse);
           if (j === parts.length - 1) {
             u.onend = () => speak(i + 1);
@@ -100,9 +117,24 @@ export function useReader(onDone: () => void) {
           synth.speak(u);
         });
       };
-      speak(0);
+      speak(from);
     },
     [finish],
+  );
+
+  const setSpeed = useCallback(
+    (next: number) => {
+      setSpeedState(next);
+      speedRef.current = next;
+      try {
+        localStorage.setItem('speed', String(next));
+      } catch {
+        // storage unavailable; setting lasts for this visit
+      }
+      // Queued speech keeps its old rate, so restart the current verse at the new one
+      if (synth?.speaking) play(queue.current, index.current);
+    },
+    [play],
   );
 
   useEffect(() => () => {
@@ -110,5 +142,5 @@ export function useReader(onDone: () => void) {
     synth?.cancel();
   }, []);
 
-  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, play, stop };
+  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed, play, stop };
 }

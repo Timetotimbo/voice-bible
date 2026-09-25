@@ -179,6 +179,7 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
   white-space: nowrap;
 }
 .player-main { flex: 1; max-width: 360px; background: var(--purple-deep) !important; border-color: var(--purple) !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.speed { min-width: 58px; font-variant-numeric: tabular-nums; }
 .repeat.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: #fff; }
 
 .version { text-align: center; color: var(--muted); font-size: 0.75rem; opacity: 0.6; margin-top: 32px; }

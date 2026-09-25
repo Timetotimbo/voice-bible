@@ -5,7 +5,7 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
-import { useReader } from './useReader';
+import { SPEEDS, useReader } from './useReader';
 import { useSpeech } from './useSpeech';
 
 type View =
@@ -298,6 +298,14 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
             onClick={() => reader.setSayRefs(!reader.sayRefs)}
           >
             Refs
+          </button>
+          <button
+            className="speed"
+            aria-label={`Reading speed ${reader.speed} times. Tap to change`}
+            title="Reading speed"
+            onClick={() => reader.setSpeed(SPEEDS[(SPEEDS.indexOf(reader.speed) + 1) % SPEEDS.length])}
+          >
+            {reader.speed}×
           </button>
         </div>
       )}

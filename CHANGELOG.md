@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.3.0 — 2026-09-25
+- Speed button in the player: tap to cycle 0.5× · 0.75× · 1× · 1.25× · 1.5× · 2×. Changing it while reading restarts the current verse at the new speed. Remembered on your device.
+
 ## v1.2.0 — 2026-09-25
 - "Refs" button in the player (purple = on): turn off reading the book, chapter and verse so only the words are read. Remembered on your device.
 
