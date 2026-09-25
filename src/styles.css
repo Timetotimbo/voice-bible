@@ -130,3 +130,55 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 
 .pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
 .pager button:disabled { visibility: hidden; }
+
+/* Read aloud */
+.verse-card { display: flex; gap: 8px; padding: 0; }
+.verse-body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 12px 0 12px 14px;
+}
+.verse-body .text { display: block; }
+.verse-actions { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 10px 0; }
+.icon-btn, .select-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+}
+.icon-btn { background: var(--purple-deep); border: 1px solid var(--purple); color: #fff; }
+.select-btn { background: transparent; border: 2px solid var(--border); color: #fff; }
+.select-btn.on { background: var(--purple); border-color: var(--purple); }
+.verse-card.selected { border-color: var(--purple); }
+.verse-card.reading { border-color: var(--purple-bright); box-shadow: 0 0 0 1px var(--purple-bright), 0 0 24px rgba(155, 109, 255, 0.3); }
+
+.has-player { padding-bottom: 90px; }
+.player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+  background: rgba(10, 7, 16, 0.92);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+}
+.player button {
+  border-radius: 999px;
+  padding: 12px 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.player-main { flex: 1; max-width: 360px; background: var(--purple-deep) !important; border-color: var(--purple) !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.repeat.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: #fff; }
+
+.version { text-align: center; color: var(--muted); font-size: 0.75rem; opacity: 0.6; margin-top: 32px; }

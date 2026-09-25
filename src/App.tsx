@@ -5,6 +5,7 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
+import { useReader } from './useReader';
 import { useSpeech } from './useSpeech';
 
 type View =
@@ -28,6 +29,24 @@ export default function App() {
   const [shown, setShown] = useState(PAGE);
   const [typed, setTyped] = useState('');
   const pending = useRef<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Pause the mic while reading aloud so it doesn't hear the reader and start new searches
+  const micWasOn = useRef(false);
+  const speechRef = useRef<ReturnType<typeof useSpeech> | null>(null);
+  const reader = useReader(() => {
+    if (micWasOn.current) {
+      micWasOn.current = false;
+      speechRef.current?.start();
+    }
+  });
+  const readAloud = (verses: VerseHit[]) => {
+    if (speechRef.current?.status === 'listening') {
+      micWasOn.current = true;
+      speechRef.current.stop();
+    }
+    reader.play(verses);
+  };
 
   useEffect(() => {
     setBible(null);
@@ -46,12 +65,14 @@ export default function App() {
         return;
       }
       setShown(PAGE);
+      setSelected(new Set());
+      reader.stop();
       window.scrollTo({ top: 0 });
       const ref = parseReference(input, bible);
       if (ref) setView({ kind: 'chapter', ref });
       else setView({ kind: 'search', query: input, hits: searchVerses(index, input) });
     },
-    [bible, index],
+    [bible, index, reader.stop],
   );
 
   useEffect(() => {
@@ -65,6 +86,7 @@ export default function App() {
     setTyped(text);
     run(text);
   });
+  speechRef.current = speech;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -118,8 +140,20 @@ export default function App() {
             shown={shown}
             abbrev={abbrev}
             onMore={() => setShown(s => s + PAGE)}
-            onOpen={hit =>
-              setView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse }, from: view })
+            onOpen={hit => {
+              reader.stop();
+              setView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse }, from: view });
+            }}
+            reader={reader}
+            readAloud={readAloud}
+            selected={selected}
+            onToggle={key =>
+              setSelected(prev => {
+                const next = new Set(prev);
+                if (next.has(key)) next.delete(key);
+                else next.add(key);
+                return next;
+              })
             }
           />
         )}
@@ -134,6 +168,8 @@ export default function App() {
           />
         )}
       </main>
+
+      <footer className="version">Voice Bible v{__APP_VERSION__}</footer>
     </div>
   );
 }
@@ -166,34 +202,94 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
   );
 }
 
-function SearchResults({ view, shown, abbrev, onMore, onOpen }: {
+const hitKey = (h: VerseHit) => `${h.book}-${h.chapter}-${h.verse}`;
+
+function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle }: {
   view: Extract<View, { kind: 'search' }>;
   shown: number;
   abbrev: string;
   onMore: () => void;
   onOpen: (hit: VerseHit) => void;
+  reader: ReturnType<typeof useReader>;
+  readAloud: (verses: VerseHit[]) => void;
+  selected: Set<string>;
+  onToggle: (key: string) => void;
 }) {
   const pattern = useMemo(() => highlightPattern(view.query), [view.query]);
   const n = view.hits.length;
+  const picked = view.hits.filter(h => selected.has(hitKey(h)));
+  const queue = picked.length ? picked : view.hits;
+  const current = reader.current && hitKey(reader.current);
+  const currentEl = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    currentEl.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [current]);
+
   return (
-    <section>
+    <section className={reader.supported && n ? 'has-player' : ''}>
       <h2 className="result-title">
         {n ? `${n.toLocaleString()} verse${n === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
       </h2>
       <ol className="verses">
-        {view.hits.slice(0, shown).map(hit => (
-          <li key={`${hit.book}-${hit.chapter}-${hit.verse}`}>
-            <button className="verse-card" onClick={() => onOpen(hit)}>
-              <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
-              <span className="text"><Highlight text={hit.text} pattern={pattern} /></span>
-            </button>
-          </li>
-        ))}
+        {view.hits.slice(0, shown).map(hit => {
+          const key = hitKey(hit);
+          const isSelected = selected.has(key);
+          const isCurrent = key === current;
+          return (
+            <li key={key} ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
+              <button className="verse-body" onClick={() => onOpen(hit)}>
+                <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
+                <span className="text"><Highlight text={hit.text} pattern={pattern} /></span>
+              </button>
+              {reader.supported && (
+                <div className="verse-actions">
+                  <button
+                    className="icon-btn"
+                    aria-label={isCurrent ? 'Stop' : `Play ${BOOKS[hit.book]} ${hit.chapter}:${hit.verse}`}
+                    onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
+                  >
+                    {isCurrent ? '■' : '▶'}
+                  </button>
+                  <button
+                    className={`select-btn ${isSelected ? 'on' : ''}`}
+                    aria-label={isSelected ? 'Unselect verse' : 'Select verse'}
+                    aria-pressed={isSelected}
+                    onClick={() => onToggle(key)}
+                  >
+                    {isSelected ? '✓' : ''}
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ol>
       {shown < n && (
         <button className="more" onClick={onMore}>
           Show more ({(n - shown).toLocaleString()} left)
         </button>
+      )}
+
+      {reader.supported && n > 0 && (
+        <div className="player">
+          {reader.playing ? (
+            <button className="player-main" onClick={reader.stop}>
+              ■ Stop{reader.current && ` · ${BOOKS[reader.current.book]} ${reader.current.chapter}:${reader.current.verse}`}
+            </button>
+          ) : (
+            <button className="player-main" onClick={() => readAloud(queue)}>
+              ▶ {picked.length ? `Play ${picked.length} selected` : n === 1 ? 'Play verse' : `Play all ${n.toLocaleString()}`}
+            </button>
+          )}
+          <button
+            className={`repeat ${reader.repeat ? 'on' : ''}`}
+            aria-pressed={reader.repeat}
+            onClick={() => reader.setRepeat(r => !r)}
+          >
+            ⟳ Repeat {reader.repeat ? 'on' : 'off'}
+          </button>
+        </div>
       )}
     </section>
   );
