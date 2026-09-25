@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { BOOKS } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses,
@@ -257,11 +257,16 @@ export default function App() {
             abbrev={abbrev}
             onNavigate={ref => {
               reader.stop();
+              setSelected(new Set());
               setView({ kind: 'chapter', ref, from: view.from });
             }}
-            onBack={view.from ? () => { reader.stop(); setView(view.from!); } : undefined}
+            onBack={view.from ? () => { reader.stop(); setSelected(new Set()); setView(view.from!); } : undefined}
             reader={reader}
             readAloud={readAloud}
+            selected={selected}
+            onToggle={toggle}
+            onSave={picked => setSheet(picked.map(toRef))}
+            onClearSelection={() => setSelected(new Set())}
           />
         )}
       </main>
@@ -437,7 +442,9 @@ function SearchResults({
   );
 }
 
-function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }: {
+function Chapter({
+  bible, view, abbrev, onNavigate, onBack, reader, readAloud, selected, onToggle, onSave, onClearSelection,
+}: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
   abbrev: string;
@@ -445,6 +452,10 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }:
   onBack?: () => void;
   reader: ReturnType<typeof useReader>;
   readAloud: (verses: VerseHit[]) => void;
+  selected: Set<string>;
+  onToggle: (key: string) => void;
+  onSave: (picked: VerseHit[]) => void;
+  onClearSelection: () => void;
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   const verses = bible[book][chapter - 1];
@@ -460,6 +471,7 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }:
   const askedLabel = verseStart && asked.length
     ? `${chapter}:${asked[0].verse}${asked.length > 1 ? `-${asked[asked.length - 1].verse}` : ''}`
     : '';
+  const picked = all.filter(h => selected.has(hitKey(h))); // always in chapter order
   const reading = reader.current?.book === book && reader.current.chapter === chapter ? reader.current.verse : null;
   const readingEl = useRef<HTMLLIElement>(null);
   useEffect(() => {
@@ -470,22 +482,38 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }:
   const next = chapter < bible[book].length ? { book, chapter: chapter + 1 } : book < bible.length - 1 ? { book: book + 1, chapter: 1 } : null;
 
   return (
-    <section className={reader.supported ? `has-player ${askedLabel ? 'selecting' : ''}` : ''}>
+    <section
+      className={reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}
+    >
       {onBack && <button className="back" onClick={onBack}>← Back</button>}
       <h2 className="result-title">
         {formatReference(view.ref)} <small>{abbrev}</small>
       </h2>
+      {reader.supported && <p className="chapter-hint">Tap verses to choose which ones to play.</p>}
       <ol className="chapter">
-        {verses.map((text, i) => {
-          const v = i + 1;
-          const hit = inRange(v);
+        {all.map(h => {
+          const v = h.verse;
+          const key = hitKey(h);
+          const isSelected = selected.has(key);
           return (
             <li
               key={v}
               ref={v === reading ? readingEl : v === verseStart ? first : undefined}
-              className={`${hit ? 'hit' : ''} ${v === reading ? 'reading' : ''}`}
+              className={`${inRange(v) ? 'hit' : ''} ${v === reading ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
+              {...(reader.supported && {
+                role: 'button',
+                tabIndex: 0,
+                'aria-pressed': isSelected,
+                onClick: () => onToggle(key),
+                onKeyDown: (e: ReactKeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(key);
+                  }
+                },
+              })}
             >
-              <sup>{v}</sup> {text}
+              <sup>{isSelected ? '✓' : ''}{v}</sup> {h.text}
             </li>
           );
         })}
@@ -501,14 +529,25 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }:
 
       {reader.supported && (
         <div className="player">
+          {picked.length > 0 && (
+            <div className="selection-bar">
+              <span>{picked.length} selected</span>
+              <button onClick={() => onSave(picked)}>Save to list</button>
+              <button onClick={onClearSelection}>Clear</button>
+            </div>
+          )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
               ■ Stop{reader.current && ` · ${reader.current.chapter}:${reader.current.verse}`}
             </button>
           ) : (
-            askedLabel ? (
+            picked.length || askedLabel ? (
               <div className="play-choice">
-                <button className="player-main" onClick={() => readAloud(asked)}>▶ Play {askedLabel}</button>
+                {picked.length ? (
+                  <button className="player-main" onClick={() => readAloud(picked)}>▶ Play {picked.length}</button>
+                ) : (
+                  <button className="player-main" onClick={() => readAloud(asked)}>▶ Play {askedLabel}</button>
+                )}
                 <button className="player-alt" onClick={() => readAloud(all)}>▶ Whole chapter</button>
               </div>
             ) : (

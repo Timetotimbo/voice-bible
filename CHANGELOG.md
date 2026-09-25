@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.7.0 — 2026-09-25
+- Pick verses on the chapter page: tap any verses (for example 1, 5, 8 and 16) to outline them with a ✓, then tap "▶ Play 4" to hear just those, in chapter order. Tap a verse again to unselect it.
+- Save picked verses to a list, or clear them, from the bar that appears above the play buttons.
+- Your picks clear when you move to another chapter or go back.
+
 ## v1.6.0 — 2026-09-25
 - Play from the chapter page: after opening a verse like John 3:16, choose "▶ Play 3:16" for just that verse (or range, like 3:16-18) or "▶ Whole chapter". Opening a whole chapter (like Psalm 23) shows "▶ Play chapter".
 - The verse being read is highlighted and the page scrolls along with it.
