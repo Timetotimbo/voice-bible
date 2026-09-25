@@ -32,6 +32,24 @@ export function useReader(onDone: () => void) {
   const [repeat, setRepeat] = useState(false);
   const repeatRef = useRef(repeat);
   repeatRef.current = repeat;
+  // Whether to announce "John 3, verse 16" before each verse; remembered per device
+  const [sayRefs, setSayRefsState] = useState(() => {
+    try {
+      return localStorage.getItem('sayRefs') !== 'off';
+    } catch {
+      return true;
+    }
+  });
+  const sayRefsRef = useRef(sayRefs);
+  sayRefsRef.current = sayRefs;
+  const setSayRefs = useCallback((on: boolean) => {
+    setSayRefsState(on);
+    try {
+      localStorage.setItem('sayRefs', on ? 'on' : 'off');
+    } catch {
+      // storage unavailable; setting lasts for this visit
+    }
+  }, []);
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -65,7 +83,7 @@ export function useReader(onDone: () => void) {
           return;
         }
         const verse = verses[i];
-        const parts = [spokenReference(verse), ...chunks(verse.text)];
+        const parts = [...(sayRefsRef.current ? [spokenReference(verse)] : []), ...chunks(verse.text)];
         parts.forEach((text, j) => {
           const u = new SpeechSynthesisUtterance(text);
           if (voice) u.voice = voice;
@@ -92,5 +110,5 @@ export function useReader(onDone: () => void) {
     synth?.cancel();
   }, []);
 
-  return { supported: !!synth, playing, current, repeat, setRepeat, play, stop };
+  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, play, stop };
 }

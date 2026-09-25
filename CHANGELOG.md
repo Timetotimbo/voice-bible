@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.2.0 — 2026-09-25
+- "Refs" button in the player (purple = on): turn off reading the book, chapter and verse so only the words are read. Remembered on your device.
+
 ## v1.1.0 — 2026-09-25
 - Read verses aloud: play a single verse, all results, or only the verses you select.
 - Repeat toggle loops the chosen verses.

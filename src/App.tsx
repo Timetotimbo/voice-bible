@@ -285,9 +285,19 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
           <button
             className={`repeat ${reader.repeat ? 'on' : ''}`}
             aria-pressed={reader.repeat}
+            title={reader.repeat ? 'Repeat is on' : 'Repeat is off'}
             onClick={() => reader.setRepeat(r => !r)}
           >
-            ⟳ Repeat {reader.repeat ? 'on' : 'off'}
+            ⟳ Repeat
+          </button>
+          <button
+            className={`repeat ${reader.sayRefs ? 'on' : ''}`}
+            aria-pressed={reader.sayRefs}
+            aria-label="Read chapter and verse before each verse"
+            title={reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only'}
+            onClick={() => reader.setSayRefs(!reader.sayRefs)}
+          >
+            Refs
           </button>
         </div>
       )}
