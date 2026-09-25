@@ -1,0 +1,132 @@
+:root {
+  --bg: #0a0710;
+  --surface: #150f22;
+  --surface-2: #1e1530;
+  --border: #2e2147;
+  --text: #ece6f8;
+  --muted: #a498bd;
+  --purple: #9b6dff;
+  --purple-bright: #b794ff;
+  --purple-deep: #5b2bb5;
+  --mark: rgba(155, 109, 255, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.top h1 { font-size: 1.3rem; margin: 0; letter-spacing: 0.02em; }
+.cross { color: var(--purple); margin-right: 4px; }
+.top select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.mic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 16px;
+}
+.mic-button {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 0;
+  background: radial-gradient(circle at 30% 30%, var(--purple-bright), var(--purple-deep));
+  box-shadow: 0 0 0 0 rgba(155, 109, 255, 0.5), 0 8px 30px rgba(91, 43, 181, 0.45);
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.mic-button:active { transform: scale(0.96); }
+.mic-button svg { width: 44px; height: 44px; fill: #fff; }
+.mic-button.on { opacity: 1; animation: pulse 1.8s ease-out infinite; }
+.mic-button:disabled { opacity: 0.25; cursor: default; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(155, 109, 255, 0.55), 0 8px 30px rgba(91, 43, 181, 0.45); }
+  100% { box-shadow: 0 0 0 28px rgba(155, 109, 255, 0), 0 8px 30px rgba(91, 43, 181, 0.45); }
+}
+.mic-status {
+  margin: 14px 0 0;
+  min-height: 1.6em;
+  color: var(--muted);
+  text-align: center;
+  max-width: 34ch;
+}
+
+.search { display: flex; gap: 8px; margin-bottom: 20px; }
+.search input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.search input:focus { outline: 2px solid var(--purple); outline-offset: 1px; }
+.search button, .more, .pager button, .back {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+}
+.search button { background: var(--purple-deep); border-color: var(--purple); }
+
+.notice { color: var(--muted); text-align: center; }
+.notice.error { color: #ff8fa3; }
+.home { color: var(--muted); text-align: center; }
+.home em { color: var(--purple-bright); font-style: normal; }
+
+.result-title { font-size: 1.05rem; color: var(--purple-bright); margin: 0 0 12px; }
+.result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }
+
+.verses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.verse-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.verse-card:active { background: var(--surface-2); }
+.ref { display: block; font-weight: 600; color: var(--purple-bright); font-size: 0.9rem; margin-bottom: 2px; }
+mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px; }
+
+.more { display: block; width: 100%; margin-top: 14px; }
+.back { margin-bottom: 14px; }
+
+.chapter { list-style: none; margin: 0; padding: 0; }
+.chapter li { padding: 4px 8px; border-radius: 8px; }
+.chapter li.hit { background: var(--mark); }
+.chapter sup { color: var(--purple); font-weight: 600; margin-right: 2px; }
+
+.pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
+.pager button:disabled { visibility: hidden; }
