@@ -5,12 +5,14 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
+import { useLibrary, type VerseRef } from './useLibrary';
 import { SPEEDS, useReader } from './useReader';
 import { useSpeech } from './useSpeech';
 
 type View =
   | { kind: 'home' }
   | { kind: 'search'; query: string; hits: VerseHit[] }
+  | { kind: 'list'; id: string }
   | { kind: 'chapter'; ref: Reference; from?: View };
 
 const PAGE = 50;
@@ -30,6 +32,14 @@ export default function App() {
   const [typed, setTyped] = useState('');
   const pending = useRef<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const library = useLibrary();
+  const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
+  const [toast, setToast] = useState('');
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Pause the mic while reading aloud so it doesn't hear the reader and start new searches
   const micWasOn = useRef(false);
@@ -56,6 +66,18 @@ export default function App() {
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
 
+  /** Resets paging, selection and playback, then shows `next` (if given). */
+  const openView = useCallback(
+    (next: View | null) => {
+      setShown(PAGE);
+      setSelected(new Set());
+      reader.stop();
+      window.scrollTo({ top: 0 });
+      if (next) setView(next);
+    },
+    [reader.stop],
+  );
+
   const run = useCallback(
     (raw: string) => {
       const input = raw.trim().replace(FILLER, '');
@@ -64,15 +86,13 @@ export default function App() {
         pending.current = input; // run once the text finishes loading
         return;
       }
-      setShown(PAGE);
-      setSelected(new Set());
-      reader.stop();
-      window.scrollTo({ top: 0 });
+      library.remember(input);
+      openView(null);
       const ref = parseReference(input, bible);
       if (ref) setView({ kind: 'chapter', ref });
       else setView({ kind: 'search', query: input, hits: searchVerses(index, input) });
     },
-    [bible, index, reader.stop],
+    [bible, index, openView, library.remember],
   );
 
   useEffect(() => {
@@ -93,12 +113,37 @@ export default function App() {
     run(typed);
   };
 
+  const toggle = (key: string) =>
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const savedList = view.kind === 'list' ? library.lists.find(l => l.id === view.id) : undefined;
+  const savedHits = useMemo(
+    () =>
+      savedList && bible
+        ? savedList.verses.flatMap(([book, chapter, verse]) => {
+            const text = bible[book]?.[chapter - 1]?.[verse - 1];
+            return text ? [{ book, chapter, verse, text }] : [];
+          })
+        : [],
+    [savedList, bible],
+  );
+
   return (
     <div className="app">
       <header className="top">
         <h1>
           <span className="cross" aria-hidden>✝</span> Voice Bible
         </h1>
+        <button className="library-btn" aria-label="History and saved lists" onClick={() => setSheet('browse')}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+          </svg>
+        </button>
         <select
           aria-label="Translation"
           value={translation}
@@ -136,7 +181,9 @@ export default function App() {
 
         {view.kind === 'search' && (
           <SearchResults
-            view={view}
+            title={<>{view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”</>}
+            hits={view.hits}
+            query={view.query}
             shown={shown}
             abbrev={abbrev}
             onMore={() => setShown(s => s + PAGE)}
@@ -147,14 +194,41 @@ export default function App() {
             reader={reader}
             readAloud={readAloud}
             selected={selected}
-            onToggle={key =>
-              setSelected(prev => {
-                const next = new Set(prev);
-                if (next.has(key)) next.delete(key);
-                else next.add(key);
-                return next;
-              })
-            }
+            onToggle={toggle}
+            selectionActions={picked => (
+              <button onClick={() => setSheet(picked.map(toRef))}>Save to list</button>
+            )}
+            onClearSelection={() => setSelected(new Set())}
+          />
+        )}
+
+        {view.kind === 'list' && bible && savedList && (
+          <SearchResults
+            title={<>{savedList.name} <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small></>}
+            hits={savedHits}
+            shown={savedHits.length}
+            abbrev={abbrev}
+            onMore={() => {}}
+            onOpen={hit => {
+              reader.stop();
+              setView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse }, from: view });
+            }}
+            reader={reader}
+            readAloud={readAloud}
+            selected={selected}
+            onToggle={toggle}
+            selectionActions={picked => (
+              <button
+                onClick={() => {
+                  library.removeFromList(savedList.id, picked.map(toRef));
+                  setSelected(new Set());
+                }}
+              >
+                Remove from list
+              </button>
+            )}
+            onClearSelection={() => setSelected(new Set())}
+            empty="This list is empty. Search, check verses, then tap “Save to list”."
           />
         )}
 
@@ -170,6 +244,29 @@ export default function App() {
       </main>
 
       <footer className="version">Voice Bible v{__APP_VERSION__}</footer>
+
+      {sheet && (
+        <LibrarySheet
+          library={library}
+          saving={Array.isArray(sheet) ? sheet : null}
+          onClose={() => setSheet(null)}
+          onRun={q => {
+            setSheet(null);
+            setTyped(q);
+            run(q);
+          }}
+          onOpenList={id => {
+            setSheet(null);
+            openView({ kind: 'list', id });
+          }}
+          onSaved={name => {
+            setSheet(null);
+            setSelected(new Set());
+            setToast(`Saved to “${name}”`);
+          }}
+        />
+      )}
+      {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }
@@ -204,8 +301,15 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
 
 const hitKey = (h: VerseHit) => `${h.book}-${h.chapter}-${h.verse}`;
 
-function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle }: {
-  view: Extract<View, { kind: 'search' }>;
+const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
+
+function SearchResults({
+  title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
+  selectionActions, onClearSelection, empty,
+}: {
+  title: ReactNode;
+  hits: VerseHit[];
+  query?: string;
   shown: number;
   abbrev: string;
   onMore: () => void;
@@ -214,11 +318,14 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
   readAloud: (verses: VerseHit[]) => void;
   selected: Set<string>;
   onToggle: (key: string) => void;
+  selectionActions: (picked: VerseHit[]) => ReactNode;
+  onClearSelection: () => void;
+  empty?: string;
 }) {
-  const pattern = useMemo(() => highlightPattern(view.query), [view.query]);
-  const n = view.hits.length;
-  const picked = view.hits.filter(h => selected.has(hitKey(h)));
-  const queue = picked.length ? picked : view.hits;
+  const pattern = useMemo(() => (query ? highlightPattern(query) : null), [query]);
+  const n = hits.length;
+  const picked = hits.filter(h => selected.has(hitKey(h)));
+  const queue = picked.length ? picked : hits;
   const current = reader.current && hitKey(reader.current);
   const currentEl = useRef<HTMLLIElement>(null);
 
@@ -227,12 +334,11 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
   }, [current]);
 
   return (
-    <section className={reader.supported && n ? 'has-player' : ''}>
-      <h2 className="result-title">
-        {n ? `${n.toLocaleString()} verse${n === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
-      </h2>
+    <section className={reader.supported && n ? `has-player ${picked.length ? 'selecting' : ''}` : ''}>
+      <h2 className="result-title">{title}</h2>
+      {!n && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
-        {view.hits.slice(0, shown).map(hit => {
+        {hits.slice(0, shown).map(hit => {
           const key = hitKey(hit);
           const isSelected = selected.has(key);
           const isCurrent = key === current;
@@ -273,6 +379,13 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
 
       {reader.supported && n > 0 && (
         <div className="player">
+          {picked.length > 0 && (
+            <div className="selection-bar">
+              <span>{picked.length} selected</span>
+              {selectionActions(picked)}
+              <button onClick={onClearSelection}>Clear</button>
+            </div>
+          )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
               ■ Stop{reader.current && ` · ${BOOKS[reader.current.book]} ${reader.current.chapter}:${reader.current.verse}`}
@@ -285,10 +398,11 @@ function SearchResults({ view, shown, abbrev, onMore, onOpen, reader, readAloud,
           <button
             className={`repeat ${reader.repeat ? 'on' : ''}`}
             aria-pressed={reader.repeat}
+            aria-label="Repeat"
             title={reader.repeat ? 'Repeat is on' : 'Repeat is off'}
             onClick={() => reader.setRepeat(r => !r)}
           >
-            ⟳ Repeat
+            ⟳
           </button>
           <button
             className={`repeat ${reader.sayRefs ? 'on' : ''}`}
@@ -334,7 +448,7 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
 
   return (
     <section>
-      {onBack && <button className="back" onClick={onBack}>← Back to results</button>}
+      {onBack && <button className="back" onClick={onBack}>← Back</button>}
       <h2 className="result-title">
         {formatReference(view.ref)} <small>{abbrev}</small>
       </h2>
@@ -358,5 +472,117 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
         </button>
       </nav>
     </section>
+  );
+}
+
+function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: {
+  library: ReturnType<typeof useLibrary>;
+  saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
+  onClose: () => void;
+  onRun: (query: string) => void;
+  onOpenList: (id: string) => void;
+  onSaved: (listName: string) => void;
+}) {
+  const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
+  const [newName, setNewName] = useState('');
+  const { history, lists } = library;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const createList = (e: FormEvent) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
+    library.addToList(saving ?? [], { name });
+    setNewName('');
+    if (saving) onSaved(name);
+  };
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={saving ? 'Save to list' : 'History and lists'} onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          {saving ? (
+            <h2>Save {saving.length} verse{saving.length === 1 ? '' : 's'} to…</h2>
+          ) : (
+            <div className="tabs" role="tablist">
+              <button role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>History</button>
+              <button role="tab" aria-selected={tab === 'lists'} className={tab === 'lists' ? 'on' : ''} onClick={() => setTab('lists')}>Lists</button>
+            </div>
+          )}
+          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+        </div>
+
+        {!saving && tab === 'history' && (
+          <>
+            {!history.length && <p className="notice">Your searches will show up here.</p>}
+            <ul className="sheet-list">
+              {history.map(q => (
+                <li key={q}>
+                  <button className="sheet-item" onClick={() => onRun(q)}>{q}</button>
+                  <button className="sheet-x" aria-label={`Remove “${q}” from history`} onClick={() => library.forget(q)}>✕</button>
+                </li>
+              ))}
+            </ul>
+            {history.length > 0 && (
+              <button className="sheet-link" onClick={() => confirm('Clear all search history?') && library.clearHistory()}>
+                Clear history
+              </button>
+            )}
+          </>
+        )}
+
+        {(saving || tab === 'lists') && (
+          <>
+            <form className="new-list" onSubmit={createList}>
+              <input placeholder="New list name" value={newName} onChange={e => setNewName(e.target.value)} aria-label="New list name" />
+              <button type="submit" disabled={!newName.trim()}>{saving ? 'Save' : 'Create'}</button>
+            </form>
+            {!lists.length && !saving && <p className="notice">Check verses in your results, then tap “Save to list”.</p>}
+            <ul className="sheet-list">
+              {lists.map(l => (
+                <li key={l.id}>
+                  <button
+                    className="sheet-item"
+                    onClick={() => {
+                      if (!saving) return onOpenList(l.id);
+                      library.addToList(saving, { id: l.id });
+                      onSaved(l.name);
+                    }}
+                  >
+                    {l.name} <small>{l.verses.length}</small>
+                  </button>
+                  {!saving && (
+                    <>
+                      <button
+                        className="sheet-x"
+                        aria-label={`Rename ${l.name}`}
+                        onClick={() => {
+                          const name = prompt('Rename list', l.name)?.trim();
+                          if (name) library.renameList(l.id, name);
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        className="sheet-x"
+                        aria-label={`Delete ${l.name}`}
+                        onClick={() => confirm(`Delete the list “${l.name}”?`) && library.deleteList(l.id)}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
