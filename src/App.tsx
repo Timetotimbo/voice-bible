@@ -255,8 +255,13 @@ export default function App() {
             bible={bible}
             view={view}
             abbrev={abbrev}
-            onNavigate={ref => setView({ kind: 'chapter', ref, from: view.from })}
-            onBack={view.from ? () => setView(view.from!) : undefined}
+            onNavigate={ref => {
+              reader.stop();
+              setView({ kind: 'chapter', ref, from: view.from });
+            }}
+            onBack={view.from ? () => { reader.stop(); setView(view.from!); } : undefined}
+            reader={reader}
+            readAloud={readAloud}
           />
         )}
       </main>
@@ -425,44 +430,21 @@ function SearchResults({
               ▶ {picked.length ? `Play ${picked.length} selected` : n === 1 ? 'Play verse' : `Play all ${n.toLocaleString()}`}
             </button>
           )}
-          <button
-            className={`repeat ${reader.repeat ? 'on' : ''}`}
-            aria-pressed={reader.repeat}
-            aria-label="Repeat"
-            title={reader.repeat ? 'Repeat is on' : 'Repeat is off'}
-            onClick={() => reader.setRepeat(r => !r)}
-          >
-            ⟳
-          </button>
-          <button
-            className={`repeat ${reader.sayRefs ? 'on' : ''}`}
-            aria-pressed={reader.sayRefs}
-            aria-label="Read chapter and verse before each verse"
-            title={reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only'}
-            onClick={() => reader.setSayRefs(!reader.sayRefs)}
-          >
-            Refs
-          </button>
-          <button
-            className="speed"
-            aria-label={`Reading speed ${reader.speed} times. Tap to change`}
-            title="Reading speed"
-            onClick={() => reader.setSpeed(SPEEDS[(SPEEDS.indexOf(reader.speed) + 1) % SPEEDS.length])}
-          >
-            {reader.speed}×
-          </button>
+          <PlayerControls reader={reader} />
         </div>
       )}
     </section>
   );
 }
 
-function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
+function Chapter({ bible, view, abbrev, onNavigate, onBack, reader, readAloud }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
   abbrev: string;
   onNavigate: (ref: Reference) => void;
   onBack?: () => void;
+  reader: ReturnType<typeof useReader>;
+  readAloud: (verses: VerseHit[]) => void;
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   const verses = bible[book][chapter - 1];
@@ -473,11 +455,22 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
     first.current?.scrollIntoView({ block: 'center' });
   }, [book, chapter, verseStart]);
 
+  const all: VerseHit[] = verses.map((text, i) => ({ book, chapter, verse: i + 1, text }));
+  const asked = all.filter(h => inRange(h.verse));
+  const askedLabel = verseStart && asked.length
+    ? `${chapter}:${asked[0].verse}${asked.length > 1 ? `-${asked[asked.length - 1].verse}` : ''}`
+    : '';
+  const reading = reader.current?.book === book && reader.current.chapter === chapter ? reader.current.verse : null;
+  const readingEl = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    readingEl.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [reading]);
+
   const prev = chapter > 1 ? { book, chapter: chapter - 1 } : book > 0 ? { book: book - 1, chapter: bible[book - 1].length } : null;
   const next = chapter < bible[book].length ? { book, chapter: chapter + 1 } : book < bible.length - 1 ? { book: book + 1, chapter: 1 } : null;
 
   return (
-    <section>
+    <section className={reader.supported ? `has-player ${askedLabel ? 'selecting' : ''}` : ''}>
       {onBack && <button className="back" onClick={onBack}>← Back</button>}
       <h2 className="result-title">
         {formatReference(view.ref)} <small>{abbrev}</small>
@@ -487,7 +480,11 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
           const v = i + 1;
           const hit = inRange(v);
           return (
-            <li key={v} ref={v === verseStart ? first : undefined} className={hit ? 'hit' : ''}>
+            <li
+              key={v}
+              ref={v === reading ? readingEl : v === verseStart ? first : undefined}
+              className={`${hit ? 'hit' : ''} ${v === reading ? 'reading' : ''}`}
+            >
               <sup>{v}</sup> {text}
             </li>
           );
@@ -501,6 +498,26 @@ function Chapter({ bible, view, abbrev, onNavigate, onBack }: {
           {next && `${BOOKS[next.book]} ${next.chapter}`} →
         </button>
       </nav>
+
+      {reader.supported && (
+        <div className="player">
+          {reader.playing ? (
+            <button className="player-main" onClick={reader.stop}>
+              ■ Stop{reader.current && ` · ${reader.current.chapter}:${reader.current.verse}`}
+            </button>
+          ) : (
+            askedLabel ? (
+              <div className="play-choice">
+                <button className="player-main" onClick={() => readAloud(asked)}>▶ Play {askedLabel}</button>
+                <button className="player-alt" onClick={() => readAloud(all)}>▶ Whole chapter</button>
+              </div>
+            ) : (
+              <button className="player-main" onClick={() => readAloud(all)}>▶ Play chapter</button>
+            )
+          )}
+          <PlayerControls reader={reader} />
+        </div>
+      )}
     </section>
   );
 }
@@ -682,5 +699,39 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
         </p>
       </div>
     </div>
+  );
+}
+
+/** Repeat, Refs and speed buttons shared by every play bar. */
+function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
+  return (
+    <>
+      <button
+        className={`repeat ${reader.repeat ? 'on' : ''}`}
+        aria-pressed={reader.repeat}
+        aria-label="Repeat"
+        title={reader.repeat ? 'Repeat is on' : 'Repeat is off'}
+        onClick={() => reader.setRepeat(r => !r)}
+      >
+        ⟳
+      </button>
+      <button
+        className={`repeat ${reader.sayRefs ? 'on' : ''}`}
+        aria-pressed={reader.sayRefs}
+        aria-label="Read chapter and verse before each verse"
+        title={reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only'}
+        onClick={() => reader.setSayRefs(!reader.sayRefs)}
+      >
+        Refs
+      </button>
+      <button
+        className="speed"
+        aria-label={`Reading speed ${reader.speed} times. Tap to change`}
+        title="Reading speed"
+        onClick={() => reader.setSpeed(SPEEDS[(SPEEDS.indexOf(reader.speed) + 1) % SPEEDS.length])}
+      >
+        {reader.speed}×
+      </button>
+    </>
   );
 }

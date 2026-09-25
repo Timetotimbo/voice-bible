@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.6.0 — 2026-09-25
+- Play from the chapter page: after opening a verse like John 3:16, choose "▶ Play 3:16" for just that verse (or range, like 3:16-18) or "▶ Whole chapter". Opening a whole chapter (like Psalm 23) shows "▶ Play chapter".
+- The verse being read is highlighted and the page scrolls along with it.
+- Repeat, Refs and speed work on the chapter page too. Reading stops when you move to another chapter.
+
 ## v1.5.1 — 2026-09-25
 - Fix: voice picker said "No English voices found" on phones that load their voices late. The app now keeps checking for a few seconds and again whenever the picker opens.
 - If no voices are marked English, all voices are shown instead of none.
