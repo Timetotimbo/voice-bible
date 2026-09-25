@@ -17,16 +17,18 @@ function chunks(text: string): string[] {
   return text.match(/[^.;:?!]+[.;:?!]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
 }
 
-const lang = (v: SpeechSynthesisVoice) => v.lang.replace('_', '-');
+const lang = (v: SpeechSynthesisVoice) => (v.lang || '').replace('_', '-');
 
 // Apple's novelty voices (sound effects, singing) aren't useful for reading Scripture
 const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Pipe Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical)\b/i;
 
-/** English voices installed on this device, sorted by accent then name. */
+const isEnglish = (v: SpeechSynthesisVoice) => /^en\b/i.test(lang(v)) || /english/i.test(v.name);
+
+/** English voices installed on this device (or every voice, if none say they're English), sorted by accent then name. */
 function englishVoices(): SpeechSynthesisVoice[] {
-  return (synth?.getVoices() ?? [])
-    .filter(v => lang(v).startsWith('en') && !NOVELTY.test(v.name))
-    .sort((a, b) => lang(a).localeCompare(lang(b)) || a.name.localeCompare(b.name));
+  const all = (synth?.getVoices() ?? []).filter(v => !NOVELTY.test(v.name));
+  const english = all.filter(isEnglish);
+  return (english.length ? english : all).sort((a, b) => lang(a).localeCompare(lang(b)) || a.name.localeCompare(b.name));
 }
 
 function defaultVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
@@ -101,13 +103,25 @@ export function useReader(onDone: () => void) {
   speedRef.current = speed;
 
   // Voices load asynchronously in most browsers
+  // Voices load late on many phones, and some never fire 'voiceschanged', so also poll for a few seconds
   const [voices, setVoices] = useState(englishVoices);
+  const refreshVoices = useCallback(() => {
+    const next = englishVoices();
+    setVoices(prev => (prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next));
+    return next.length;
+  }, []);
   useEffect(() => {
     if (!synth) return;
-    const update = () => setVoices(englishVoices());
-    synth.addEventListener('voiceschanged', update);
-    return () => synth.removeEventListener('voiceschanged', update);
-  }, []);
+    synth.addEventListener?.('voiceschanged', refreshVoices);
+    let tries = 0;
+    const poll = setInterval(() => {
+      if (refreshVoices() || ++tries >= 20) clearInterval(poll);
+    }, 250);
+    return () => {
+      clearInterval(poll);
+      synth.removeEventListener?.('voiceschanged', refreshVoices);
+    };
+  }, [refreshVoices]);
   // Chosen voice (by voiceURI), remembered per device; '' = automatic
   const [voiceId, setVoiceIdState] = useState(() => {
     try {
@@ -234,5 +248,5 @@ export function useReader(onDone: () => void) {
   }, []);
 
   return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
-    voices, voice, voiceId, setVoice, preview, play, stop };
+    voices, voice, voiceId, setVoice, preview, refreshVoices, play, stop };
 }

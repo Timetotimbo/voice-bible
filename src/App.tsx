@@ -618,8 +618,22 @@ function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: 
 }
 
 function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>; onClose: () => void }) {
-  const { voices, voice, voiceId, setVoice, preview } = reader;
+  const { voices, voice, voiceId, setVoice, preview, refreshVoices } = reader;
   const hasMan = voices.some(v => describeVoice(v).startsWith('Man'));
+  const [checking, setChecking] = useState(!voices.length);
+
+  // Ask the device again while the picker is open; some only list voices after a moment
+  useEffect(() => {
+    if (voices.length) return setChecking(false);
+    let tries = 0;
+    const poll = setInterval(() => {
+      if (refreshVoices() || ++tries >= 12) {
+        clearInterval(poll);
+        setChecking(false);
+      }
+    }, 250);
+    return () => clearInterval(poll);
+  }, [voices.length, refreshVoices]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -634,7 +648,16 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
           <h2>Reading voice</h2>
           <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
-        {!voices.length && <p className="notice">No English voices found on this device.</p>}
+        {!voices.length && (
+          <p className="notice">
+            {checking ? 'Looking for voices…' : (
+              <>
+                This browser didn’t share its list of voices, so the app reads with your device’s default voice.
+                If you added Voice Bible to your home screen, try opening it in Safari or Chrome instead.
+              </>
+            )}
+          </p>
+        )}
         <ul className="sheet-list" role="radiogroup">
           {voices.map(v => {
             const on = v === voice;

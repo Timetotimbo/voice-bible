@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.5.1 — 2026-09-25
+- Fix: voice picker said "No English voices found" on phones that load their voices late. The app now keeps checking for a few seconds and again whenever the picker opens.
+- If no voices are marked English, all voices are shown instead of none.
+- If the browser never shares its voices, the picker explains that it reads with the device's default voice.
+
 ## v1.5.0 — 2026-09-25
 - Choose the reading voice: tap the speaker icon at the top to see your device's English voices, labeled man or woman and by accent (American, British, Australian, Indian, Irish, South African and more). Tap ▶ to hear a sample. Remembered on your device.
 - Changing the voice while reading restarts the current verse in the new voice.
