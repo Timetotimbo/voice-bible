@@ -6,7 +6,7 @@ import {
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
 import { useLibrary, type VerseRef } from './useLibrary';
-import { SPEEDS, useReader } from './useReader';
+import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { useSpeech } from './useSpeech';
 
 type View =
@@ -34,6 +34,7 @@ export default function App() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [toast, setToast] = useState('');
   useEffect(() => {
     if (!toast) return;
@@ -139,6 +140,23 @@ export default function App() {
         <h1>
           <span className="cross" aria-hidden>✝</span> Voice Bible
         </h1>
+        <button
+          className="library-btn"
+          aria-label="Reading voice"
+          onClick={() => {
+            // Pause the mic so voice samples aren't heard as searches
+            if (speech.status === 'listening') {
+              micWasOn.current = true;
+              speech.stop();
+            }
+            setVoiceOpen(true);
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M4 9h4l5-4v14l-5-4H4Z" />
+            <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
+          </svg>
+        </button>
         <button className="library-btn" aria-label="History and saved lists" onClick={() => setSheet('browse')}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
@@ -263,6 +281,18 @@ export default function App() {
             setSheet(null);
             setSelected(new Set());
             setToast(`Saved to “${name}”`);
+          }}
+        />
+      )}
+      {voiceOpen && (
+        <VoiceSheet
+          reader={reader}
+          onClose={() => {
+            setVoiceOpen(false);
+            if (!reader.playing && micWasOn.current) {
+              micWasOn.current = false;
+              speech.start();
+            }
           }}
         />
       )}
@@ -582,6 +612,51 @@ function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: 
             </ul>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>; onClose: () => void }) {
+  const { voices, voice, voiceId, setVoice, preview } = reader;
+  const hasMan = voices.some(v => describeVoice(v).startsWith('Man'));
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Reading voice" onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>Reading voice</h2>
+          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+        </div>
+        {!voices.length && <p className="notice">No English voices found on this device.</p>}
+        <ul className="sheet-list" role="radiogroup">
+          {voices.map(v => {
+            const on = v === voice;
+            return (
+              <li key={v.voiceURI} className={on ? 'on' : ''}>
+                <button className="sheet-item voice-item" role="radio" aria-checked={on} onClick={() => setVoice(v.voiceURI)}>
+                  <span className="check" aria-hidden>{on ? '✓' : ''}</span>
+                  {voiceName(v)} <small>{describeVoice(v)}</small>
+                </button>
+                <button className="sheet-x" aria-label={`Hear ${voiceName(v)}`} onClick={() => preview(v)}>▶</button>
+              </li>
+            );
+          })}
+        </ul>
+        {voiceId && (
+          <button className="sheet-link" onClick={() => setVoice('')}>Use the default voice</button>
+        )}
+        <p className="voice-help">
+          {hasMan ? 'Voices come from your device.' : 'No man’s voice was found on this device.'} To add more voices and accents:
+          <br />iPhone: Settings → Accessibility → Spoken Content → Voices → English
+          <br />Android: Settings → Text-to-speech → Google → Install voice data → English
+        </p>
       </div>
     </div>
   );

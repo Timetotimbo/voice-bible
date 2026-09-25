@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.5.0 — 2026-09-25
+- Choose the reading voice: tap the speaker icon at the top to see your device's English voices, labeled man or woman and by accent (American, British, Australian, Indian, Irish, South African and more). Tap ▶ to hear a sample. Remembered on your device.
+- Changing the voice while reading restarts the current verse in the new voice.
+- Tips for downloading more voices on iPhone and Android.
+
 ## v1.4.0 — 2026-09-25
 - History: the bookmark icon at the top opens your recent searches; tap one to run it again, ✕ to remove it, or clear them all.
 - Saved lists: check verses, tap "Save to list", then pick a list or name a new one. Open a list from the bookmark icon's Lists tab to read or play it; check verses there to remove them. Rename (✎) or delete (✕) lists from the Lists tab.

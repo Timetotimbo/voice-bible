@@ -17,10 +17,47 @@ function chunks(text: string): string[] {
   return text.match(/[^.;:?!]+[.;:?!]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
 }
 
-function pickVoice(): SpeechSynthesisVoice | undefined {
-  const voices = synth?.getVoices() ?? [];
-  const english = voices.filter(v => v.lang.replace('_', '-').startsWith('en'));
-  return english.find(v => v.lang === 'en-US' && v.localService) ?? english.find(v => v.lang === 'en-US') ?? english[0];
+const lang = (v: SpeechSynthesisVoice) => v.lang.replace('_', '-');
+
+// Apple's novelty voices (sound effects, singing) aren't useful for reading Scripture
+const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Pipe Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical)\b/i;
+
+/** English voices installed on this device, sorted by accent then name. */
+function englishVoices(): SpeechSynthesisVoice[] {
+  return (synth?.getVoices() ?? [])
+    .filter(v => lang(v).startsWith('en') && !NOVELTY.test(v.name))
+    .sort((a, b) => lang(a).localeCompare(lang(b)) || a.name.localeCompare(b.name));
+}
+
+function defaultVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  return voices.find(v => v.lang === 'en-US' && v.localService) ?? voices.find(v => v.lang === 'en-US') ?? voices[0];
+}
+
+const ACCENTS: [RegExp, string][] = [
+  [/scotland|gbsct/i, 'Scottish'],
+  [/-US/i, 'American'],
+  [/-GB/i, 'British'],
+  [/-AU/i, 'Australian'],
+  [/-IN/i, 'Indian'],
+  [/-IE/i, 'Irish'],
+  [/-ZA/i, 'South African'],
+  [/-NZ/i, 'New Zealand'],
+  [/-CA/i, 'Canadian'],
+];
+// Browsers don't report a voice's gender, so go by the common voice names
+const MEN = /\b(male|david|mark|guy|george|ryan|brian|christopher|eric|roger|steffan|andrew|aaron|alex|daniel|fred|arthur|gordon|lee|oliver|rishi|thomas|tom|ralph|junior|nathan|reed|rocko|grandpa|eddy|liam|connor|mitchell|william|prabhat|ravi|luke|tony|evan|james|matthew|justin|joey|russell|geraint|brandon|davis|jason|kai|christopher)\b/i;
+const WOMEN = /\b(female|zira|aria|jenny|michelle|ana|emma|hazel|susan|libby|sonia|natasha|clara|samantha|karen|moira|tessa|veena|fiona|victoria|allison|ava|serena|kate|stephanie|martha|catherine|nicky|sandy|shelley|grandma|kathy|flo|neerja|heera|leah|joanna|salli|kimberly|ivy|amy|olivia|emily|isla|nicole|raveena|aditi|ayanda|molly|sara|jane|nancy|amber|ashley|cora|elizabeth|monica|linda|heather|google us english)\b/i;
+
+/** "Man · British", "Woman · American", or just the accent when gender is unknown. */
+export function describeVoice(v: SpeechSynthesisVoice): string {
+  const accent = ACCENTS.find(([re]) => re.test(lang(v)))?.[1] ?? lang(v);
+  const who = /female/i.test(v.name) ? 'Woman' : MEN.test(v.name) ? 'Man' : WOMEN.test(v.name) ? 'Woman' : '';
+  return who ? `${who} · ${accent}` : accent;
+}
+
+/** Friendly name: "Microsoft David - English (United States)" → "David". */
+export function voiceName(v: SpeechSynthesisVoice): string {
+  return v.name.replace(/^(Microsoft|Google|Apple)\s+/i, '').replace(/\s*[-(].*$/, '').replace(/\s+Online$/i, '') || v.name;
 }
 
 /**
@@ -62,11 +99,35 @@ export function useReader(onDone: () => void) {
   });
   const speedRef = useRef(speed);
   speedRef.current = speed;
+
+  // Voices load asynchronously in most browsers
+  const [voices, setVoices] = useState(englishVoices);
+  useEffect(() => {
+    if (!synth) return;
+    const update = () => setVoices(englishVoices());
+    synth.addEventListener('voiceschanged', update);
+    return () => synth.removeEventListener('voiceschanged', update);
+  }, []);
+  // Chosen voice (by voiceURI), remembered per device; '' = automatic
+  const [voiceId, setVoiceIdState] = useState(() => {
+    try {
+      return localStorage.getItem('voice') ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const voice = voices.find(v => v.voiceURI === voiceId) ?? defaultVoice(voices);
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
+  const queue = useRef<VerseHit[]>([]);
+  const index = useRef(0); // verse being read, so a speed or voice change can restart it
+
   const finish = useCallback(() => {
+    queue.current = [];
     setPlaying(null);
     setCurrent(null);
     onDoneRef.current();
@@ -79,9 +140,6 @@ export function useReader(onDone: () => void) {
     finish();
   }, [finish]);
 
-  const queue = useRef<VerseHit[]>([]);
-  const index = useRef(0); // verse being read, so a speed change can restart it
-
   const play = useCallback(
     (verses: VerseHit[], from = 0) => {
       if (!synth || !verses.length) return;
@@ -89,7 +147,6 @@ export function useReader(onDone: () => void) {
       synth.cancel();
       queue.current = verses;
       setPlaying(verses);
-      const voice = pickVoice();
 
       const speak = (i: number) => {
         if (id !== run.current) return;
@@ -103,6 +160,7 @@ export function useReader(onDone: () => void) {
         const parts = [...(sayRefsRef.current ? [spokenReference(verse)] : []), ...chunks(verse.text)];
         parts.forEach((text, j) => {
           const u = new SpeechSynthesisUtterance(text);
+          const voice = voiceRef.current;
           if (voice) u.voice = voice;
           u.lang = voice?.lang ?? 'en-US';
           u.rate = 0.95 * speedRef.current;
@@ -122,6 +180,11 @@ export function useReader(onDone: () => void) {
     [finish],
   );
 
+  // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
+  const restart = useCallback(() => {
+    if (queue.current.length && synth?.speaking) play(queue.current, index.current);
+  }, [play]);
+
   const setSpeed = useCallback(
     (next: number) => {
       setSpeedState(next);
@@ -131,10 +194,38 @@ export function useReader(onDone: () => void) {
       } catch {
         // storage unavailable; setting lasts for this visit
       }
-      // Queued speech keeps its old rate, so restart the current verse at the new one
-      if (synth?.speaking) play(queue.current, index.current);
+      restart();
     },
-    [play],
+    [restart],
+  );
+
+  const setVoice = useCallback(
+    (id: string) => {
+      setVoiceIdState(id);
+      voiceRef.current = voices.find(v => v.voiceURI === id) ?? defaultVoice(voices);
+      try {
+        localStorage.setItem('voice', id);
+      } catch {
+        // storage unavailable; setting lasts for this visit
+      }
+      restart();
+    },
+    [voices, restart],
+  );
+
+  /** Speaks a short sample in `v`, stopping any reading first. */
+  const preview = useCallback(
+    (v: SpeechSynthesisVoice) => {
+      if (!synth) return;
+      if (queue.current.length) stop();
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance('The Lord is my shepherd; I shall not want.');
+      u.voice = v;
+      u.lang = v.lang;
+      u.rate = 0.95 * speedRef.current;
+      synth.speak(u);
+    },
+    [stop],
   );
 
   useEffect(() => () => {
@@ -142,5 +233,6 @@ export function useReader(onDone: () => void) {
     synth?.cancel();
   }, []);
 
-  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed, play, stop };
+  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
+    voices, voice, voiceId, setVoice, preview, play, stop };
 }
