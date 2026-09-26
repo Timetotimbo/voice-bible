@@ -241,3 +241,5 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .chapter li.selected { box-shadow: inset 0 0 0 2px var(--purple-bright); }
 .chapter li.selected sup { color: var(--purple-bright); }
 .chapter li.reading.selected { box-shadow: 0 0 0 1px var(--purple-bright), inset 0 0 0 2px var(--purple-bright); }
+.sheet-sub { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 16px 0 6px; }
+.sheet-head + .sheet-sub { margin-top: 0; }

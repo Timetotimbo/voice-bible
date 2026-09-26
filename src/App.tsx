@@ -6,6 +6,7 @@ import {
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
 import { useLibrary, type VerseRef } from './useLibrary';
+import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { useSpeech } from './useSpeech';
 
@@ -428,7 +429,7 @@ function SearchResults({
           )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
-              ■ Stop{reader.current && ` · ${BOOKS[reader.current.book]} ${reader.current.chapter}:${reader.current.verse}`}
+              ■ Stop · <StopDetail reader={reader} full />
             </button>
           ) : (
             <button className="player-main" onClick={() => readAloud(queue)}>
@@ -538,7 +539,7 @@ function Chapter({
           )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
-              ■ Stop{reader.current && ` · ${reader.current.chapter}:${reader.current.verse}`}
+              ■ Stop · <StopDetail reader={reader} />
             </button>
           ) : (
             picked.length || askedLabel ? (
@@ -674,7 +675,7 @@ function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: 
 }
 
 function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>; onClose: () => void }) {
-  const { voices, voice, voiceId, setVoice, preview, refreshVoices } = reader;
+  const { voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices } = reader;
   const hasMan = voices.some(v => describeVoice(v).startsWith('Man'));
   const [checking, setChecking] = useState(!voices.length);
 
@@ -704,6 +705,28 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
           <h2>Reading voice</h2>
           <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
+        {RECORDED_VOICES.length > 0 && (
+          <>
+            <h3 className="sheet-sub">Natural voices</h3>
+            <ul className="sheet-list" role="radiogroup" aria-label="Natural voices">
+              {RECORDED_VOICES.map(v => {
+                const on = recordedVoice === v;
+                return (
+                  <li key={v.id} className={on ? 'on' : ''}>
+                    <button className="sheet-item voice-item" role="radio" aria-checked={on} onClick={() => setVoice(`rec:${v.id}`)}>
+                      <span className="check" aria-hidden>{on ? '✓' : ''}</span>
+                      {v.name} <small>{describeRecorded(v)}</small>
+                    </button>
+                    <button className="sheet-x" aria-label={`Hear ${v.name}`} onClick={() => preview(v.id)}>▶</button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="voice-help">Recorded voices that sound human. They stream over the internet.</p>
+          </>
+        )}
+
+        <h3 className="sheet-sub">Device voices</h3>
         {!voices.length && (
           <p className="notice">
             {checking ? 'Looking for voices…' : (
@@ -716,7 +739,7 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
         )}
         <ul className="sheet-list" role="radiogroup">
           {voices.map(v => {
-            const on = v === voice;
+            const on = !recordedVoice && v === voice;
             return (
               <li key={v.voiceURI} className={on ? 'on' : ''}>
                 <button className="sheet-item voice-item" role="radio" aria-checked={on} onClick={() => setVoice(v.voiceURI)}>
@@ -739,6 +762,13 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
       </div>
     </div>
   );
+}
+
+/** "John 3:16" (or "3:16" within a chapter) for the verse being read. */
+function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; full?: boolean }) {
+  const c = reader.current;
+  if (!c) return null;
+  return <>{full ? `${BOOKS[c.book]} ` : ''}{c.chapter}:{c.verse}</>;
 }
 
 /** Repeat, Refs and speed buttons shared by every play bar. */

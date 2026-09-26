@@ -1,8 +1,73 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOKS } from './bible/books';
 import type { VerseHit } from './bible/search';
+import { RECORDED_VOICES, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
+
+// Audio elements for recorded voices: the chapter being read, and the two reference clip files.
+// iPhone only lets an element play later if it was first started from a tap (see unlockAudio).
+const makeAudio = () => (typeof Audio === 'undefined' ? null : new Audio());
+const mainEl = makeAudio();
+const refEls = [makeAudio(), makeAudio()];
+const allEls = [mainEl, ...refEls].filter((el): el is HTMLAudioElement => !!el);
+const SILENCE = (() => {
+  const bytes = new Uint8Array(44 + 800).fill(128); // 0.1 s of 8-bit silence at 8 kHz
+  const view = new DataView(bytes.buffer);
+  const text = (at: number, s: string) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)));
+  text(0, 'RIFF'); view.setUint32(4, 36 + 800, true); text(8, 'WAVE'); text(12, 'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, 8000, true); view.setUint32(28, 8000, true); view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+  text(36, 'data'); view.setUint32(40, 800, true);
+  return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+})();
+/** Call from a tap so the elements may play later. */
+function unlockAudio() {
+  for (const el of allEls) {
+    if (!el.paused || el.src) continue;
+    el.src = SILENCE;
+    el.play().then(() => el.pause(), () => {});
+  }
+}
+let endSegment: (() => void) | null = null;
+/**
+ * Plays `src` from `start` until `end` (or the end of the file). With `keepGoing`, audio keeps running
+ * past `end` so the next verse of the same chapter follows without a seek.
+ */
+function playSegment(el: HTMLAudioElement, src: string, start: number, end: number | undefined, rate: number, keepGoing = false) {
+  return new Promise<'done' | 'error'>(resolve => {
+    endSegment?.();
+    const finish = (result: 'done' | 'error') => {
+      el.removeEventListener('timeupdate', tick);
+      el.onended = el.onerror = null;
+      endSegment = null;
+      resolve(result);
+    };
+    const tick = () => {
+      if (end === undefined || el.currentTime < end) return;
+      if (!keepGoing) el.pause();
+      finish('done');
+    };
+    endSegment = () => {
+      el.pause();
+      finish('done');
+    };
+    const begin = () => {
+      if (Math.abs(el.currentTime - start) > 0.3) el.currentTime = start;
+      el.defaultPlaybackRate = el.playbackRate = rate;
+      if (el.paused) el.play().catch(() => finish('error'));
+    };
+    el.addEventListener('timeupdate', tick);
+    el.onended = () => finish('done');
+    el.onerror = () => finish('error');
+    if (el.src !== src) {
+      el.src = src;
+      el.addEventListener('loadedmetadata', begin, { once: true });
+      el.load();
+    } else begin();
+  });
+}
+const REC = 'rec:';
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
@@ -133,6 +198,9 @@ export function useReader(onDone: () => void) {
   const voice = voices.find(v => v.voiceURI === voiceId) ?? defaultVoice(voices);
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
+  const recordedVoice = RECORDED_VOICES.find(v => REC + v.id === voiceId);
+  const recordedRef = useRef(recordedVoice?.id);
+  recordedRef.current = recordedVoice?.id;
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -148,19 +216,55 @@ export function useReader(onDone: () => void) {
   }, []);
 
   const stop = useCallback(() => {
-    if (!synth) return;
     run.current++;
-    synth.cancel();
+    synth?.cancel();
+    endSegment?.();
     finish();
   }, [finish]);
 
   const play = useCallback(
     (verses: VerseHit[], from = 0) => {
-      if (!synth || !verses.length) return;
+      const recorded = recordedRef.current;
+      if ((!synth && !recorded) || !verses.length) return;
       const id = ++run.current;
-      synth.cancel();
+      synth?.cancel();
+      endSegment?.();
       queue.current = verses;
       setPlaying(verses);
+
+      const speakRecorded = async (i: number, voiceName: string) => {
+        if (id !== run.current) return;
+        if (i >= verses.length) {
+          if (repeatRef.current) speakRecorded(0, voiceName);
+          else finish();
+          return;
+        }
+        index.current = i;
+        const verse = verses[i];
+        const next = verses[i + 1];
+        setCurrent(verse);
+        try {
+          const starts = await verseStarts(voiceName, verse.book, verse.chapter);
+          if (id !== run.current) return;
+          if (sayRefsRef.current) {
+            const [chapterClip, verseClip] = await refSpans(voiceName, verse);
+            if (id !== run.current) return;
+            if ((await playSegment(refEls[0]!, refsAudio(voiceName, 'chapters'), ...chapterClip, speedRef.current)) === 'error') throw 0;
+            if (id !== run.current) return;
+            if ((await playSegment(refEls[1]!, refsAudio(voiceName, 'verses'), ...verseClip, speedRef.current)) === 'error') throw 0;
+            if (id !== run.current) return;
+          }
+          // The next verse follows on in the same recording, so don't stop between them
+          const flows = !sayRefsRef.current && next?.book === verse.book && next.chapter === verse.chapter && next.verse === verse.verse + 1;
+          const src = chapterAudio(voiceName, verse.book, verse.chapter);
+          if ((await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows)) === 'error') throw 0;
+        } catch {
+          // Recording missing or offline: read the rest with the device voice
+          if (id !== run.current) return;
+          return synth ? speak(i) : finish();
+        }
+        speakRecorded(i + 1, voiceName);
+      };
 
       const speak = (i: number) => {
         if (id !== run.current) return;
@@ -186,17 +290,20 @@ export function useReader(onDone: () => void) {
               if (e.error !== 'interrupted' && e.error !== 'canceled') speak(i + 1);
             };
           }
-          synth.speak(u);
+          synth!.speak(u);
         });
       };
-      speak(from);
+      if (recorded) {
+        unlockAudio();
+        speakRecorded(from, recorded);
+      } else speak(from);
     },
     [finish],
   );
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
   const restart = useCallback(() => {
-    if (queue.current.length && synth?.speaking) play(queue.current, index.current);
+    if (queue.current.length) play(queue.current, index.current);
   }, [play]);
 
   const setSpeed = useCallback(
@@ -208,7 +315,9 @@ export function useReader(onDone: () => void) {
       } catch {
         // storage unavailable; setting lasts for this visit
       }
-      restart();
+      // Recordings can change speed as they play; device speech has to restart
+      if (recordedRef.current) allEls.forEach(el => (el.playbackRate = el.defaultPlaybackRate = next));
+      else restart();
     },
     [restart],
   );
@@ -217,6 +326,7 @@ export function useReader(onDone: () => void) {
     (id: string) => {
       setVoiceIdState(id);
       voiceRef.current = voices.find(v => v.voiceURI === id) ?? defaultVoice(voices);
+      recordedRef.current = id.startsWith(REC) ? id.slice(REC.length) : undefined;
       try {
         localStorage.setItem('voice', id);
       } catch {
@@ -227,12 +337,22 @@ export function useReader(onDone: () => void) {
     [voices, restart],
   );
 
-  /** Speaks a short sample in `v`, stopping any reading first. */
+  /** Plays a short sample (Psalm 23:1) in a device voice or a recorded voice id, stopping any reading first. */
   const preview = useCallback(
-    (v: SpeechSynthesisVoice) => {
-      if (!synth) return;
+    (v: SpeechSynthesisVoice | string) => {
       if (queue.current.length) stop();
-      synth.cancel();
+      synth?.cancel();
+      endSegment?.();
+      if (typeof v === 'string') {
+        unlockAudio();
+        const id = ++run.current;
+        verseStarts(v, 18, 23).then(
+          starts => id === run.current && void playSegment(mainEl!, chapterAudio(v, 18, 23), starts[0], starts[1], speedRef.current),
+          () => {},
+        );
+        return;
+      }
+      if (!synth) return;
       const u = new SpeechSynthesisUtterance('The Lord is my shepherd; I shall not want.');
       u.voice = v;
       u.lang = v.lang;
@@ -245,8 +365,9 @@ export function useReader(onDone: () => void) {
   useEffect(() => () => {
     run.current++;
     synth?.cancel();
+    endSegment?.();
   }, []);
 
-  return { supported: !!synth, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
-    voices, voice, voiceId, setVoice, preview, refreshVoices, play, stop };
+  return { supported: !!synth || !!mainEl, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
+    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, stop };
 }

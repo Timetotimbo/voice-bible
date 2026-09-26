@@ -1,3 +1,5 @@
 scripts/kjv-src.json
 node_modules
 dist
+audio
+scripts/.kokoro

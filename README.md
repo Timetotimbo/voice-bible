@@ -18,6 +18,16 @@ Voice input needs HTTPS or `localhost`, and works in Chrome (Android/desktop) an
 1. Add a JSON file to `public/bibles/` shaped as 66 books → chapters → verse strings, in canonical order (see `scripts/build-kjv.py`).
 2. List it in `src/bible/translations.ts`.
 
+## Natural voices
+
+Recorded voices made with the open [Kokoro](https://github.com/thewh1teagle/kokoro-onnx) model. Record them with:
+
+```sh
+uv run scripts/record-kokoro.py            # whole Bible into audio/ (resumable; add --books John,Psalms for a few)
+```
+
+Upload `audio/` to a host that allows cross-origin requests, then build with `VITE_AUDIO_BASE` set to its URL. Without it the voice picker shows device voices only.
+
 ## Deploy
 
 Every push to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`.
