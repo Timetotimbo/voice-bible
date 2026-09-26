@@ -27,6 +27,8 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          # Cloudflare R2 bucket holding the Natural voice recordings (scripts/upload-audio.sh)
+          VITE_AUDIO_BASE: https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/
       # SPA fallback so deep links and refreshes don't 404
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3

@@ -3,3 +3,4 @@ node_modules
 dist
 audio
 scripts/.kokoro
+audio-record.log

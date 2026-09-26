@@ -26,7 +26,7 @@ Recorded voices made with the open [Kokoro](https://github.com/thewh1teagle/koko
 uv run scripts/record-kokoro.py            # whole Bible into audio/ (resumable; add --books John,Psalms for a few)
 ```
 
-Upload `audio/` to a host that allows cross-origin requests, then build with `VITE_AUDIO_BASE` set to its URL. Without it the voice picker shows device voices only.
+Then `sh scripts/upload-audio.sh` sends new recordings to the `voice-bible-audio` Cloudflare R2 bucket (needs `npx wrangler login`). The deploy workflow points `VITE_AUDIO_BASE` at that bucket; without it the voice picker shows device voices only. To try it locally, run `VITE_AUDIO_BASE=https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/ npm run dev`.
 
 ## Deploy
 

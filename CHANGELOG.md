@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.8.0 — 2026-09-26
+- Natural voice: pick "Heart" under Natural voices in the voice picker to hear the Bible read by a recorded voice that sounds human. It streams over the internet.
+- Books are being added as they're recorded. Obadiah is ready now, with John, Ephesians and Revelation next. Chapters that aren't recorded yet are read with the device voice.
+- Speed changes take effect right away with the natural voice.
+
 ## v1.7.0 — 2026-09-25
 - Pick verses on the chapter page: tap any verses (for example 1, 5, 8 and 16) to outline them with a ✓, then tap "▶ Play 4" to hear just those, in chapter order. Tap a verse again to unselect it.
 - Save picked verses to a list, or clear them, from the bar that appears above the play buttons.
