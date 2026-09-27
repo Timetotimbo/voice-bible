@@ -103,10 +103,7 @@ button { cursor: pointer; }
 .home { color: var(--muted); text-align: center; }
 .home em { color: var(--purple-bright); font-style: normal; }
 
-.result-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
 .result-title { font-size: 1.05rem; color: var(--purple-bright); margin: 0 0 12px; }
-.result-head .result-title { margin: 0; flex: 1; min-width: 0; }
-.select-all { flex: none; background: none; border: 1px solid var(--purple); color: var(--purple-bright); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
 .quick-save { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }
 
@@ -230,7 +227,7 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
   position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 12px); z-index: 30;
   background: var(--purple-deep); border: 1px solid var(--purple); border-radius: 999px; padding: 8px 16px; font-size: 0.9rem;
 }
-.has-player.selecting { padding-bottom: 130px; }
+.has-player.selecting { padding-bottom: 170px; }
 .library-btn + .library-btn { margin-left: -8px; }
 .voice-item { display: flex; align-items: baseline; gap: 6px; }
 .voice-item .check { width: 1.1em; color: var(--purple-bright); flex: none; }

@@ -393,17 +393,8 @@ function SearchResults({
   }, [current]);
 
   return (
-    <section className={reader.supported && n ? `has-player ${picked.length ? 'selecting' : ''}` : ''}>
-      <div className="result-head">
-        <h2 className="result-title">{title}</h2>
-        {reader.supported && n > 1 && (
-          picked.length === n ? (
-            <button className="select-all" onClick={onClearSelection}>Unselect all</button>
-          ) : (
-            <button className="select-all" onClick={onSelectAll}>Select all {n.toLocaleString()}</button>
-          )
-        )}
-      </div>
+    <section className={reader.supported && n ? `has-player ${picked.length || n > 1 ? 'selecting' : ''}` : ''}>
+      <h2 className="result-title">{title}</h2>
       {!n && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
         {hits.slice(0, shown).map(hit => {
@@ -447,11 +438,17 @@ function SearchResults({
 
       {reader.supported && n > 0 && (
         <div className="player">
-          {picked.length > 0 && (
+          {/* In the bar pinned to the bottom, so it's in reach however far down a long search you are */}
+          {picked.length > 0 ? (
             <div className="selection-bar">
-              <span>{picked.length} selected</span>
+              <span>{picked.length.toLocaleString()} selected</span>
               {selectionActions(picked)}
+              {picked.length < n && <button onClick={onSelectAll}>All</button>}
               <button onClick={onClearSelection}>Clear</button>
+            </div>
+          ) : n > 1 && (
+            <div className="selection-bar">
+              <button onClick={onSelectAll}>Select all {n.toLocaleString()}</button>
             </div>
           )}
           {reader.playing ? (

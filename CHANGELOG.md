@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.9.1 — 2026-09-27
+- "Select all" moved to the play bar at the bottom of the screen, so it's always in reach, even far down a long search like "God". Once verses are selected, "Save to “God”", "Other list…", "All" and "Clear" appear in the same bar.
+
 ## v1.9.0 — 2026-09-27
 - "Select all" on search results and saved lists: one tap checks every verse, even ones further down the page.
 - One-tap save: after a search like "John", "Save to “John”" puts the selected verses in a list called John, creating it the first time and adding to it after that. "Other list…" still lets you pick or name a different list.
