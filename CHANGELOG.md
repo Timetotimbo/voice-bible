@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.10.0 — 2026-09-27
+- Keep reading past the end of a chapter: scroll down and the next chapter appears, on and on. "↑ Genesis 3" at the top adds the chapter before.
+- Swipe left for the next chapter, right for the previous one. Swipes starting at the very edge of the screen are left to your phone's back gesture.
+- "▶ Play chapter" and "▶ Whole chapter" keep reading into the following chapters, and the page follows along. Turn on Repeat to loop just the one chapter instead.
+- The play button names the chapter you've scrolled to, like "▶ Play Genesis 5".
+
 ## v1.9.1 — 2026-09-27
 - "Select all" moved to the play bar at the bottom of the screen, so it's always in reach, even far down a long search like "God". Once verses are selected, "Save to “God”", "Other list…", "All" and "Clear" appear in the same bar.
 
