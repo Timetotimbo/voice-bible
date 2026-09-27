@@ -103,7 +103,11 @@ button { cursor: pointer; }
 .home { color: var(--muted); text-align: center; }
 .home em { color: var(--purple-bright); font-style: normal; }
 
+.result-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
 .result-title { font-size: 1.05rem; color: var(--purple-bright); margin: 0 0 12px; }
+.result-head .result-title { margin: 0; flex: 1; min-width: 0; }
+.select-all { flex: none; background: none; border: 1px solid var(--purple); color: var(--purple-bright); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.quick-save { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }
 
 .verses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -186,7 +190,7 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .version { text-align: center; color: var(--muted); font-size: 0.75rem; opacity: 0.6; margin-top: 32px; }
 
 /* Selection actions (shown only while verses are checked) */
-.selection-bar { flex-basis: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+.selection-bar { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
 .selection-bar button { padding: 6px 12px !important; }
 .selection-bar button:first-of-type { background: var(--purple-deep); border-color: var(--purple); color: #fff; }
 

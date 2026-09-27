@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.9.0 — 2026-09-27
+- "Select all" on search results and saved lists: one tap checks every verse, even ones further down the page.
+- One-tap save: after a search like "John", "Save to “John”" puts the selected verses in a list called John, creating it the first time and adding to it after that. "Other list…" still lets you pick or name a different list.
+- The natural voice now sounds brighter and clearer. Chapters are being re-recorded and swap in as they finish.
+
 ## v1.8.0 — 2026-09-26
 - Natural voice: pick "Heart" under Natural voices in the voice picker to hear the Bible read by a recorded voice that sounds human. It streams over the internet.
 - Books are being added as they're recorded. Obadiah is ready now, with John, Ephesians and Revelation next. Chapters that aren't recorded yet are read with the device voice.

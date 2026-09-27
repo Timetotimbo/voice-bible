@@ -214,8 +214,24 @@ export default function App() {
             readAloud={readAloud}
             selected={selected}
             onToggle={toggle}
+            onSelectAll={() => setSelected(new Set(view.hits.map(hitKey)))}
             selectionActions={picked => (
-              <button onClick={() => setSheet(picked.map(toRef))}>Save to list</button>
+              <>
+                <button
+                  className="quick-save"
+                  onClick={() => {
+                    // Add to the list named like the search ("John"), creating it the first time
+                    const name = view.query;
+                    const list = library.lists.find(l => l.name.toLowerCase() === name.toLowerCase());
+                    library.addToList(picked.map(toRef), list ? { id: list.id } : { name });
+                    setSelected(new Set());
+                    setToast(`Saved ${picked.length.toLocaleString()} to “${list?.name ?? name}”`);
+                  }}
+                >
+                  Save to “{view.query}”
+                </button>
+                <button onClick={() => setSheet(picked.map(toRef))}>Other list…</button>
+              </>
             )}
             onClearSelection={() => setSelected(new Set())}
           />
@@ -236,6 +252,7 @@ export default function App() {
             readAloud={readAloud}
             selected={selected}
             onToggle={toggle}
+            onSelectAll={() => setSelected(new Set(savedHits.map(hitKey)))}
             selectionActions={picked => (
               <button
                 onClick={() => {
@@ -346,7 +363,7 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  selectionActions, onClearSelection, empty,
+  onSelectAll, selectionActions, onClearSelection, empty,
 }: {
   title: ReactNode;
   hits: VerseHit[];
@@ -359,6 +376,7 @@ function SearchResults({
   readAloud: (verses: VerseHit[]) => void;
   selected: Set<string>;
   onToggle: (key: string) => void;
+  onSelectAll: () => void;
   selectionActions: (picked: VerseHit[]) => ReactNode;
   onClearSelection: () => void;
   empty?: string;
@@ -376,7 +394,16 @@ function SearchResults({
 
   return (
     <section className={reader.supported && n ? `has-player ${picked.length ? 'selecting' : ''}` : ''}>
-      <h2 className="result-title">{title}</h2>
+      <div className="result-head">
+        <h2 className="result-title">{title}</h2>
+        {reader.supported && n > 1 && (
+          picked.length === n ? (
+            <button className="select-all" onClick={onClearSelection}>Unselect all</button>
+          ) : (
+            <button className="select-all" onClick={onSelectAll}>Select all {n.toLocaleString()}</button>
+          )
+        )}
+      </div>
       {!n && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
         {hits.slice(0, shown).map(hit => {
