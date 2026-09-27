@@ -5,3 +5,4 @@ audio
 scripts/.kokoro
 audio-record.log
 audio-upload.log
+audio-old-muffled

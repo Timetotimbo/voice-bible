@@ -14,9 +14,14 @@ find . -name '*.json' | sed 's|^\./||' | sort | while read -r json; do
   for file in "${json%.json}.mp3" "$json"; do
     grep -qxF "$file" .uploaded && continue
     case $file in *.mp3) type=audio/mpeg ;; *) type=application/json ;; esac
-    # On a failed upload, stop this pass; the next run retries from the same file
-    npx -y wrangler r2 object put "$BUCKET/$file" --file "$file" --remote \
-      --content-type "$type" --cache-control 'public, max-age=86400' >/dev/null 2>&1 || { echo "failed $file"; exit 1; }
+    # Try each file 3 times (slow home uploads sometimes drop); after that, stop this pass and retry next run
+    tries=0
+    until npx -y wrangler r2 object put "$BUCKET/$file" --file "$file" --remote \
+      --content-type "$type" --cache-control 'public, max-age=86400' >/dev/null 2>&1; do
+      tries=$((tries + 1))
+      [ $tries -lt 3 ] || { echo "failed $file"; exit 1; }
+      sleep 30
+    done
     echo "$file" >> .uploaded
     echo "uploaded $file"
   done

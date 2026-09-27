@@ -10,7 +10,7 @@
 # Writes VOICE/BOOK/CHAPTER.mp3 + .json (the second each verse starts at) and VOICE/refs/{chapters,verses}.mp3
 # + .json ([start, end] of every "John 3," and "verse 16." clip). Finished chapters are skipped, so it can be
 # stopped and restarted. The model (~340 MB) downloads once to scripts/.kokoro/. The full Bible is about
-# 75 hours of audio, roughly 1.6 GB of MP3.
+# 75 hours of audio, roughly 2.2 GB of MP3.
 import argparse, json, pathlib, re, sys, time, urllib.request
 import lameenc, numpy as np
 from kokoro_onnx import Kokoro
@@ -22,6 +22,8 @@ RATE = 24000
 LEAD = 0.25  # silence at the start of each file
 GAP = 0.5  # silence between verses; a verse's start is marked partway into the gap before it
 MARK = 0.15  # how far before the speech a start is marked, so seeking never clips the first word
+TREBLE_DB = 7  # Kokoro sounds a little muffled; boost the treble (rising from 2 kHz to full at 5 kHz)
+GAIN = 0.8  # headroom so the boosted peaks don't clip
 ORDINAL = {'1': 'First', '2': 'Second', '3': 'Third'}
 
 
@@ -58,9 +60,17 @@ def trim(samples: np.ndarray, threshold=0.01) -> np.ndarray:
     return samples[loud[0]:loud[-1] + 1] if loud.size else samples[:0]
 
 
+def brighten(samples: np.ndarray) -> np.ndarray:
+    pad = int(0.1 * RATE)  # padding keeps the filter from wrapping the end of a clip onto its start
+    x = np.pad(samples, pad)
+    hz = np.fft.rfftfreq(len(x), 1 / RATE)
+    boost = 10 ** (TREBLE_DB * np.clip((hz - 2000) / 3000, 0, 1) / 20)
+    return (np.fft.irfft(np.fft.rfft(x) * boost, len(x))[pad:-pad] * GAIN).astype(np.float32)
+
+
 def write_mp3(path: pathlib.Path, samples: np.ndarray):
     enc = lameenc.Encoder()
-    enc.set_bit_rate(48)
+    enc.set_bit_rate(64)
     enc.set_in_sample_rate(RATE)
     enc.set_channels(1)
     enc.set_quality(2)
@@ -76,7 +86,7 @@ def record(kokoro: Kokoro, voice: str, lines: list[str]) -> tuple[np.ndarray, li
     for line in lines:
         samples, rate = kokoro.create(line, voice=voice, speed=1.0, lang='en-us')
         assert rate == RATE, rate
-        speech = trim(samples)
+        speech = brighten(trim(samples))
         starts.append(round(max(0.0, at - MARK), 3))
         parts += [speech, silence(GAP)]
         at += (len(speech) + int(GAP * RATE)) / RATE
