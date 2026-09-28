@@ -170,6 +170,9 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 @keyframes from-right { from { transform: translateX(40%); opacity: 0; } }
 @keyframes from-left { from { transform: translateX(-40%); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .from-right, .from-left { animation: none; } }
+.toast-link { display: flex; align-items: center; gap: 8px; color: #fff; cursor: pointer; max-width: calc(100vw - 32px); white-space: nowrap; }
+.toast-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.toast-open { flex: none; font-weight: 700; color: #e5d8ff; }
 .toast.update { top: auto; bottom: calc(env(safe-area-inset-bottom) + 150px); z-index: 40; color: #fff; font-weight: 600; }
 
 /* Read aloud */

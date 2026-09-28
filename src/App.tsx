@@ -62,7 +62,9 @@ export default function App() {
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
-  const [toast, setToast] = useState('');
+  // Brief message near the top; one about a list can be tapped to open it
+  const [toast, setToastState] = useState<{ text: string; listId?: string } | null>(null);
+  const setToast = (text: string, listId?: string) => setToastState(text ? { text, listId } : null);
   const newVersion = useNewVersion();
   // A list someone shared, from the link this page was opened with
   const [incoming, setIncoming] = useState(() => sharedListInLink());
@@ -77,7 +79,8 @@ export default function App() {
   };
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(''), 2500);
+    // Longer when it can be tapped, so there's time to
+    const t = setTimeout(() => setToastState(null), toast.listId ? 4000 : 2500);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -206,6 +209,8 @@ export default function App() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // Put the keyboard (and the search pop-up) away so the results can be seen
+    (document.activeElement as HTMLElement | null)?.blur();
     run(typed);
   };
 
@@ -341,9 +346,9 @@ export default function App() {
                     // Add to the list named like the search ("John"), creating it the first time
                     const name = view.query;
                     const list = library.lists.find(l => l.name.toLowerCase() === name.toLowerCase());
-                    library.addToList(picked.map(toRef), list ? { id: list.id } : { name });
+                    const id = library.addToList(picked.map(toRef), list ? { id: list.id } : { name });
                     setSelected(new Set());
-                    setToast(`Saved ${picked.length.toLocaleString()} to “${list?.name ?? name}”`);
+                    setToast(`Saved ${picked.length.toLocaleString()} to “${list?.name ?? name}”`, id);
                   }}
                 >
                   Save to “{view.query}”
@@ -439,10 +444,10 @@ export default function App() {
             setSheet(null);
             openView({ kind: 'list', id });
           }}
-          onSaved={name => {
+          onSaved={(name, id, count) => {
             setSheet(null);
             setSelected(new Set());
-            setToast(`Saved to “${name}”`);
+            setToast(`Saved ${count.toLocaleString()} to “${name}”`, id);
           }}
           chats={chats.chats}
           onOpenChat={id => {
@@ -503,7 +508,21 @@ export default function App() {
           }}
         />
       )}
-      {toast && <div className="toast" role="status">{toast}</div>}
+      {toast && (toast.listId ? (
+        <button
+          className="toast toast-link"
+          onClick={() => {
+            const id = toast.listId!;
+            setToastState(null);
+            openView({ kind: 'list', id });
+          }}
+        >
+          <span className="toast-text">{toast.text}</span>
+          <span className="toast-open">Open ›</span>
+        </button>
+      ) : (
+        <div className="toast" role="status">{toast.text}</div>
+      ))}
       {newVersion && (
         <button className="toast update" onClick={() => location.reload()}>
           New version {newVersion} — tap to update
@@ -979,7 +998,7 @@ function LibrarySheet({
   onClose: () => void;
   onRun: (query: string) => void;
   onOpenList: (id: string) => void;
-  onSaved: (listName: string) => void;
+  onSaved: (listName: string, listId: string, count: number) => void;
   onShare: (list: VerseList) => void;
   chats: Chat[];
   onOpenChat: (id: string) => void;
@@ -1030,9 +1049,9 @@ function LibrarySheet({
     e.preventDefault();
     const name = newName.trim();
     if (!name) return;
-    library.addToList(saving ?? [], { name });
+    const id = library.addToList(saving ?? [], { name });
     setNewName('');
-    if (saving) onSaved(name);
+    if (saving) onSaved(name, id, saving.length);
   };
 
   return (
@@ -1154,7 +1173,7 @@ function LibrarySheet({
                     onClick={() => {
                       if (!saving) return onOpenList(l.id);
                       library.addToList(saving, { id: l.id });
-                      onSaved(l.name);
+                      onSaved(l.name, l.id, saving.length);
                     }}
                   >
                     {l.name} <small>{l.verses.length}</small>

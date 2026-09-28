@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.20.1 — 2026-09-28
+- The "Saved 143 to “Heaven and earth”" message near the top can now be tapped to open that list ("Open ›"). It stays up a little longer so there's time to tap it.
+- Searching now puts the keyboard away, so the results (and the Back button) aren't covered.
+
 ## v1.20.0 — 2026-09-28
 - Reorder your lists: in Lists, press and hold the ⠿ handle at the left of a list and drag it up or down. The new order is saved on that device.
 
