@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.15.0 — 2026-09-27
+- Follow along word by word: while a verse is read aloud, the word being spoken is highlighted, on chapter pages, search results and lists.
+- Device voices that report each word (such as Chrome on a computer) highlight exactly. For the Heart voice and other phone voices, the app times the words from the length of each word and the pauses at commas and full stops, and it learns the voice's pace as it goes.
+
 ## v1.14.0 — 2026-09-27
 - Share a list: in Lists, tap the share icon next to a list to send it as a link by text, email or any app. Opening the link on another phone or computer asks "Add list?". If you already have a list with that name, the verses are added to it.
 - ← Back now appears on every screen that has somewhere to go back to: search results, lists and chapters. It returns you to the same spot, even far down a long search.

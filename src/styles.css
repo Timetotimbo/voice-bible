@@ -144,6 +144,7 @@ button { cursor: pointer; }
 }
 .verse-card:active { background: var(--surface-2); }
 .ref { display: block; font-weight: 600; color: var(--purple-bright); font-size: 0.9rem; margin-bottom: 2px; }
+mark.word-now { background: var(--purple-bright); color: #fff; border-radius: 3px; padding: 0 2px; margin: 0 -2px; }
 mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px; }
 
 .more { display: block; width: 100%; margin-top: 14px; }

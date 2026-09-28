@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOKS } from './bible/books';
 import type { VerseHit } from './bible/search';
-import { RECORDED_VOICES, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
+import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
+import { speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
 
@@ -208,12 +209,38 @@ export function useReader(onDone: () => void) {
   const queue = useRef<VerseHit[]>([]);
   const index = useRef(0); // verse being read, so a speed or voice change can restart it
 
+  // The word being said, as a character range in the verse being read
+  const [word, setWord] = useState<{ start: number; end: number } | null>(null);
+  const wordStart = useRef(-1);
+  const showWord = useCallback((w: WordSpan | null) => {
+    if ((w?.start ?? -1) === wordStart.current) return;
+    wordStart.current = w?.start ?? -1;
+    setWord(w && { start: w.start, end: w.end });
+  }, []);
+  // While speech plays, `track` runs every frame to move the word along
+  const frame = useRef(0);
+  const follow = useCallback((track: () => void) => {
+    cancelAnimationFrame(frame.current);
+    const loop = () => {
+      track();
+      frame.current = requestAnimationFrame(loop);
+    };
+    loop();
+  }, []);
+  const unfollow = useCallback(() => cancelAnimationFrame(frame.current), []);
+  // Device voices that report each word get exact highlighting; for the rest, seconds per unit of
+  // speakingWeight at normal speed, learned from how long each phrase takes
+  const hasBoundaries = useRef(false);
+  const secondsPerWeight = useRef(0.07);
+
   const finish = useCallback(() => {
     queue.current = [];
+    unfollow();
+    showWord(null);
     setPlaying(null);
     setCurrent(null);
     onDoneRef.current();
-  }, []);
+  }, [unfollow, showWord]);
 
   const stop = useCallback(() => {
     run.current++;
@@ -243,6 +270,7 @@ export function useReader(onDone: () => void) {
         const verse = verses[i];
         const next = verses[i + 1];
         setCurrent(verse);
+        showWord(null);
         try {
           const starts = await verseStarts(voiceName, verse.book, verse.chapter);
           if (id !== run.current) return;
@@ -257,7 +285,17 @@ export function useReader(onDone: () => void) {
           // The next verse follows on in the same recording, so don't stop between them
           const flows = !sayRefsRef.current && next?.book === verse.book && next.chapter === verse.chapter && next.verse === verse.verse + 1;
           const src = chapterAudio(voiceName, verse.book, verse.chapter);
-          if ((await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows)) === 'error') throw 0;
+          const spans = wordSpans(verse.text);
+          const from = starts[verse.verse - 1] + SPEECH_LEAD;
+          follow(() => {
+            const el = mainEl!;
+            if (el.src !== src || el.seeking) return;
+            const to = starts[verse.verse] !== undefined ? starts[verse.verse] - SPEECH_TAIL : el.duration - SPEECH_GAP;
+            if (el.currentTime >= from && to > from) showWord(wordAt(spans, (el.currentTime - from) / (to - from)));
+          });
+          const result = await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows);
+          unfollow();
+          if (result === 'error') throw 0;
         } catch {
           // Recording missing or offline: read the rest with the device voice
           if (id !== run.current) return;
@@ -275,17 +313,55 @@ export function useReader(onDone: () => void) {
         }
         index.current = i;
         const verse = verses[i];
-        const parts = [...(sayRefsRef.current ? [spokenReference(verse)] : []), ...chunks(verse.text)];
-        parts.forEach((text, j) => {
+        const pieces = chunks(verse.text);
+        // Where each piece sits in the verse, so a word reported within a piece can be found in the verse
+        let pos = 0;
+        const offsets = pieces.map(c => {
+          const at = verse.text.indexOf(c, pos);
+          pos = at < 0 ? pos : at + c.length;
+          return Math.max(at, 0);
+        });
+        const parts = [...(sayRefsRef.current ? [{ text: spokenReference(verse), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
+        parts.forEach(({ text, at }, j) => {
           const u = new SpeechSynthesisUtterance(text);
           const voice = voiceRef.current;
           if (voice) u.voice = voice;
           u.lang = voice?.lang ?? 'en-US';
           u.rate = 0.95 * speedRef.current;
-          if (j === 0) u.onstart = () => id === run.current && setCurrent(verse);
+          const spans = at < 0 ? [] : wordSpans(verse.text, at, at + text.length);
+          let began = 0;
+          u.onstart = () => {
+            if (id !== run.current) return;
+            if (j === 0) setCurrent(verse);
+            showWord(spans[0] ?? null);
+            began = performance.now();
+            if (!hasBoundaries.current && spans.length) {
+              const seconds = speakingWeight(text) * secondsPerWeight.current / u.rate;
+              follow(() => showWord(wordAt(spans, (performance.now() - began) / 1000 / seconds)));
+            }
+          };
+          u.onboundary = e => {
+            if (id !== run.current || at < 0 || (e.name && e.name !== 'word')) return;
+            hasBoundaries.current = true;
+            unfollow();
+            const c = at + e.charIndex;
+            showWord(spans.filter(s => s.start <= c).pop() ?? null);
+          };
+          const ended = () => {
+            unfollow();
+            const took = (performance.now() - began) / 1000;
+            // Learn this voice's pace from whole phrases, ignoring blips
+            if (began && at >= 0 && took > 0.5) {
+              secondsPerWeight.current = 0.7 * secondsPerWeight.current + 0.3 * (took * u.rate / speakingWeight(text));
+            }
+          };
+          u.onend = () => {
+            ended();
+            if (j === parts.length - 1 && id === run.current) speak(i + 1);
+          };
           if (j === parts.length - 1) {
-            u.onend = () => speak(i + 1);
             u.onerror = e => {
+              ended();
               // 'interrupted'/'canceled' come from our own stop(); anything else, move on
               if (e.error !== 'interrupted' && e.error !== 'canceled') speak(i + 1);
             };
@@ -298,7 +374,7 @@ export function useReader(onDone: () => void) {
         speakRecorded(from, recorded);
       } else speak(from);
     },
-    [finish],
+    [finish, follow, unfollow, showWord],
   );
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
@@ -368,6 +444,6 @@ export function useReader(onDone: () => void) {
     endSegment?.();
   }, []);
 
-  return { supported: !!synth || !!mainEl, playing, current, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
+  return { supported: !!synth || !!mainEl, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
     voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, stop };
 }

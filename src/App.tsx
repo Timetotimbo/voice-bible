@@ -25,6 +25,17 @@ function Highlight({ text, pattern }: { text: string; pattern: RegExp | null }):
   return text.split(pattern).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part));
 }
 
+/** Verse text with the word being read aloud marked. */
+function ReadingText({ text, word }: { text: string; word: { start: number; end: number } }) {
+  return (
+    <>
+      {text.slice(0, word.start)}
+      <mark className="word-now">{text.slice(word.start, word.end)}</mark>
+      {text.slice(word.end)}
+    </>
+  );
+}
+
 export default function App() {
   const [translation, setTranslation] = useState<TranslationId>('kjv');
   const [bible, setBible] = useState<BibleText | null>(null);
@@ -516,7 +527,13 @@ function SearchResults({
               <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
                 <button className="verse-body" onClick={() => onOpen(hit)}>
                   <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
-                  <span className="text"><Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} /></span>
+                  <span className="text">
+                    {isCurrent && reader.word ? (
+                      <ReadingText text={hit.text} word={reader.word} />
+                    ) : (
+                      <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
+                    )}
+                  </span>
                 </button>
                 {reader.supported && (
                   <div className="verse-actions">
@@ -712,7 +729,8 @@ function Chapter({
                   },
                 })}
               >
-                <sup>{isSelected ? '✓' : ''}{v}</sup> {h.text}
+                <sup>{isSelected ? '✓' : ''}{v}</sup>{' '}
+                {key === readingKey && reader.word ? <ReadingText text={h.text} word={reader.word} /> : h.text}
               </li>
             );
           })}

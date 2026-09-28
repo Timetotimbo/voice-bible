@@ -5,6 +5,12 @@ import type { VerseHit } from './bible/search';
  * second each verse starts at, so single verses play by seeking within the chapter.
  * Layout under AUDIO_BASE: VOICE/BOOK/CHAPTER.mp3 + .json, and VOICE/refs/{chapters,verses}.mp3 + .json.
  */
+// record-kokoro.py marks each verse's start 0.15 s before the speech and leaves 0.5 s of quiet after it,
+// so the words run from start + LEAD to the next verse's start - TAIL (or the file's end - GAP)
+export const SPEECH_LEAD = 0.15;
+export const SPEECH_TAIL = 0.35;
+export const SPEECH_GAP = 0.5;
+
 export const AUDIO_BASE: string = import.meta.env.VITE_AUDIO_BASE ?? '';
 
 export interface RecordedVoice {
