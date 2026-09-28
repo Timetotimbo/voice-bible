@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.18.0 — 2026-09-27
+- iPad, iPhone and Mac Safari: fewer microphone prompts. Safari can ask for the microphone every time listening starts, and the app used to restart listening on its own (after a pause, after reading aloud, and when you came back to the tab). On Apple devices the mic now listens only when you tap it: tap, say a word or verse, and it stops until the next tap.
+- To stop the prompts entirely on an iPad or iPhone: in Safari tap aA (left of the address) › Website Settings › Microphone › Allow.
+- Android and computers keep listening on their own as before.
+
 ## v1.17.0 — 2026-09-27
 - Copy verses from one list to another: in a list, select verses (or tap "Select all") and tap "Copy to list…", then pick another list or name a new one. The verses stay in the original list too, and "Remove" still takes them out.
 

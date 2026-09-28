@@ -19,10 +19,18 @@ const Recognition: (new () => SpeechRecognitionLike) | undefined =
 
 export type SpeechStatus = 'unsupported' | 'idle' | 'listening' | 'blocked';
 
+// Safari (and every browser on iPhone and iPad) can ask for the microphone each time listening starts,
+// so there the mic only listens when tapped instead of restarting itself.
+const ua = navigator.userAgent;
+export const TAP_TO_TALK =
+  /iPad|iPhone|iPod/.test(ua) ||
+  (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) || // iPad asking for the desktop site
+  (/Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg|Android/.test(ua));
+
 /**
  * Keeps the microphone listening (restarting after the browser's silence timeouts)
- * and reports each final phrase. Starts automatically; browsers that require a tap
- * first (iOS Safari) land in 'idle' and start on the next start() call.
+ * and reports each final phrase. Starts automatically, except with TAP_TO_TALK, where each
+ * start() listens until the browser stops and then waits for the next tap.
  */
 export function useSpeech(onPhrase: (text: string) => void) {
   const [status, setStatus] = useState<SpeechStatus>(Recognition ? 'idle' : 'unsupported');
@@ -62,6 +70,7 @@ export function useSpeech(onPhrase: (text: string) => void) {
       };
       r.onend = () => {
         setInterim('');
+        if (TAP_TO_TALK) wanted.current = false;
         if (wanted.current && !document.hidden) {
           // Browsers end recognition after silence; pick it back up
           setTimeout(() => {
@@ -92,11 +101,11 @@ export function useSpeech(onPhrase: (text: string) => void) {
   }, []);
 
   useEffect(() => {
-    start();
+    if (!TAP_TO_TALK) start();
     // Pause while the tab is in the background and resume on return
     const onVisibility = () => {
       if (document.hidden) rec.current?.stop();
-      else if (wanted.current) start();
+      else if (wanted.current && !TAP_TO_TALK) start();
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {

@@ -9,7 +9,7 @@ import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
-import { useSpeech } from './useSpeech';
+import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
 type View =
   | { kind: 'home' }
@@ -88,7 +88,8 @@ export default function App() {
   });
   const readAloud = (verses: VerseHit[]) => {
     if (speechRef.current?.status === 'listening') {
-      micWasOn.current = true;
+      // Turning it back on by itself would make Apple devices ask for the microphone again
+      micWasOn.current = !TAP_TO_TALK;
       speechRef.current.stop();
     }
     reader.play(verses);
@@ -233,7 +234,7 @@ export default function App() {
           onClick={() => {
             // Pause the mic so voice samples aren't heard as searches
             if (speech.status === 'listening') {
-              micWasOn.current = true;
+              micWasOn.current = !TAP_TO_TALK;
               speech.stop();
             }
             setVoiceOpen(true);
@@ -498,9 +499,11 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
   const { status, interim, start, stop } = speech;
   const listening = status === 'listening';
   const message = {
-    listening: 'Listening… just speak',
-    idle: 'Tap the mic to start listening',
-    blocked: 'Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.',
+    listening: TAP_TO_TALK ? 'Listening… say a word or verse' : 'Listening… just speak',
+    idle: TAP_TO_TALK ? 'Tap the mic, then speak' : 'Tap the mic to start listening',
+    blocked: TAP_TO_TALK
+      ? 'Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.'
+      : 'Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.',
     unsupported: 'Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.',
   }[status];
 
