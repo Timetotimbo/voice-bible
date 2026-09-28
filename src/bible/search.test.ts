@@ -73,3 +73,30 @@ describe('searchVerses', () => {
     expect(hit.text.match(highlightPattern('for god so loved')!)?.[0]).toBe('For God so loved');
   });
 });
+
+describe('Spanish', () => {
+  const rv: BibleText = (() => {
+    const raw: BibleText = JSON.parse(readFileSync(new URL('../../public/bibles/rv1909.json', import.meta.url), 'utf8'));
+    return raw.map(b => b.map(c => c.map(v => v.replace(/\{([^|}]*)\|[^}]*\}/g, '$1'))));
+  })();
+  const rvIndex = buildIndex(rv);
+
+  it('opens Spanish references', () => {
+    expect(parseReference('Juan 3:16', rv)).toEqual({ book: 42, chapter: 3, verseStart: 16 });
+    expect(parseReference('Génesis 1', rv)).toEqual({ book: 0, chapter: 1 });
+    expect(parseReference('genesis 1', rv)).toEqual({ book: 0, chapter: 1 });
+    expect(parseReference('Salmo 23', rv)).toEqual({ book: 18, chapter: 23 });
+    expect(parseReference('primera de Juan 4:8', rv)).toBeNull(); // "de" isn't understood; "1 Juan" is
+    expect(parseReference('1 Juan 4:8', rv)).toEqual({ book: 61, chapter: 4, verseStart: 8 });
+    expect(parseReference('Apocalipsis 21:1 al 4', rv)).toEqual({ book: 65, chapter: 21, verseStart: 1, verseEnd: 4 });
+  });
+
+  it('searches without caring about accents, and marks the accented words', () => {
+    const hits = searchVerses(rvIndex, 'corazon');
+    expect(hits.length).toBeGreaterThan(100);
+    expect(hits.every(h => /corazón/i.test(h.text))).toBe(true);
+    const text = 'Porque de tal manera amó Dios al mundo';
+    expect(text.match(wordsPattern('amo dios')!)).toEqual(['amó', 'Dios']);
+    expect(text.match(highlightPattern('de tal manera amo')!)?.[0]).toBe('de tal manera amó');
+  });
+});

@@ -32,7 +32,11 @@ export const TAP_TO_TALK =
  * and reports each final phrase. Starts automatically, except with TAP_TO_TALK, where each
  * start() listens until the browser stops and then waits for the next tap.
  */
-export function useSpeech(onPhrase: (text: string) => void) {
+export function useSpeech(onPhrase: (text: string) => void, language: 'en' | 'es' = 'en') {
+  // Listen in the language of the Bible being read
+  const speechLang = language === 'es' ? 'es-ES' : 'en-US';
+  const speechLangRef = useRef(speechLang);
+  speechLangRef.current = speechLang;
   const [status, setStatus] = useState<SpeechStatus>(Recognition ? 'idle' : 'unsupported');
   const [interim, setInterim] = useState('');
   const wanted = useRef(false);
@@ -45,7 +49,6 @@ export function useSpeech(onPhrase: (text: string) => void) {
     wanted.current = true;
     if (!rec.current) {
       const r = new Recognition();
-      r.lang = 'en-US';
       r.continuous = true;
       r.interimResults = true;
       r.onstart = () => setStatus('listening');
@@ -76,6 +79,7 @@ export function useSpeech(onPhrase: (text: string) => void) {
           setTimeout(() => {
             if (!wanted.current) return;
             try {
+              r.lang = speechLangRef.current;
               r.start();
             } catch {
               setStatus('idle');
@@ -87,6 +91,7 @@ export function useSpeech(onPhrase: (text: string) => void) {
       };
       rec.current = r;
     }
+    rec.current.lang = speechLangRef.current;
     try {
       rec.current.start();
     } catch {
@@ -114,6 +119,11 @@ export function useSpeech(onPhrase: (text: string) => void) {
       rec.current?.abort();
     };
   }, [start]);
+
+  // Switching language while listening: stop, and the automatic restart listens in the new one
+  useEffect(() => {
+    if (status === 'listening') rec.current?.stop();
+  }, [speechLang]);
 
   return { status, interim, start, stop };
 }

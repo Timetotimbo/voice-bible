@@ -1,4 +1,4 @@
-import { BOOKS, BOOK_LOOKUP } from './books';
+import { BOOK_LOOKUP, bookName, plainName } from './books';
 
 /** Bible text: books → chapters → verses. */
 export type BibleText = string[][][];
@@ -20,7 +20,7 @@ export interface Reference {
 }
 
 export function formatReference(r: Reference): string {
-  let s = `${BOOKS[r.book]} ${r.chapter}`;
+  let s = `${bookName(r.book)} ${r.chapter}`;
   if (r.verseStart) s += `:${r.verseStart}`;
   if (r.verseEnd && r.verseEnd !== r.verseStart) s += `-${r.verseEnd}`;
   return s;
@@ -30,6 +30,9 @@ export function formatReference(r: Reference): string {
 export function normalize(s: string): string {
   return s
     .toLowerCase()
+    .replace(/æ/g, 'ae')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // accents don't matter: "corazon" finds "corazón"
     .replace(/æ/g, 'ae')
     .replace(/['’]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
@@ -79,6 +82,8 @@ function numberWordsToDigits(words: string[]): string[] {
 
 const ORDINALS: Record<string, string> = {
   first: '1', '1st': '1', second: '2', '2nd': '2', third: '3', '3rd': '3',
+  primera: '1', primero: '1', '1ra': '1', '1ro': '1', segunda: '2', segundo: '2', '2da': '2', '2do': '2',
+  tercera: '3', tercero: '3', '3ra': '3', '3ro': '3',
 };
 
 /**
@@ -86,12 +91,12 @@ const ORDINALS: Record<string, string> = {
  * "first John chapter 4 verse 8", "Psalm 23", "Genesis 1:1-3", "Romans 8 28 through 30".
  */
 export function parseReference(input: string, bible?: BibleText): Reference | null {
-  const cleaned = input.toLowerCase().replace(/[:.,]/g, ' ').replace(/[–—-]/g, ' - ');
+  const cleaned = plainName(input).replace(/[:.,]/g, ' ').replace(/[–—-]/g, ' - ');
   let words = cleaned
     .split(/\s+/)
     .filter(Boolean)
-    .filter(w => w !== 'chapter' && w !== 'verse' && w !== 'verses')
-    .map(w => (w === 'through' || w === 'to' || w === 'thru' ? '-' : w))
+    .filter(w => !['chapter', 'verse', 'verses', 'capitulo', 'versiculo', 'versiculos', 'verso'].includes(w))
+    .map(w => (['through', 'to', 'thru', 'al', 'hasta'].includes(w) ? '-' : w))
     .map(w => ORDINALS[w] ?? w);
   // A leading "one/two/three" before a book name is a book number ("one John")
   if (['one', 'two', 'three'].includes(words[0]) && words.length > 1 && !(words[1] in ONES)) {
@@ -157,18 +162,26 @@ export function searchVerses(index: IndexedVerse[], query: string, mode: SearchM
   return hits.length ? hits : index.filter(v => v.norm.includes(q));
 }
 
-const wordPattern = (w: string) => w.split('').join("['’]?").replace(/ae/g, '(?:ae|æ)');
+// A plain letter in a search also matches its accented forms in the text ("corazon" marks "corazón")
+const ACCENTED: Record<string, string> = { a: 'aáàâä', e: 'eéèêë', i: 'iíìîï', o: 'oóòôö', u: 'uúùûü', n: 'nñ', c: 'cç' };
+const wordPattern = (w: string) =>
+  (w.match(/ae|./g) ?? [])
+    .map(t => (t === 'ae' ? '(?:ae|æ)' : ACCENTED[t] ? `[${ACCENTED[t]}]` : t))
+    .join("['’]?");
+// Word edges that count accented letters as letters (\b doesn't)
+const START = '(?<![\\p{L}\\p{N}])';
+const END = '(?![\\p{L}\\p{N}])';
 
 /** Regex that finds the query in original verse text, tolerant of punctuation between words. */
 export function highlightPattern(query: string): RegExp | null {
   const words = normalize(query).split(' ').filter(Boolean);
   if (!words.length) return null;
-  return new RegExp(`(${words.map(wordPattern).join('[^a-z0-9æ]+')})`, 'gi');
+  return new RegExp(`(${words.map(wordPattern).join('[^\\p{L}\\p{N}]+')})`, 'giu');
 }
 
 /** Regex that finds each query word on its own, for verses that have the words apart. */
 export function wordsPattern(query: string): RegExp | null {
   const words = normalize(query).split(' ').filter(Boolean);
   if (!words.length) return null;
-  return new RegExp(`\\b(${words.map(wordPattern).join('|')})\\b`, 'gi');
+  return new RegExp(`${START}(${words.map(wordPattern).join('|')})${END}`, 'giu');
 }

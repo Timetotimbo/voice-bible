@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { BOOK_ABBREVS, BOOKS } from './bible/books';
+import { bookAbbrev, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { loadStrongs, type Rendering, type StrongsEntry } from './bible/strongs';
 
@@ -102,8 +102,8 @@ export function WordSheet({ word, code: first, versesWith, renderingsOf, onClose
             <h3 className="sheet-sub">Where it’s used <small>verses per book</small></h3>
             <div className="book-counts">
               {byBook.map(([book, n]) => (
-                <button key={book} aria-label={`${n} in ${BOOKS[book]}`} onClick={() => onSearch(code, book)}>
-                  {BOOK_ABBREVS[book]} <b>{n}</b>
+                <button key={book} aria-label={`${n} in ${bookName(book)}`} onClick={() => onSearch(code, book)}>
+                  {bookAbbrev(book)} <b>{n}</b>
                 </button>
               ))}
             </div>

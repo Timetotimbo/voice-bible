@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
-import { BOOKS } from './bible/books';
+import { bookName, bookNames, setBookLanguage } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
   type BibleText, type Reference, type VerseHit,
@@ -26,7 +26,7 @@ type View =
   | { kind: 'chat'; id: string };
 
 const PAGE = 50;
-const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open)\s+/i;
+const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open|busca(r)?|encuentra|abre|abrir|lee(r)?|ir a|ve a)\s+/i;
 
 function Highlight({ text, pattern }: { text: string; pattern: RegExp | null }): ReactNode {
   if (!pattern) return text;
@@ -96,6 +96,8 @@ export default function App() {
       // storage unavailable; lasts for this visit
     }
   };
+  const language = TRANSLATIONS.find(t => t.id === translation)!.lang;
+  setBookLanguage(language); // book names on screen follow the Bible's language
   // Word study: the tapped word and its Strong's number
   const [studyWord, setStudyWord] = useState<{ word: string; code: string } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
@@ -149,7 +151,7 @@ export default function App() {
       micWasOn.current = false;
       speechRef.current?.start();
     }
-  });
+  }, language);
   const readAloud = (verses: VerseHit[]) => {
     if (speechRef.current?.status === 'listening') {
       // Turning it back on by itself would make Apple devices ask for the microphone again
@@ -271,7 +273,7 @@ export default function App() {
     if (viewRef.current.kind === 'chat' && speakIntoChat.current) return speakIntoChat.current(text);
     setTyped(text);
     run(text);
-  });
+  }, language);
   speechRef.current = speech;
 
   const onSubmit = (e: FormEvent) => {
@@ -394,7 +396,7 @@ export default function App() {
             title={
               <>
                 {view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
-                {view.inBook !== undefined && ` in ${BOOKS[view.inBook]}`}
+                {view.inBook !== undefined && ` in ${bookName(view.inBook)}`}
                 {view.asWord && <> as “{view.asWord}”</>}
               </>
             }
@@ -745,7 +747,7 @@ function SearchResults({
               )}
               <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
                 <button className="verse-body" onClick={() => onOpen(hit)}>
-                  <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
+                  <span className="ref">{bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
                   <span className="text">
                     {isCurrent && reader.word ? (
                       <ReadingText text={hit.text} word={reader.word} />
@@ -760,7 +762,7 @@ function SearchResults({
                   <div className="verse-actions">
                     <button
                       className="icon-btn"
-                      aria-label={isCurrent ? 'Stop' : `Play ${BOOKS[hit.book]} ${hit.chapter}:${hit.verse}`}
+                      aria-label={isCurrent ? 'Stop' : `Play ${bookName(hit.book)} ${hit.chapter}:${hit.verse}`}
                       onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
                     >
                       {isCurrent ? '■' : '▶'}
@@ -840,7 +842,7 @@ function Chapter({
   const main = indexOf(book, chapter);
   const versesOf = (i: number): VerseHit[] =>
     bible[chapters[i].book][chapters[i].chapter - 1].map((text, v) => ({ ...chapters[i], verse: v + 1, text }));
-  const name = (i: number) => `${BOOKS[chapters[i].book]} ${chapters[i].chapter}`;
+  const name = (i: number) => `${bookName(chapters[i].book)} ${chapters[i].chapter}`;
 
   // The chapter on screen; starts at the one asked for, then changes with swipes
   const [shownAt, setShownAt] = useState(main);
@@ -1080,7 +1082,7 @@ function GotoSheet({ bible, start, onClose, onGo }: {
           <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="wheels">
-          <Wheel label="Book" items={BOOKS} index={book} onChange={setBook} />
+          <Wheel label="Book" items={bookNames()} index={book} onChange={setBook} />
           <Wheel label="Chapter" items={chapterItems} index={ch - 1} onChange={i => setChapter(i + 1)} />
           <Wheel label="Verse" items={verseItems} index={v} onChange={setVerse} />
         </div>
@@ -1365,10 +1367,10 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label="Reading voice" onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Reading voice</h2>
+          <h2>Reading voice{reader.language === 'es' && ' · Español'}</h2>
           <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
-        {RECORDED_VOICES.length > 0 && (
+        {RECORDED_VOICES.length > 0 && reader.language === 'en' && (
           <>
             <h3 className="sheet-sub">Natural voices</h3>
             <ul className="sheet-list" role="radiogroup" aria-label="Natural voices">
@@ -1431,7 +1433,7 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
 function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; full?: boolean }) {
   const c = reader.current;
   if (!c) return null;
-  return <>{full ? `${BOOKS[c.book]} ` : ''}{c.chapter}:{c.verse}</>;
+  return <>{full ? `${bookName(c.book)} ` : ''}{c.chapter}:{c.verse}</>;
 }
 
 /** Repeat, Refs and speed buttons shared by every play bar. */

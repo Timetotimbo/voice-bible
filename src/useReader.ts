@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BOOKS } from './bible/books';
+import { BOOKS, BOOKS_ES } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
 import { speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
@@ -86,8 +86,20 @@ const REC = 'rec:';
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
-/** "1 John 4:8" → "First John 4, verse 8" so it isn't read as a time or a list of numbers. */
-function spokenReference(v: VerseHit): string {
+export type ReadingLanguage = 'en' | 'es';
+
+// "1 Samuel" is "Primero de Samuel" (a book), "1 Juan" is "Primera de Juan" (a letter)
+const ORDINAL_ES: Record<string, [string, string]> = { '1': ['Primero', 'Primera'], '2': ['Segundo', 'Segunda'], '3': ['Tercero', 'Tercera'] };
+
+/**
+ * "1 John 4:8" → "First John 4, verse 8" (or "Primera de Juan 4, versículo 8") so it isn't read as a time or a
+ * list of numbers.
+ */
+function spokenReference(v: VerseHit, language: ReadingLanguage): string {
+  if (language === 'es') {
+    const book = BOOKS_ES[v.book].replace(/^([123]) /, (_, n) => `${ORDINAL_ES[n][v.book < 39 ? 0 : 1]} de `);
+    return `${book} ${v.chapter}, versículo ${v.verse}.`;
+  }
   const book = BOOKS[v.book].replace(/^([123]) /, (_, n) => `${ORDINAL[n]} `).replace(/^Psalms$/, 'Psalm');
   return `${book} ${v.chapter}, verse ${v.verse}.`;
 }
@@ -102,21 +114,31 @@ const lang = (v: SpeechSynthesisVoice) => (v.lang || '').replace('_', '-');
 // Apple's novelty voices (sound effects, singing) aren't useful for reading Scripture
 const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Pipe Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical)\b/i;
 
-const isEnglish = (v: SpeechSynthesisVoice) => /^en\b/i.test(lang(v)) || /english/i.test(v.name);
+const speaks = (v: SpeechSynthesisVoice, language: ReadingLanguage) =>
+  language === 'es' ? /^es\b/i.test(lang(v)) || /spanish|español/i.test(v.name) : /^en\b/i.test(lang(v)) || /english/i.test(v.name);
 
-/** English voices installed on this device (or every voice, if none say they're English), sorted by accent then name. */
-function englishVoices(): SpeechSynthesisVoice[] {
+/** Voices on this device for the language (or every voice, if none say they speak it), sorted by accent then name. */
+function voicesFor(language: ReadingLanguage): SpeechSynthesisVoice[] {
   const all = (synth?.getVoices() ?? []).filter(v => !NOVELTY.test(v.name));
-  const english = all.filter(isEnglish);
-  return (english.length ? english : all).sort((a, b) => lang(a).localeCompare(lang(b)) || a.name.localeCompare(b.name));
+  const matching = all.filter(v => speaks(v, language));
+  return (matching.length ? matching : all).sort((a, b) => lang(a).localeCompare(lang(b)) || a.name.localeCompare(b.name));
 }
 
-function defaultVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
-  return voices.find(v => v.lang === 'en-US' && v.localService) ?? voices.find(v => v.lang === 'en-US') ?? voices[0];
+function defaultVoice(voices: SpeechSynthesisVoice[], language: ReadingLanguage = 'en'): SpeechSynthesisVoice | undefined {
+  const preferred = language === 'es' ? ['es-US', 'es-MX', 'es-ES'] : ['en-US'];
+  for (const code of preferred) {
+    const found = voices.find(v => lang(v) === code && v.localService) ?? voices.find(v => lang(v) === code);
+    if (found) return found;
+  }
+  return voices[0];
 }
 
 const ACCENTS: [RegExp, string][] = [
   [/scotland|gbsct/i, 'Scottish'],
+  [/es-ES/i, 'Spain'],
+  [/es-MX/i, 'Mexican'],
+  [/es-US/i, 'US Spanish'],
+  [/es-/i, 'Latin American'],
   [/-US/i, 'American'],
   [/-GB/i, 'British'],
   [/-AU/i, 'Australian'],
@@ -127,8 +149,8 @@ const ACCENTS: [RegExp, string][] = [
   [/-CA/i, 'Canadian'],
 ];
 // Browsers don't report a voice's gender, so go by the common voice names
-const MEN = /\b(male|david|mark|guy|george|ryan|brian|christopher|eric|roger|steffan|andrew|aaron|alex|daniel|fred|arthur|gordon|lee|oliver|rishi|thomas|tom|ralph|junior|nathan|reed|rocko|grandpa|eddy|liam|connor|mitchell|william|prabhat|ravi|luke|tony|evan|james|matthew|justin|joey|russell|geraint|brandon|davis|jason|kai|christopher)\b/i;
-const WOMEN = /\b(female|zira|aria|jenny|michelle|ana|emma|hazel|susan|libby|sonia|natasha|clara|samantha|karen|moira|tessa|veena|fiona|victoria|allison|ava|serena|kate|stephanie|martha|catherine|nicky|sandy|shelley|grandma|kathy|flo|neerja|heera|leah|joanna|salli|kimberly|ivy|amy|olivia|emily|isla|nicole|raveena|aditi|ayanda|molly|sara|jane|nancy|amber|ashley|cora|elizabeth|monica|linda|heather|google us english)\b/i;
+const MEN = /\b(male|jorge|juan|diego|carlos|pablo|enrique|alvaro|raul|andres|david|mark|guy|george|ryan|brian|christopher|eric|roger|steffan|andrew|aaron|alex|daniel|fred|arthur|gordon|lee|oliver|rishi|thomas|tom|ralph|junior|nathan|reed|rocko|grandpa|eddy|liam|connor|mitchell|william|prabhat|ravi|luke|tony|evan|james|matthew|justin|joey|russell|geraint|brandon|davis|jason|kai|christopher)\b/i;
+const WOMEN = /\b(female|monica|paulina|helena|laura|sabina|lucia|elvira|dalia|marisol|paloma|zira|aria|jenny|michelle|ana|emma|hazel|susan|libby|sonia|natasha|clara|samantha|karen|moira|tessa|veena|fiona|victoria|allison|ava|serena|kate|stephanie|martha|catherine|nicky|sandy|shelley|grandma|kathy|flo|neerja|heera|leah|joanna|salli|kimberly|ivy|amy|olivia|emily|isla|nicole|raveena|aditi|ayanda|molly|sara|jane|nancy|amber|ashley|cora|elizabeth|monica|linda|heather|google us english)\b/i;
 
 /** "Man · British", "Woman · American", or just the accent when gender is unknown. */
 export function describeVoice(v: SpeechSynthesisVoice): string {
@@ -146,7 +168,10 @@ export function voiceName(v: SpeechSynthesisVoice): string {
  * Reads a list of verses aloud in order, optionally repeating the list.
  * `onDone` fires when playback finishes or is stopped.
  */
-export function useReader(onDone: () => void) {
+/** Reads verses aloud. `language` is the Bible's: Spanish uses Spanish device voices (the recordings are English). */
+export function useReader(onDone: () => void, language: ReadingLanguage = 'en') {
+  const languageRef = useRef(language);
+  languageRef.current = language;
   const [playing, setPlaying] = useState<VerseHit[] | null>(null);
   const [current, setCurrent] = useState<VerseHit | null>(null);
   const [repeat, setRepeat] = useState(false);
@@ -184,12 +209,12 @@ export function useReader(onDone: () => void) {
 
   // Voices load asynchronously in most browsers
   // Voices load late on many phones, and some never fire 'voiceschanged', so also poll for a few seconds
-  const [voices, setVoices] = useState(englishVoices);
+  const [voices, setVoices] = useState(() => voicesFor(language));
   const refreshVoices = useCallback(() => {
-    const next = englishVoices();
+    const next = voicesFor(language);
     setVoices(prev => (prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next));
     return next.length;
-  }, []);
+  }, [language]);
   useEffect(() => {
     if (!synth) return;
     synth.addEventListener?.('voiceschanged', refreshVoices);
@@ -202,18 +227,22 @@ export function useReader(onDone: () => void) {
       synth.removeEventListener?.('voiceschanged', refreshVoices);
     };
   }, [refreshVoices]);
-  // Chosen voice (by voiceURI), remembered per device; '' = automatic
-  const [voiceId, setVoiceIdState] = useState(() => {
+  // Chosen voice (by voiceURI), remembered per device and per language; '' = automatic
+  const voiceKey = language === 'en' ? 'voice' : `voice-${language}`;
+  const savedVoice = useCallback(() => {
     try {
-      return localStorage.getItem('voice') ?? '';
+      return localStorage.getItem(voiceKey) ?? '';
     } catch {
       return '';
     }
-  });
-  const voice = voices.find(v => v.voiceURI === voiceId) ?? defaultVoice(voices);
+  }, [voiceKey]);
+  const [voiceId, setVoiceIdState] = useState(savedVoice);
+  useEffect(() => setVoiceIdState(savedVoice()), [savedVoice]);
+  const voice = voices.find(v => v.voiceURI === voiceId) ?? defaultVoice(voices, language);
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
-  const recordedVoice = RECORDED_VOICES.find(v => REC + v.id === voiceId);
+  // The recordings are of the English KJV
+  const recordedVoice = language === 'en' ? RECORDED_VOICES.find(v => REC + v.id === voiceId) : undefined;
   const recordedRef = useRef(recordedVoice?.id);
   recordedRef.current = recordedVoice?.id;
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
@@ -336,12 +365,12 @@ export function useReader(onDone: () => void) {
           pos = at < 0 ? pos : at + c.length;
           return Math.max(at, 0);
         });
-        const parts = [...(sayRefsRef.current ? [{ text: spokenReference(verse), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
+        const parts = [...(sayRefsRef.current ? [{ text: spokenReference(verse, languageRef.current), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
         parts.forEach(({ text, at }, j) => {
           const u = new SpeechSynthesisUtterance(text);
           const voice = voiceRef.current;
           if (voice) u.voice = voice;
-          u.lang = voice?.lang ?? 'en-US';
+          u.lang = voice?.lang ?? (languageRef.current === 'es' ? 'es-ES' : 'en-US');
           u.rate = 0.95 * speedRef.current;
           const spans = at < 0 ? [] : wordSpans(verse.text, at, at + text.length);
           let began = 0;
@@ -416,16 +445,16 @@ export function useReader(onDone: () => void) {
   const setVoice = useCallback(
     (id: string) => {
       setVoiceIdState(id);
-      voiceRef.current = voices.find(v => v.voiceURI === id) ?? defaultVoice(voices);
+      voiceRef.current = voices.find(v => v.voiceURI === id) ?? defaultVoice(voices, language);
       recordedRef.current = id.startsWith(REC) ? id.slice(REC.length) : undefined;
       try {
-        localStorage.setItem('voice', id);
+        localStorage.setItem(voiceKey, id);
       } catch {
         // storage unavailable; setting lasts for this visit
       }
       restart();
     },
-    [voices, restart],
+    [voices, restart, language, voiceKey],
   );
 
   /** Plays a short sample (Psalm 23:1) in a device voice or a recorded voice id, stopping any reading first. */
@@ -459,6 +488,6 @@ export function useReader(onDone: () => void) {
     endSegment?.();
   }, []);
 
-  return { supported: !!synth || !!mainEl, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
+  return { supported: !!synth || !!mainEl, language, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
     voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, stop };
 }

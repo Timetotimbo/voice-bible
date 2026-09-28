@@ -4,8 +4,9 @@ import { untag } from './strongs';
 // To add a translation: put its JSON (66 books → chapters → verses) in public/bibles/ and list it here.
 // A tagged translation marks words with Strong's numbers as {word|H430} (see scripts/build-kjvs.py).
 export const TRANSLATIONS = [
-  { id: 'kjv', abbrev: 'KJV', name: 'King James Version', file: 'bibles/kjv.json', tagged: false },
-  { id: 'kjvs', abbrev: 'KJV+S', name: "King James Version with Strong's numbers", file: 'bibles/kjvs.json', tagged: true },
+  { id: 'kjv', abbrev: 'KJV', name: 'King James Version', file: 'bibles/kjv.json', tagged: false, lang: 'en' },
+  { id: 'kjvs', abbrev: 'KJV+S', name: "King James Version with Strong's numbers", file: 'bibles/kjvs.json', tagged: true, lang: 'en' },
+  { id: 'rv1909', abbrev: 'RV1909', name: 'Reina-Valera 1909 (Español)', file: 'bibles/rv1909.json', tagged: true, lang: 'es' },
 ] as const;
 
 export type TranslationId = (typeof TRANSLATIONS)[number]['id'];

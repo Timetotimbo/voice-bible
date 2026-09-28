@@ -18,9 +18,9 @@ Voice input needs HTTPS or `localhost`, and works in Chrome (Android/desktop) an
 1. Add a JSON file to `public/bibles/` shaped as 66 books → chapters → verse strings, in canonical order (see `scripts/build-kjv.py`).
 2. List it in `src/bible/translations.ts`.
 
-## KJV + Strong's
+## KJV + Strong's and Reina-Valera 1909
 
-`python3 scripts/build-kjvs.py` rebuilds `public/bibles/kjvs.json` (KJV with each translated word tagged `{word|H430}`, from eBible.org, public domain) and `public/bibles/strongs.json` (Strong's Hebrew and Greek dictionaries from Open Scriptures, CC BY-SA, credited in the word-study panel).
+`python3 scripts/build-strongs.py` rebuilds `public/bibles/kjvs.json` and `public/bibles/rv1909.json` (KJV and the Spanish Reina-Valera 1909, each translated word tagged `{word|H430}`, from eBible.org, public domain) and `public/bibles/strongs.json` (Strong's Hebrew and Greek dictionaries from Open Scriptures, CC BY-SA, credited in the word-study panel). Each translation's `lang` sets the book names, reading voice and voice-search language.
 
 ## Natural voices
 

@@ -2,6 +2,14 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.27.0 — 2026-09-28
+- Spanish: pick "RV1909" (Reina-Valera 1909) in the translation menu. It's the public-domain Reina-Valera; the 1960 revision is still under copyright.
+  - Book names show in Spanish (Génesis, Juan, Salmos…), and references like "Juan 3:16", "Salmo 23" or "Apocalipsis 21:1 al 4" open directly.
+  - Search ignores accents: "corazon" finds "corazón".
+  - Reading aloud uses a Spanish voice on your device and says "Salmos 23, versículo 1". The voice you pick for Spanish is remembered separately from your English one. (The Heart recordings are English, so they're used only for English.)
+  - Voice search listens in Spanish while RV1909 is chosen.
+  - Word study works in Spanish too: tap a word to see the Hebrew or Greek behind it, where it's used, and how the Reina-Valera translates it.
+
 ## v1.26.0 — 2026-09-28
 - Lists fold up too: tap "▾ Lists" to close or open them, remembered on each device. When you're saving verses, your lists always show so you can pick one.
 - ChatGPT now comes below Lists.
