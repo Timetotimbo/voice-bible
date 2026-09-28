@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.24.1 — 2026-09-28
+- The ChatGPT section in Lists folds up: closed, it's one line ("▸ ChatGPT 24" with a "+ New" button), so your lists come first. Tap it to show your chats and "Import from ChatGPT". Open or closed is remembered on each device, and it starts closed.
+
 ## v1.24.0 — 2026-09-28
 - Bring chats over from ChatGPT: open the bookmark icon › Lists › "⇩ Import from ChatGPT".
   - Best way: in ChatGPT go to Settings › Data controls › Export data, download the .zip from the email, and choose it here. Pick the chats you want (there's a search box), and they appear under ChatGPT with every message, ready to continue.

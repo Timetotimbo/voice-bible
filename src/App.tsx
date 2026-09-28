@@ -1133,6 +1133,22 @@ function LibrarySheet({
   const [tab, setTab] = useState<'history' | 'lists'>('lists');
   const [newName, setNewName] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
+  // The ChatGPT section folds away so a long run of chats doesn't push the lists down; remembered per device
+  const [chatsOpen, setChatsOpenState] = useState(() => {
+    try {
+      return localStorage.getItem('chatsOpen') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setChatsOpen = (open: boolean) => {
+    setChatsOpenState(open);
+    try {
+      localStorage.setItem('chatsOpen', open ? '1' : '0');
+    } catch {
+      // storage unavailable; lasts while the panel is open
+    }
+  };
   const { history } = library;
   const lists = library.lists.filter(l => l.id !== hideList);
 
@@ -1215,35 +1231,40 @@ function LibrarySheet({
 
         {!saving && tab === 'lists' && (
           <>
-            <h3 className="sheet-sub">ChatGPT</h3>
-            <ul className="sheet-list">
-              <li>
-                <button className="sheet-item new-chat" onClick={onNewChat}>+ New chat</button>
-              </li>
-              <li>
-                <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
-              </li>
-              {chats.map(c => deleting === `chat:${c.id}` ? (
-                <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
-                  <span>Delete this chat?</span>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      onDeleteChat(c.id);
-                      setDeleting(null);
-                    }}
-                  >
-                    Delete
-                  </button>
-                  <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+            <div className="section-head">
+              <button className="section-toggle" aria-expanded={chatsOpen} onClick={() => setChatsOpen(!chatsOpen)}>
+                <span className="chevron" aria-hidden>{chatsOpen ? '▾' : '▸'}</span> ChatGPT
+                {chats.length > 0 && <small>{chats.length}</small>}
+              </button>
+              <button className="section-new" onClick={onNewChat}>+ New</button>
+            </div>
+            {chatsOpen && (
+              <ul className="sheet-list">
+                <li>
+                  <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
                 </li>
-              ) : (
-                <li key={c.id}>
-                  <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
-                  <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
-                </li>
-              ))}
-            </ul>
+                {chats.map(c => deleting === `chat:${c.id}` ? (
+                  <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
+                    <span>Delete this chat?</span>
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        onDeleteChat(c.id);
+                        setDeleting(null);
+                      }}
+                    >
+                      Delete
+                    </button>
+                    <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                  </li>
+                ) : (
+                  <li key={c.id}>
+                    <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
+                    <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <h3 className="sheet-sub">Lists</h3>
           </>
         )}

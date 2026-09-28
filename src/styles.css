@@ -375,3 +375,13 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .import-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .import-item small { color: var(--muted); white-space: nowrap; }
 .import-item.have { opacity: 0.55; }
+
+/* Foldable ChatGPT section in Lists */
+.section-head { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
+.section-toggle {
+  flex: 1; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 8px 0; text-align: left;
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+.section-toggle .chevron { width: 1em; color: var(--purple-bright); font-size: 0.9rem; }
+.section-toggle small { background: var(--surface-2); border-radius: 999px; padding: 1px 8px; letter-spacing: 0; text-transform: none; font-size: 0.8rem; }
+.section-new { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; color: var(--purple-bright); font-weight: 600; font-size: 0.85rem; }
