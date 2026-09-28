@@ -17,7 +17,7 @@ import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
 type View =
   | { kind: 'home' }
-  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string } // strongs: searching for a Strong's number
+  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number } // strongs: a Strong's number search
   | { kind: 'list'; id: string }
   | { kind: 'chapter'; ref: Reference }
   | { kind: 'chat'; id: string };
@@ -161,6 +161,7 @@ export default function App() {
   }, [translation]);
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
+  const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
 
   const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
@@ -385,7 +386,12 @@ export default function App() {
           <SearchResults
             strongs={view.strongs}
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
-            title={<>{view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”</>}
+            title={
+              <>
+                {view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
+                {view.inBook !== undefined && ` in ${BOOKS[view.inBook]}`}
+              </>
+            }
             hits={view.hits}
             query={view.query}
             shown={shown}
@@ -560,12 +566,14 @@ export default function App() {
         <WordSheet
           word={studyWord.word}
           code={studyWord.code}
-          count={code => versesWithCode(bible, code).length}
+          versesWith={studyVerses}
           onClose={() => setStudyWord(null)}
-          onSearch={code => {
+          onSearch={(code, book) => {
             setStudyWord(null);
             setTyped(code);
-            run(code);
+            if (book === undefined) return run(code);
+            library.remember(code);
+            openView({ kind: 'search', query: code, strongs: code, inBook: book, hits: studyVerses(code).filter(h => h.book === book) });
           }}
         />
       )}

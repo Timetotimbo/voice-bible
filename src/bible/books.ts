@@ -11,6 +11,15 @@ export const BOOKS = [
   '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude', 'Revelation',
 ];
 
+/** Short names, in the same order, for tight spaces like the word-study panel's list of books. */
+export const BOOK_ABBREVS = [
+  'Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1 Sam', '2 Sam', '1 Kgs', '2 Kgs', '1 Chr', '2 Chr', 'Ezra',
+  'Neh', 'Esth', 'Job', 'Ps', 'Prov', 'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos', 'Obad',
+  'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal', 'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1 Cor',
+  '2 Cor', 'Gal', 'Eph', 'Phil', 'Col', '1 Thess', '2 Thess', '1 Tim', '2 Tim', 'Titus', 'Phlm', 'Heb', 'Jas', '1 Pet',
+  '2 Pet', '1 John', '2 John', '3 John', 'Jude', 'Rev',
+];
+
 const EXTRA_ALIASES: Record<string, string> = {
   psalm: 'Psalms',
   'song of songs': 'Song of Solomon',

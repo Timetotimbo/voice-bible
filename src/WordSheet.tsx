@@ -1,4 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { BOOK_ABBREVS, BOOKS } from './bible/books';
+import type { VerseHit } from './bible/search';
 import { loadStrongs, type StrongsEntry } from './bible/strongs';
 
 /** Makes "from H433 (אֱלוֹהַּ)" in a derivation tappable, to follow a word back to its root. */
@@ -16,12 +18,12 @@ function Codes({ text, known, onCode }: { text: string; known: (code: string) =>
 }
 
 /** Word study: the Hebrew or Greek word behind an English word, from Strong's dictionary. */
-export function WordSheet({ word, code: first, count, onClose, onSearch }: {
+export function WordSheet({ word, code: first, versesWith, onClose, onSearch }: {
   word: string;
   code: string;
-  count: (code: string) => number; // verses using this word
+  versesWith: (code: string) => VerseHit[]; // every verse using a word
   onClose: () => void;
-  onSearch: (code: string) => void;
+  onSearch: (code: string, book?: number) => void; // list the verses, or just those in one book
 }) {
   const [code, setCode] = useState(first); // can move to a root word
   const [dictionary, setDictionary] = useState<Record<string, StrongsEntry> | null>(null);
@@ -38,7 +40,14 @@ export function WordSheet({ word, code: first, count, onClose, onSearch }: {
   }, [onClose]);
 
   const hebrew = code.startsWith('H');
-  const uses = count(code);
+  const verses = useMemo(() => versesWith(code), [versesWith, code]);
+  const uses = verses.length;
+  // Verses per book, in Bible order
+  const byBook = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const v of verses) counts.set(v.book, (counts.get(v.book) ?? 0) + 1);
+    return [...counts];
+  }, [verses]);
   const [lemma, xlit, pron, definition, kjv, derivation] = entry ?? [];
 
   return (
@@ -85,6 +94,18 @@ export function WordSheet({ word, code: first, count, onClose, onSearch }: {
         <button className="goto-open" disabled={!uses} onClick={() => onSearch(code)}>
           Every verse with {code} ({uses.toLocaleString()})
         </button>
+        {byBook.length > 0 && (
+          <>
+            <h3 className="sheet-sub">Where it’s used <small>verses per book</small></h3>
+            <div className="book-counts">
+              {byBook.map(([book, n]) => (
+                <button key={book} aria-label={`${n} in ${BOOKS[book]}`} onClick={() => onSearch(code, book)}>
+                  {BOOK_ABBREVS[book]} <b>{n}</b>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         <p className="credit">Strong’s dictionary (1894), from Open Scriptures, CC BY-SA</p>
       </div>
     </div>

@@ -340,3 +340,7 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .xlit { color: var(--purple-bright); font-style: italic; }
 .xlit span { color: var(--muted); font-style: normal; }
 .credit { font-size: 0.75rem; color: var(--muted); text-align: center; margin: 10px 0 0 !important; }
+.sheet-sub small { text-transform: none; letter-spacing: 0; font-size: 0.8rem; margin-left: 6px; opacity: 0.8; }
+.book-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.book-counts button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 10px; font-size: 0.85rem; color: var(--text, inherit); }
+.book-counts b { color: var(--purple-bright); margin-left: 2px; }
