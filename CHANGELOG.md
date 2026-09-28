@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.18.1 — 2026-09-28
+- Fix: with the Heart voice, playing search results or lists (verses that don't follow each other) sometimes ran past the end of a verse and caught the start of the next verse's first word. Each verse now stops cleanly in the pause after its last word.
+
 ## v1.18.0 — 2026-09-27
 - iPad, iPhone and Mac Safari: fewer microphone prompts. Safari can ask for the microphone every time listening starts, and the app used to restart listening on its own (after a pause, after reading aloud, and when you came back to the tab). On Apple devices the mic now listens only when you tap it: tap, say a word or verse, and it stops until the next tap.
 - To stop the prompts entirely on an iPad or iPhone: in Safari tap aA (left of the address) › Website Settings › Microphone › Allow.

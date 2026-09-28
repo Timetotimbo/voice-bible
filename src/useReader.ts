@@ -33,21 +33,34 @@ function unlockAudio() {
 let endSegment: (() => void) | null = null;
 /**
  * Plays `src` from `start` until `end` (or the end of the file). With `keepGoing`, audio keeps running
- * past `end` so the next verse of the same chapter follows without a seek.
+ * past `end` so the next verse of the same chapter follows without a seek. `stopEarly` seconds are
+ * taken off `end` when stopping, to finish in the quiet after the last word rather than at the edge of
+ * whatever comes next.
  */
-function playSegment(el: HTMLAudioElement, src: string, start: number, end: number | undefined, rate: number, keepGoing = false) {
+function playSegment(el: HTMLAudioElement, src: string, start: number, end: number | undefined, rate: number, keepGoing = false, stopEarly = 0) {
   return new Promise<'done' | 'error'>(resolve => {
     endSegment?.();
+    let done = false;
+    let frame = 0;
     const finish = (result: 'done' | 'error') => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(frame);
       el.removeEventListener('timeupdate', tick);
       el.onended = el.onerror = null;
       endSegment = null;
       resolve(result);
     };
+    const stopAt = end === undefined ? undefined : keepGoing ? end : end - stopEarly;
     const tick = () => {
-      if (end === undefined || el.currentTime < end) return;
+      if (stopAt === undefined || el.currentTime < stopAt) return;
       if (!keepGoing) el.pause();
       finish('done');
+    };
+    // timeupdate only comes ~4 times a second, late enough to catch the next word; check every frame too
+    const poll = () => {
+      tick();
+      if (!done) frame = requestAnimationFrame(poll);
     };
     endSegment = () => {
       el.pause();
@@ -57,6 +70,7 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
       if (Math.abs(el.currentTime - start) > 0.3) el.currentTime = start;
       el.defaultPlaybackRate = el.playbackRate = rate;
       if (el.paused) el.play().catch(() => finish('error'));
+      poll();
     };
     el.addEventListener('timeupdate', tick);
     el.onended = () => finish('done');
@@ -293,7 +307,8 @@ export function useReader(onDone: () => void) {
             const to = starts[verse.verse] !== undefined ? starts[verse.verse] - SPEECH_TAIL : el.duration - SPEECH_GAP;
             if (el.currentTime >= from && to > from) showWord(wordAt(spans, (el.currentTime - from) / (to - from)));
           });
-          const result = await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows);
+          // Stop in the quiet after the verse (it lasts SPEECH_TAIL + SPEECH_LEAD before the next one's words)
+          const result = await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows, SPEECH_TAIL - 0.15);
           unfollow();
           if (result === 'error') throw 0;
         } catch {
