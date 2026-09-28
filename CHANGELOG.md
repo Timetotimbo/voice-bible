@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.16.0 — 2026-09-27
+- Trying out: tap in the search box and a small pop-up offers "All words" (every verse with all your words, in any order, exact phrases first) or "Exact phrase" (only the words together, as typed). Switching redoes the search on screen, and your choice is remembered.
+
 ## v1.15.0 — 2026-09-27
 - Follow along word by word: while a verse is read aloud, the word being spoken is highlighted, on chapter pages, search results and lists.
 - Device voices that report each word (such as Chrome on a computer) highlight exactly. For the Heart voice and other phone voices, the app times the words from the length of each word and the pauses at commas and full stops, and it learns the voice's pace as it goes.

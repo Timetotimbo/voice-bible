@@ -54,6 +54,11 @@ describe('searchVerses', () => {
     expect(hits.every(h => /\bprincipalities\b/i.test(h.text) && /\bpowers\b/i.test(h.text))).toBe(true);
   });
 
+  it('leaves out the any-order verses in exact mode', () => {
+    expect(searchVerses(index, 'principalities powers', 'exact').some(h => h.loose)).toBe(false);
+    expect(searchVerses(index, 'love your enemies', 'exact').every(h => /love your enemies/i.test(h.text))).toBe(true);
+  });
+
   it('keeps single-word searches exact', () => {
     expect(searchVerses(index, 'love').some(h => h.loose)).toBe(false);
   });

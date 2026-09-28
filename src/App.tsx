@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { BOOKS } from './bible/books';
 import {
-  buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern,
+  buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
@@ -44,6 +44,15 @@ export default function App() {
   const [shown, setShown] = useState(PAGE);
   const [typed, setTyped] = useState('');
   const pending = useRef<string | null>(null);
+  // Search for all the words in any order, or only the exact phrase; picked in a pop-up under the search box
+  const [searchMode, setSearchModeState] = useState<SearchMode>(() => {
+    try {
+      return localStorage.getItem('searchMode') === 'exact' ? 'exact' : 'words';
+    } catch {
+      return 'words';
+    }
+  });
+  const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
@@ -155,10 +164,24 @@ export default function App() {
       }
       library.remember(input);
       const ref = parseReference(input, bible);
-      openView(ref ? { kind: 'chapter', ref } : { kind: 'search', query: input, hits: searchVerses(index, input) });
+      openView(ref ? { kind: 'chapter', ref } : { kind: 'search', query: input, hits: searchVerses(index, input, searchMode) });
     },
-    [bible, index, openView, library.remember],
+    [bible, index, openView, library.remember, searchMode],
   );
+
+  const setSearchMode = (mode: SearchMode) => {
+    setSearchModeState(mode);
+    try {
+      localStorage.setItem('searchMode', mode);
+    } catch {
+      // storage unavailable; lasts for this visit
+    }
+    // Redo the search on screen the new way
+    if (view.kind === 'search' && index) {
+      setSelected(new Set());
+      setView({ ...view, hits: searchVerses(index, view.query, mode) });
+    }
+  };
 
   useEffect(() => {
     if (index && pending.current) {
@@ -243,10 +266,31 @@ export default function App() {
         <input
           type="search"
           inputMode="search"
-          placeholder="Type a word or John 3:16"
+          placeholder="Word or John 3:16"
           value={typed}
           onChange={e => setTyped(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          // A moment's grace so a tap on the pop-up still lands if the phone moves focus first
+          onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
         />
+        {searchFocused && (
+          <div className="search-mode" role="radiogroup" aria-label="Search for">
+            {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={searchMode === mode}
+                className={searchMode === mode ? 'on' : ''}
+                // Keep the keyboard up: choosing shouldn't take focus from the search box
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => setSearchMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />

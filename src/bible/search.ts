@@ -138,15 +138,17 @@ export function buildIndex(bible: BibleText): IndexedVerse[] {
 }
 
 /**
- * Every verse containing the word or phrase as whole words, then (for several words) the verses that
- * have all the words in any order, marked `loose`. Falls back to partial words when nothing matches.
+ * Every verse containing the word or phrase as whole words, then (for several words, in 'words' mode)
+ * the verses that have all the words in any order, marked `loose`. Falls back to partial words when nothing matches.
  */
-export function searchVerses(index: IndexedVerse[], query: string): VerseHit[] {
+export type SearchMode = 'words' | 'exact';
+
+export function searchVerses(index: IndexedVerse[], query: string, mode: SearchMode = 'words'): VerseHit[] {
   const q = normalize(query);
   if (!q) return [];
   const whole = index.filter(v => v.norm.includes(` ${q} `));
   const words = [...new Set(q.split(' '))];
-  const loose = words.length > 1
+  const loose = mode === 'words' && words.length > 1
     ? index
         .filter(v => !v.norm.includes(` ${q} `) && words.every(w => v.norm.includes(` ${w} `)))
         .map(v => ({ ...v, loose: true }))
