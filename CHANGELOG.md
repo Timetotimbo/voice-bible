@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.25.0 — 2026-09-28
+- Drag your ChatGPT chats into order, like lists: press and hold the ⠿ handle and move the chat up or down.
+- Chats now stay where you put them. Continuing a chat no longer jumps it to the top; new and imported chats are added at the top.
+
 ## v1.24.1 — 2026-09-28
 - The ChatGPT section in Lists folds up: closed, it's one line ("▸ ChatGPT 24" with a "+ New" button), so your lists come first. Tap it to show your chats and "Import from ChatGPT". Open or closed is remembered on each device, and it starts closed.
 

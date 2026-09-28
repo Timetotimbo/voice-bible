@@ -51,7 +51,7 @@ export function useChats() {
     return id;
   }, [setChats]);
 
-  /** Replaces a chat's messages (while an answer streams in, the last one grows) and moves it to the top. */
+  /** Replaces a chat's messages (while an answer streams in, the last one grows), keeping its place in the order. */
   const setMessages = useCallback(
     (id: string, messages: ChatMessage[]) =>
       setChats(cs => {
@@ -59,22 +59,39 @@ export function useChats() {
         if (!chat) return cs;
         const first = messages.find(m => m.role === 'user')?.content ?? '';
         const title = chat.title === 'New chat' && first ? first.slice(0, 60) : chat.title;
-        return [{ ...chat, title, messages, updated: Date.now() }, ...cs.filter(c => c.id !== id)];
+        return cs.map(c => (c.id === id ? { ...chat, title, messages, updated: Date.now() } : c));
       }),
     [setChats],
   );
 
   const deleteChat = useCallback((id: string) => setChats(cs => cs.filter(c => c.id !== id)), [setChats]);
 
-  /** Adds chats brought over from ChatGPT. One imported before is left as it is, since it may have been continued here. */
+  /**
+   * Adds chats brought over from ChatGPT at the top, newest first, leaving the order of the others alone.
+   * One imported before is left as it is, since it may have been continued here.
+   */
   const importChats = useCallback(
     (incoming: Chat[]) =>
       setChats(cs => {
         const have = new Set(cs.map(c => c.id));
-        return [...cs, ...incoming.filter(c => !have.has(c.id))].sort((a, b) => b.updated - a.updated);
+        return [...incoming.filter(c => !have.has(c.id)).sort((a, b) => b.updated - a.updated), ...cs];
       }),
     [setChats],
   );
 
-  return { chats, newChat, setMessages, deleteChat, importChats, settings, setSettings };
+  /** Moves a chat to position `to` (0 = top). */
+  const moveChat = useCallback(
+    (id: string, to: number) =>
+      setChats(cs => {
+        const from = cs.findIndex(c => c.id === id);
+        if (from < 0 || from === to) return cs;
+        const next = [...cs];
+        const [chat] = next.splice(from, 1);
+        next.splice(Math.max(0, Math.min(to, next.length)), 0, chat);
+        return next;
+      }),
+    [setChats],
+  );
+
+  return { chats, newChat, setMessages, deleteChat, importChats, moveChat, settings, setSettings };
 }
