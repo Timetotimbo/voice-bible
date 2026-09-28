@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { BOOKS } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses,
@@ -36,6 +36,8 @@ export default function App() {
   const library = useLibrary();
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [gotoOpen, setGotoOpen] = useState(false);
+  const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
   const [toast, setToast] = useState('');
   const newVersion = useNewVersion();
   useEffect(() => {
@@ -181,10 +183,15 @@ export default function App() {
         <input
           type="search"
           inputMode="search"
-          placeholder="Or type a word, phrase or John 3:16"
+          placeholder="Type a word or John 3:16"
           value={typed}
           onChange={e => setTyped(e.target.value)}
         />
+        <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
+          </svg>
+        </button>
         <button type="submit">Search</button>
       </form>
 
@@ -282,6 +289,8 @@ export default function App() {
             onToggle={toggle}
             onSave={picked => setSheet(picked.map(toRef))}
             onClearSelection={() => setSelected(new Set())}
+            onShown={place => (shownChapter.current = place)}
+            onPick={() => setGotoOpen(true)}
           />
         )}
       </main>
@@ -306,6 +315,20 @@ export default function App() {
             setSheet(null);
             setSelected(new Set());
             setToast(`Saved to “${name}”`);
+          }}
+        />
+      )}
+      {gotoOpen && bible && (
+        <GotoSheet
+          bible={bible}
+          start={view.kind === 'chapter' ? { ...view.ref, ...shownChapter.current } : null}
+          onClose={() => setGotoOpen(false)}
+          onGo={ref => {
+            setGotoOpen(false);
+            library.remember(formatReference(ref));
+            // Keep a way back to the search or list the picker was opened from
+            const from = view.kind === 'chapter' ? view.from : view.kind === 'home' ? undefined : view;
+            openView({ kind: 'chapter', ref, from });
           }}
         />
       )}
@@ -487,7 +510,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, onBack, reader, readAloud, selected, onToggle, onSave, onClearSelection,
+  bible, view, abbrev, onBack, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
@@ -499,6 +522,8 @@ function Chapter({
   onToggle: (key: string) => void;
   onSave: (picked: VerseHit[]) => void;
   onClearSelection: () => void;
+  onShown: (place: { book: number; chapter: number }) => void;
+  onPick: () => void;
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
@@ -527,6 +552,9 @@ function Chapter({
   useEffect(() => {
     first.current?.scrollIntoView({ block: 'center' });
   }, [book, chapter, verseStart]);
+  useEffect(() => {
+    onShown(chapters[shownAt]);
+  }, [shownAt]);
 
   const all = versesOf(shownAt);
   const asked = onMain ? all.filter(h => inRange(h.verse)) : [];
@@ -586,7 +614,9 @@ function Chapter({
       {onBack && <button className="back" onClick={onBack}>← Back</button>}
       <div key={shownAt} className={slide}>
         <h2 className="result-title">
-          {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev}</small>
+          <button className="title-pick" onClick={onPick} aria-label="Choose another book, chapter or verse">
+            {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
+          </button>
         </h2>
         <p className="chapter-hint">
           {reader.supported && 'Tap verses to choose which ones to play. '}Swipe left or right for the next or previous chapter.
@@ -658,6 +688,89 @@ function Chapter({
         </div>
       )}
     </section>
+  );
+}
+
+const WHEEL_ROW = 40; // px per row in a picker wheel
+
+/** A scroll wheel: spin it and the row that settles in the middle band is chosen. Tapping a row spins to it. */
+function Wheel({ label, items, index, onChange }: { label: string; items: string[]; index: number; onChange: (i: number) => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  const settle = useRef<ReturnType<typeof setTimeout>>();
+  useLayoutEffect(() => {
+    // Line the wheel up with the chosen row (on open, or when a shorter list pulls it back in range)
+    const w = el.current;
+    if (w && Math.round(w.scrollTop / WHEEL_ROW) !== index) w.scrollTop = index * WHEEL_ROW;
+  }, [index, items.length]);
+  useEffect(() => () => clearTimeout(settle.current), []);
+  const onScroll = () => {
+    clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      const w = el.current;
+      if (!w) return;
+      const i = Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / WHEEL_ROW)));
+      if (i !== index) onChange(i);
+    }, 120);
+  };
+  return (
+    <div className="wheel">
+      <div className="wheel-label">{label}</div>
+      <div className="wheel-scroll" ref={el} onScroll={onScroll} role="listbox" aria-label={label}>
+        {items.map((item, i) => (
+          <button
+            key={item}
+            role="option"
+            aria-selected={i === index}
+            className={i === index ? 'on' : ''}
+            onClick={() => el.current?.scrollTo({ top: i * WHEEL_ROW, behavior: 'smooth' })}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Book · Chapter · Verse wheels for jumping straight to a place. Verse "All" opens the whole chapter. */
+function GotoSheet({ bible, start, onClose, onGo }: {
+  bible: BibleText;
+  start: { book: number; chapter: number; verseStart?: number } | null;
+  onClose: () => void;
+  onGo: (ref: Reference) => void;
+}) {
+  const [book, setBook] = useState(start?.book ?? 0);
+  const [chapter, setChapter] = useState(start?.chapter ?? 1);
+  const [verse, setVerse] = useState(start?.verseStart ?? 0); // 0 = All
+  const chapterCount = bible[book].length;
+  const ch = Math.min(chapter, chapterCount);
+  const verseCount = bible[book][ch - 1].length;
+  const v = Math.min(verse, verseCount);
+  const chapterItems = useMemo(() => Array.from({ length: chapterCount }, (_, i) => String(i + 1)), [chapterCount]);
+  const verseItems = useMemo(() => ['All', ...Array.from({ length: verseCount }, (_, i) => String(i + 1))], [verseCount]);
+  const ref: Reference = { book, chapter: ch, ...(v ? { verseStart: v } : {}) };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Go to" onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>Go to</h2>
+          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+        </div>
+        <div className="wheels">
+          <Wheel label="Book" items={BOOKS} index={book} onChange={setBook} />
+          <Wheel label="Chapter" items={chapterItems} index={ch - 1} onChange={i => setChapter(i + 1)} />
+          <Wheel label="Verse" items={verseItems} index={v} onChange={setVerse} />
+        </div>
+        <button className="goto-open" onClick={() => onGo(ref)}>Open {formatReference(ref)}</button>
+      </div>
+    </div>
   );
 }
 

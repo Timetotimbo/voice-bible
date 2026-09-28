@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.12.0 — 2026-09-27
+- Go to any verse with scroll wheels: tap the 📖 button next to Search, spin Book, Chapter and Verse, then tap "Open". Choose "All" in Verse for the whole chapter.
+- On a chapter page, tap the chapter's title to open the wheels at that spot.
+- Places you open this way are added to your search history.
+
 ## v1.11.0 — 2026-09-27
 - One chapter at a time again: each chapter ends at the bottom, and the next one doesn't load as you scroll.
 - Swipe left for the next chapter, right for the previous one, with a quick slide so you can see it turn. Swipes now work even when the phone's browser starts treating them as a scroll. The ← / → chapter buttons are back at the bottom too.

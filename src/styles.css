@@ -97,6 +97,29 @@ button { cursor: pointer; }
   padding: 10px 16px;
 }
 .search button { background: var(--purple-deep); border-color: var(--purple); }
+.search .goto-btn { background: var(--surface-2); border-color: var(--border); padding: 8px 10px; display: grid; place-items: center; }
+.goto-btn svg { width: 22px; height: 22px; fill: none; stroke: var(--purple-bright); stroke-width: 1.8; stroke-linejoin: round; }
+
+/* Go-to picker: three scroll wheels; the row in the middle band is the choice */
+.wheels { display: flex; gap: 6px; }
+.wheel { flex: 1; min-width: 0; }
+.wheel:first-child { flex: 2.2; }
+.wheel-label { text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+.wheel-scroll {
+  position: relative; height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain;
+  padding: 80px 0; scrollbar-width: none; border-radius: 12px;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) center / 100% 40px no-repeat;
+  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+}
+.wheel-scroll::-webkit-scrollbar { display: none; }
+.wheel-scroll button {
+  display: block; width: 100%; height: 40px; scroll-snap-align: center; background: none; border: 0;
+  color: var(--muted); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;
+}
+.wheel-scroll button.on { color: #fff; font-weight: 600; font-size: 1.1rem; }
+.goto-open { display: block; width: 100%; margin-top: 14px; padding: 12px; border-radius: 999px; background: var(--purple-deep); border: 1px solid var(--purple); font-weight: 600; }
+.title-pick { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; }
 
 .notice { color: var(--muted); text-align: center; }
 .notice.error { color: #ff8fa3; }
