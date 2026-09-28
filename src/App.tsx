@@ -5,7 +5,7 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
-import { strongsCode, tagsOf, versesWithCode, type Tag } from './bible/strongs';
+import { renderingsOf, strongsCode, tagsOf, versesWithCode, type Tag } from './bible/strongs';
 import { WordSheet } from './WordSheet';
 import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
@@ -17,7 +17,8 @@ import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
 type View =
   | { kind: 'home' }
-  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number } // strongs: a Strong's number search
+  // strongs: a Strong's number search, maybe narrowed to one book or one way the KJV translates it
+  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string }
   | { kind: 'list'; id: string }
   | { kind: 'chapter'; ref: Reference }
   | { kind: 'chat'; id: string };
@@ -162,6 +163,7 @@ export default function App() {
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
+  const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
 
   const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
@@ -390,6 +392,7 @@ export default function App() {
               <>
                 {view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
                 {view.inBook !== undefined && ` in ${BOOKS[view.inBook]}`}
+                {view.asWord && <> as “{view.asWord}”</>}
               </>
             }
             hits={view.hits}
@@ -567,6 +570,13 @@ export default function App() {
           word={studyWord.word}
           code={studyWord.code}
           versesWith={studyVerses}
+          renderingsOf={studyRenderings}
+          onRendering={(code, r) => {
+            setStudyWord(null);
+            setTyped(code);
+            library.remember(code);
+            openView({ kind: 'search', query: code, strongs: code, asWord: r.word, hits: r.verses });
+          }}
           onClose={() => setStudyWord(null)}
           onSearch={(code, book) => {
             setStudyWord(null);

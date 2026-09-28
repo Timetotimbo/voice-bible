@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.23.0 — 2026-09-28
+- Word study shows how the KJV translates a word: under "Where it’s used", "Translated as" lists every English word or phrase used for it, with how many times, most used first (for G25: love 51 · loved 29 · loveth 20 · beloved 7 …). Tap one to see just those verses.
+- A capital from starting a sentence or a quote is counted with the lowercase word ("Love your enemies" counts as "love"), while "God" and "god" stay separate.
+
 ## v1.22.0 — 2026-09-28
 - Word study shows where a word is used: at the bottom of the panel, "Where it’s used" lists each book with how many verses use the word (Matt 7 · John 27 · 1 John 17 …). Tap a book to see just those passages, with the word highlighted.
 

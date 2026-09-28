@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { strongsCode, tagsOf, untag, versesWithCode } from './strongs';
+import { renderingsOf, strongsCode, tagsOf, untag, versesWithCode } from './strongs';
 import type { BibleText } from './search';
 
 const raw: BibleText = JSON.parse(readFileSync(new URL('../../public/bibles/kjvs.json', import.meta.url), 'utf8'));
@@ -24,6 +24,17 @@ describe("Strong's numbers", () => {
     const hits = versesWithCode(bible, 'G26');
     expect(hits.length).toBeGreaterThan(100);
     expect(hits.some(h => h.book === 45 && h.chapter === 13 && h.verse === 13)).toBe(true); // 1 Corinthians 13:13
+  });
+
+  it('counts how the KJV translates a word, most used first', () => {
+    const god = renderingsOf(bible, 'H430');
+    expect(god[0].word).toBe('God');
+    expect(god.find(r => r.word === 'gods')).toBeTruthy();
+    expect(god.find(r => r.word === 'god')).toBeTruthy(); // an idol, kept apart from God
+    expect(god.every((r, i) => i === 0 || r.count <= god[i - 1].count)).toBe(true);
+    const love = renderingsOf(bible, 'G26');
+    expect(love.find(r => r.word === 'Love')).toBeFalsy(); // sentence-start capital folded into "love"
+    expect(love.reduce((a, r) => a + r.count, 0)).toBeGreaterThanOrEqual(versesWithCode(bible, 'G26').length);
   });
 
   it('recognises typed Strong’s numbers', () => {

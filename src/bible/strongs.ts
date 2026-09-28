@@ -71,3 +71,49 @@ export function loadStrongs(): Promise<Record<string, StrongsEntry>> {
   dictionary.catch(() => (dictionary = null));
   return dictionary;
 }
+
+export interface Rendering {
+  word: string; // as the KJV has it, e.g. "God" or "loved"
+  count: number; // times translated this way
+  verses: VerseHit[];
+}
+
+/**
+ * How the KJV translates `code`, most used first. A capital that only comes from starting a sentence (or
+ * speech, which the KJV starts after a comma: "I say unto you, Love your enemies") is folded into the
+ * lowercase word ("Love" → "love"), but real capitals stay apart ("God" and "god").
+ */
+export function renderingsOf(bible: BibleText, code: string): Rendering[] {
+  const tags = tagsOf(bible);
+  if (!tags) return [];
+  const found: { word: string; opensSentence: boolean; hit: VerseHit }[] = [];
+  tags.forEach((chapters, book) =>
+    chapters.forEach((verses, c) =>
+      verses.forEach((list, v) => {
+        const text = bible[book][c][v];
+        for (const [start, end, tagCode] of list) {
+          if (tagCode !== code) continue;
+          const before = text.slice(0, start).trimEnd();
+          found.push({
+            word: text.slice(start, end),
+            opensSentence: !before || /[.?!:;,(“"‘']$/.test(before),
+            hit: { book, chapter: c + 1, verse: v + 1, text },
+          });
+        }
+      }),
+    ),
+  );
+  const midSentence = new Set(found.filter(f => !f.opensSentence).map(f => f.word));
+  const all = new Set(found.map(f => f.word));
+  const byWord = new Map<string, Rendering>();
+  for (const { word, opensSentence, hit } of found) {
+    const lower = word.charAt(0).toLowerCase() + word.slice(1);
+    const key = opensSentence && !midSentence.has(word) && lower !== word && all.has(lower) ? lower : word;
+    const r = byWord.get(key) ?? { word: key, count: 0, verses: [] };
+    r.count++;
+    const last = r.verses[r.verses.length - 1];
+    if (!last || last.book !== hit.book || last.chapter !== hit.chapter || last.verse !== hit.verse) r.verses.push(hit);
+    byWord.set(key, r);
+  }
+  return [...byWord.values()].sort((a, b) => b.count - a.count || a.word.localeCompare(b.word));
+}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BOOK_ABBREVS, BOOKS } from './bible/books';
 import type { VerseHit } from './bible/search';
-import { loadStrongs, type StrongsEntry } from './bible/strongs';
+import { loadStrongs, type Rendering, type StrongsEntry } from './bible/strongs';
 
 /** Makes "from H433 (אֱלוֹהַּ)" in a derivation tappable, to follow a word back to its root. */
 function Codes({ text, known, onCode }: { text: string; known: (code: string) => boolean; onCode: (code: string) => void }) {
@@ -18,12 +18,14 @@ function Codes({ text, known, onCode }: { text: string; known: (code: string) =>
 }
 
 /** Word study: the Hebrew or Greek word behind an English word, from Strong's dictionary. */
-export function WordSheet({ word, code: first, versesWith, onClose, onSearch }: {
+export function WordSheet({ word, code: first, versesWith, renderingsOf, onClose, onSearch, onRendering }: {
   word: string;
   code: string;
   versesWith: (code: string) => VerseHit[]; // every verse using a word
+  renderingsOf: (code: string) => Rendering[]; // the English words it's translated as
   onClose: () => void;
   onSearch: (code: string, book?: number) => void; // list the verses, or just those in one book
+  onRendering: (code: string, rendering: Rendering) => void; // list the verses translating it one way
 }) {
   const [code, setCode] = useState(first); // can move to a root word
   const [dictionary, setDictionary] = useState<Record<string, StrongsEntry> | null>(null);
@@ -41,6 +43,7 @@ export function WordSheet({ word, code: first, versesWith, onClose, onSearch }: 
 
   const hebrew = code.startsWith('H');
   const verses = useMemo(() => versesWith(code), [versesWith, code]);
+  const renderings = useMemo(() => renderingsOf(code), [renderingsOf, code]);
   const uses = verses.length;
   // Verses per book, in Bible order
   const byBook = useMemo(() => {
@@ -101,6 +104,18 @@ export function WordSheet({ word, code: first, versesWith, onClose, onSearch }: 
               {byBook.map(([book, n]) => (
                 <button key={book} aria-label={`${n} in ${BOOKS[book]}`} onClick={() => onSearch(code, book)}>
                   {BOOK_ABBREVS[book]} <b>{n}</b>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {renderings.length > 0 && (
+          <>
+            <h3 className="sheet-sub">Translated as <small>times, most used first</small></h3>
+            <div className="book-counts">
+              {renderings.map(r => (
+                <button key={r.word} aria-label={`${r.word}, ${r.count} times`} onClick={() => onRendering(code, r)}>
+                  {r.word} <b>{r.count.toLocaleString()}</b>
                 </button>
               ))}
             </div>
