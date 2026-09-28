@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildIndex, formatReference, highlightPattern, parseReference, searchVerses, type BibleText } from './search';
+import { buildIndex, formatReference, highlightPattern, wordsPattern, parseReference, searchVerses, type BibleText } from './search';
 
 const kjv: BibleText = JSON.parse(readFileSync(new URL('../../public/bibles/kjv.json', import.meta.url), 'utf8'));
 const index = buildIndex(kjv);
@@ -43,6 +43,24 @@ describe('searchVerses', () => {
 
   it('ignores apostrophes', () => {
     expect(searchVerses(index, "Lord's supper").length).toBeGreaterThan(0);
+  });
+
+  it('also finds verses with all the words apart, after the exact phrase', () => {
+    const hits = searchVerses(index, 'principalities powers');
+    const eph = hits.find(h => formatReference({ ...h, verseStart: h.verse }) === 'Ephesians 6:12');
+    expect(eph?.loose).toBe(true);
+    const firstLoose = hits.findIndex(h => h.loose);
+    expect(hits.slice(firstLoose).every(h => h.loose)).toBe(true);
+    expect(hits.every(h => /\bprincipalities\b/i.test(h.text) && /\bpowers\b/i.test(h.text))).toBe(true);
+  });
+
+  it('keeps single-word searches exact', () => {
+    expect(searchVerses(index, 'love').some(h => h.loose)).toBe(false);
+  });
+
+  it('highlights each word of a loose match', () => {
+    const text = 'against principalities, against powers';
+    expect(text.match(wordsPattern('principalities powers')!)).toEqual(['principalities', 'powers']);
   });
 
   it('highlights the phrase in original text', () => {

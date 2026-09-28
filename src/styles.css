@@ -126,6 +126,8 @@ button { cursor: pointer; }
 .home { color: var(--muted); text-align: center; }
 .home em { color: var(--purple-bright); font-style: normal; }
 
+.loose-divider { list-style: none; text-align: center; color: var(--muted); font-size: 0.85rem; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; }
+.loose-divider::before, .loose-divider::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
 .result-title { font-size: 1.05rem; color: var(--purple-bright); margin: 0 0 12px; }
 .quick-save { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }

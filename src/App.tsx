@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { BOOKS } from './bible/books';
 import {
-  buildIndex, formatReference, highlightPattern, parseReference, searchVerses,
+  buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern,
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
@@ -424,6 +424,7 @@ function SearchResults({
   empty?: string;
 }) {
   const pattern = useMemo(() => (query ? highlightPattern(query) : null), [query]);
+  const loosePattern = useMemo(() => (query ? wordsPattern(query) : null), [query]);
   const n = hits.length;
   const picked = hits.filter(h => selected.has(hitKey(h)));
   const queue = picked.length ? picked : hits;
@@ -439,36 +440,41 @@ function SearchResults({
       <h2 className="result-title">{title}</h2>
       {!n && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
-        {hits.slice(0, shown).map(hit => {
+        {hits.slice(0, shown).map((hit, i) => {
           const key = hitKey(hit);
           const isSelected = selected.has(key);
           const isCurrent = key === current;
           return (
-            <li key={key} ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
-              <button className="verse-body" onClick={() => onOpen(hit)}>
-                <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
-                <span className="text"><Highlight text={hit.text} pattern={pattern} /></span>
-              </button>
-              {reader.supported && (
-                <div className="verse-actions">
-                  <button
-                    className="icon-btn"
-                    aria-label={isCurrent ? 'Stop' : `Play ${BOOKS[hit.book]} ${hit.chapter}:${hit.verse}`}
-                    onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
-                  >
-                    {isCurrent ? '■' : '▶'}
-                  </button>
-                  <button
-                    className={`select-btn ${isSelected ? 'on' : ''}`}
-                    aria-label={isSelected ? 'Unselect verse' : 'Select verse'}
-                    aria-pressed={isSelected}
-                    onClick={() => onToggle(key)}
-                  >
-                    {isSelected ? '✓' : ''}
-                  </button>
-                </div>
+            <Fragment key={key}>
+              {hit.loose && !hits[i - 1]?.loose && (
+                <li className="loose-divider">{i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words'}</li>
               )}
-            </li>
+              <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
+                <button className="verse-body" onClick={() => onOpen(hit)}>
+                  <span className="ref">{BOOKS[hit.book]} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
+                  <span className="text"><Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} /></span>
+                </button>
+                {reader.supported && (
+                  <div className="verse-actions">
+                    <button
+                      className="icon-btn"
+                      aria-label={isCurrent ? 'Stop' : `Play ${BOOKS[hit.book]} ${hit.chapter}:${hit.verse}`}
+                      onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
+                    >
+                      {isCurrent ? '■' : '▶'}
+                    </button>
+                    <button
+                      className={`select-btn ${isSelected ? 'on' : ''}`}
+                      aria-label={isSelected ? 'Unselect verse' : 'Select verse'}
+                      aria-pressed={isSelected}
+                      onClick={() => onToggle(key)}
+                    >
+                      {isSelected ? '✓' : ''}
+                    </button>
+                  </div>
+                )}
+              </li>
+            </Fragment>
           );
         })}
       </ol>

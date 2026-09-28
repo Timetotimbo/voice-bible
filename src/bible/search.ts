@@ -8,6 +8,8 @@ export interface VerseHit {
   chapter: number; // 1-based
   verse: number; // 1-based
   text: string;
+  /** Found with every search word, but not as the exact phrase. */
+  loose?: boolean;
 }
 
 export interface Reference {
@@ -135,18 +137,36 @@ export function buildIndex(bible: BibleText): IndexedVerse[] {
   return index;
 }
 
-/** Every verse containing the word or phrase as whole words; falls back to partial words. */
+/**
+ * Every verse containing the word or phrase as whole words, then (for several words) the verses that
+ * have all the words in any order, marked `loose`. Falls back to partial words when nothing matches.
+ */
 export function searchVerses(index: IndexedVerse[], query: string): VerseHit[] {
   const q = normalize(query);
   if (!q) return [];
   const whole = index.filter(v => v.norm.includes(` ${q} `));
-  return whole.length ? whole : index.filter(v => v.norm.includes(q));
+  const words = [...new Set(q.split(' '))];
+  const loose = words.length > 1
+    ? index
+        .filter(v => !v.norm.includes(` ${q} `) && words.every(w => v.norm.includes(` ${w} `)))
+        .map(v => ({ ...v, loose: true }))
+    : [];
+  const hits = [...whole, ...loose];
+  return hits.length ? hits : index.filter(v => v.norm.includes(q));
 }
+
+const wordPattern = (w: string) => w.split('').join("['’]?").replace(/ae/g, '(?:ae|æ)');
 
 /** Regex that finds the query in original verse text, tolerant of punctuation between words. */
 export function highlightPattern(query: string): RegExp | null {
   const words = normalize(query).split(' ').filter(Boolean);
   if (!words.length) return null;
-  const word = (w: string) => w.split('').join("['’]?").replace(/ae/g, '(?:ae|æ)');
-  return new RegExp(`(${words.map(word).join('[^a-z0-9æ]+')})`, 'gi');
+  return new RegExp(`(${words.map(wordPattern).join('[^a-z0-9æ]+')})`, 'gi');
+}
+
+/** Regex that finds each query word on its own, for verses that have the words apart. */
+export function wordsPattern(query: string): RegExp | null {
+  const words = normalize(query).split(' ').filter(Boolean);
+  if (!words.length) return null;
+  return new RegExp(`\\b(${words.map(wordPattern).join('|')})\\b`, 'gi');
 }

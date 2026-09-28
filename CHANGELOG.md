@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.13.0 — 2026-09-27
+- Searching several words also finds verses that have all of them apart or in a different order. For example, "principalities powers" now finds Ephesians 6:12 ("against principalities, against powers"). Exact-phrase matches still come first, and the others follow under "Also: verses with all these words", with each word highlighted.
+
 ## v1.12.0 — 2026-09-27
 - Go to any verse with scroll wheels: tap the 📖 button next to Search, spin Book, Chapter and Verse, then tap "Open". Choose "All" in Verse for the whole chapter.
 - On a chapter page, tap the chapter's title to open the wheels at that spot.
