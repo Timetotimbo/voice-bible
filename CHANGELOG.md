@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.19.0 — 2026-09-28
+- ChatGPT: open the bookmark icon › Lists. A new "ChatGPT" section at the top has "+ New chat" and your saved conversations. Ask anything about the Bible; answers appear as they're written, and verse references in them (like Romans 8:28) open when tapped.
+- Uses your own OpenAI API key, entered the first time you start a chat. It's saved only on that device and sent only to OpenAI, never to this website. Change or remove it with "API key" in a chat. The model can be changed there too (default gpt-5-mini).
+- While a chat is open, what you say into the mic goes into the chat box instead of starting a search.
+- Deleting a chat asks first, like lists.
+
 ## v1.18.2 — 2026-09-28
 - Deleting a list now asks first, right in the list: tapping ✕ shows "Delete “John”?" with Delete and Cancel buttons. The ✕ also sits further from the ✎ rename button so it's harder to hit by mistake.
 

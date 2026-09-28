@@ -8,6 +8,8 @@ import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/trans
 import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
+import { ChatView } from './Chat';
+import { useChats, type Chat } from './useChats';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
@@ -15,7 +17,8 @@ type View =
   | { kind: 'home' }
   | { kind: 'search'; query: string; hits: VerseHit[] }
   | { kind: 'list'; id: string }
-  | { kind: 'chapter'; ref: Reference };
+  | { kind: 'chapter'; ref: Reference }
+  | { kind: 'chat'; id: string };
 
 const PAGE = 50;
 const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open)\s+/i;
@@ -55,6 +58,7 @@ export default function App() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
+  const chats = useChats();
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
@@ -191,7 +195,10 @@ export default function App() {
     }
   }, [index, run]);
 
+  // While a chat is open, what's said goes into the chat box instead of starting a search
+  const speakIntoChat = useRef<((text: string) => void) | null>(null);
   const speech = useSpeech(text => {
+    if (viewRef.current.kind === 'chat' && speakIntoChat.current) return speakIntoChat.current(text);
     setTyped(text);
     run(text);
   });
@@ -379,6 +386,24 @@ export default function App() {
           />
         )}
 
+        {view.kind === 'chat' && bible && (() => {
+          const chat = chats.chats.find(c => c.id === view.id);
+          return chat ? (
+            <ChatView
+              key={chat.id}
+              chat={chat}
+              bible={bible}
+              settings={chats.settings}
+              setSettings={chats.setSettings}
+              setMessages={chats.setMessages}
+              onOpenRef={ref => openView({ kind: 'chapter', ref })}
+              speechInput={speakIntoChat}
+            />
+          ) : (
+            <p className="notice">This chat was deleted.</p>
+          );
+        })()}
+
         {view.kind === 'chapter' && bible && (
           <Chapter
             key={`${view.ref.book}-${view.ref.chapter}-${view.ref.verseStart}`}
@@ -419,6 +444,16 @@ export default function App() {
             setSelected(new Set());
             setToast(`Saved to “${name}”`);
           }}
+          chats={chats.chats}
+          onOpenChat={id => {
+            setSheet(null);
+            openView({ kind: 'chat', id });
+          }}
+          onNewChat={() => {
+            setSheet(null);
+            openView({ kind: 'chat', id: chats.newChat() });
+          }}
+          onDeleteChat={chats.deleteChat}
           onShare={list => {
             const url = listLink(list.name, list.verses);
             // The phone's share menu (text, email…) where there is one; otherwise copy the link
@@ -935,7 +970,9 @@ function SharedListSheet({ incoming, existing, onClose, onAdd }: {
   );
 }
 
-function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare }: {
+function LibrarySheet({
+  library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare, chats, onOpenChat, onNewChat, onDeleteChat,
+}: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
   hideList?: string; // the list the verses are being copied from
@@ -944,6 +981,10 @@ function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, o
   onOpenList: (id: string) => void;
   onSaved: (listName: string) => void;
   onShare: (list: VerseList) => void;
+  chats: Chat[];
+  onOpenChat: (id: string) => void;
+  onNewChat: () => void;
+  onDeleteChat: (id: string) => void;
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
   const [newName, setNewName] = useState('');
@@ -997,6 +1038,38 @@ function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, o
                 Clear history
               </button>
             )}
+          </>
+        )}
+
+        {!saving && tab === 'lists' && (
+          <>
+            <h3 className="sheet-sub">ChatGPT</h3>
+            <ul className="sheet-list">
+              <li>
+                <button className="sheet-item new-chat" onClick={onNewChat}>＋ New chat</button>
+              </li>
+              {chats.map(c => deleting === `chat:${c.id}` ? (
+                <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
+                  <span>Delete this chat?</span>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      onDeleteChat(c.id);
+                      setDeleting(null);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                </li>
+              ) : (
+                <li key={c.id}>
+                  <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
+                  <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
+                </li>
+              ))}
+            </ul>
+            <h3 className="sheet-sub">Lists</h3>
           </>
         )}
 
