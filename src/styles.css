@@ -258,6 +258,12 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .sheet-item { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 12px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-item small { color: var(--muted); margin-left: 6px; }
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
+/* Keep ✕ (delete) apart from ✎ so one isn't tapped for the other */
+.list-delete { margin-left: 14px; }
+.confirm-row { gap: 8px; padding: 8px 4px; background: var(--surface-2); border-radius: 10px; }
+.confirm-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.confirm-row button { border-radius: 999px; padding: 8px 14px; border: 1px solid var(--border); background: var(--surface); }
+.confirm-row .danger { background: #8a1c32; border-color: #c2344f; color: #fff; font-weight: 600; }
 .share-icon { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .shared-name { font-size: 1.1rem; margin: 4px 0 12px; }
 .shared-name small { color: var(--muted); font-size: 0.8em; margin-left: 4px; }

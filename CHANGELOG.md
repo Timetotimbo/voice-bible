@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.18.2 — 2026-09-28
+- Deleting a list now asks first, right in the list: tapping ✕ shows "Delete “John”?" with Delete and Cancel buttons. The ✕ also sits further from the ✎ rename button so it's harder to hit by mistake.
+
 ## v1.18.1 — 2026-09-28
 - Fix: with the Heart voice, playing search results or lists (verses that don't follow each other) sometimes ran past the end of a verse and caught the start of the next verse's first word. Each verse now stops cleanly in the pause after its last word.
 

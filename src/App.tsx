@@ -947,6 +947,7 @@ function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, o
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
   const [newName, setNewName] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
   const { history } = library;
   const lists = library.lists.filter(l => l.id !== hideList);
 
@@ -1007,7 +1008,21 @@ function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, o
             </form>
             {!lists.length && !saving && <p className="notice">Check verses in your results, then tap “Save to list”.</p>}
             <ul className="sheet-list">
-              {lists.map(l => (
+              {lists.map(l => deleting === l.id ? (
+                <li key={l.id} className="confirm-row" role="alertdialog" aria-label={`Delete ${l.name}?`}>
+                  <span>Delete “{l.name}”?</span>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      library.deleteList(l.id);
+                      setDeleting(null);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                </li>
+              ) : (
                 <li key={l.id}>
                   <button
                     className="sheet-item"
@@ -1037,11 +1052,7 @@ function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, o
                       >
                         ✎
                       </button>
-                      <button
-                        className="sheet-x"
-                        aria-label={`Delete ${l.name}`}
-                        onClick={() => confirm(`Delete the list “${l.name}”?`) && library.deleteList(l.id)}
-                      >
+                      <button className="sheet-x list-delete" aria-label={`Delete ${l.name}`} onClick={() => setDeleting(l.id)}>
                         ✕
                       </button>
                     </>
