@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.11.0 — 2026-09-27
+- One chapter at a time again: each chapter ends at the bottom, and the next one doesn't load as you scroll.
+- Swipe left for the next chapter, right for the previous one, with a quick slide so you can see it turn. Swipes now work even when the phone's browser starts treating them as a scroll. The ← / → chapter buttons are back at the bottom too.
+- Playing a chapter still reads on into the next ones, and the page turns with it.
+- "New version — tap to update": the app now notices when an update is live and offers a one-tap reload, so phones don't get stuck on an old copy.
+
 ## v1.10.0 — 2026-09-27
 - Keep reading past the end of a chapter: scroll down and the next chapter appears, on and on. "↑ Genesis 3" at the top adds the chapter before.
 - Swipe left for the next chapter, right for the previous one. Swipes starting at the very edge of the screen are left to your phone's back gesture.
