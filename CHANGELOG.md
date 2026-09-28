@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.26.0 — 2026-09-28
+- Lists fold up too: tap "▾ Lists" to close or open them, remembered on each device. When you're saving verses, your lists always show so you can pick one.
+- ChatGPT now comes below Lists.
+
 ## v1.25.0 — 2026-09-28
 - Drag your ChatGPT chats into order, like lists: press and hold the ⠿ handle and move the chat up or down.
 - Chats now stay where you put them. Continuing a chat no longer jumps it to the top; new and imported chats are added at the top.
