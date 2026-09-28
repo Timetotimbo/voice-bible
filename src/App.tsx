@@ -47,7 +47,7 @@ export default function App() {
   const [shown, setShown] = useState(PAGE);
   const [typed, setTyped] = useState('');
   const pending = useRef<string | null>(null);
-  // Search for all the words in any order, or only the exact phrase; picked in a pop-up under the search box
+  // Search for all the words in any order, or only the exact phrase; picked under the search box
   const [searchMode, setSearchModeState] = useState<SearchMode>(() => {
     try {
       return localStorage.getItem('searchMode') === 'exact' ? 'exact' : 'words';
@@ -55,7 +55,6 @@ export default function App() {
       return 'words';
     }
   });
-  const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
   const chats = useChats();
@@ -282,28 +281,7 @@ export default function App() {
           placeholder="Word or John 3:16"
           value={typed}
           onChange={e => setTyped(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          // A moment's grace so a tap on the pop-up still lands if the phone moves focus first
-          onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
         />
-        {searchFocused && (
-          <div className="search-mode" role="radiogroup" aria-label="Search for">
-            {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={searchMode === mode}
-                className={searchMode === mode ? 'on' : ''}
-                // Keep the keyboard up: choosing shouldn't take focus from the search box
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => setSearchMode(mode)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
         <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
@@ -311,6 +289,23 @@ export default function App() {
         </button>
         <button type="submit">Search</button>
       </form>
+      {/* Always showing, so it's clear which way searches work */}
+      <div className="search-mode" role="radiogroup" aria-label="Search for">
+        {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
+          <button
+            key={mode}
+            type="button"
+            role="radio"
+            aria-checked={searchMode === mode}
+            className={searchMode === mode ? 'on' : ''}
+            // If the keyboard is up, keep it up: choosing shouldn't take focus from the search box
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setSearchMode(mode)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <main>
         {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>← Back</button>}

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.20.2 — 2026-09-28
+- "All words / Exact phrase" now always shows under the search box, with the one in use highlighted, instead of only popping up when you tap in the box.
+
 ## v1.20.1 — 2026-09-28
 - The "Saved 143 to “Heaven and earth”" message near the top can now be tapped to open that list ("Open ›"). It stays up a little longer so there's time to tap it.
 - Searching now puts the keyboard away, so the results (and the Back button) aren't covered.

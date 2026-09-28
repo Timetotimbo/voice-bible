@@ -80,13 +80,11 @@ button { cursor: pointer; }
   max-width: 34ch;
 }
 
-.search { display: flex; gap: 8px; margin-bottom: 20px; position: relative; }
-.search-mode {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; display: flex; gap: 4px; padding: 4px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-.search .search-mode button { background: none; border: 0; border-radius: 999px; padding: 6px 14px; font-size: 0.9rem; color: var(--muted); }
-.search .search-mode button.on { background: var(--purple-deep); color: #fff; }
+.search { display: flex; gap: 8px; margin-bottom: 20px; }
+.search:has(+ .search-mode) { margin-bottom: 8px; }
+.search-mode { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; }
+.search-mode button { background: none; border: 0; border-radius: 999px; padding: 5px 12px; font-size: 0.85rem; color: var(--muted); }
+.search-mode button.on { background: var(--purple-deep); color: #fff; }
 .search input {
   flex: 1;
   min-width: 0;
