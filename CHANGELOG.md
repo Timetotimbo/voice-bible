@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.17.0 — 2026-09-27
+- Copy verses from one list to another: in a list, select verses (or tap "Select all") and tap "Copy to list…", then pick another list or name a new one. The verses stay in the original list too, and "Remove" still takes them out.
+
 ## v1.16.0 — 2026-09-27
 - Trying out: tap in the search box and a small pop-up offers "All words" (every verse with all your words, in any order, exact phrases first) or "Exact phrase" (only the words together, as typed). Switching redoes the search on screen, and your choice is remembered.
 

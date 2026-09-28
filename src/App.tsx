@@ -55,7 +55,7 @@ export default function App() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
-  const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
+  const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -361,14 +361,17 @@ export default function App() {
             onToggle={toggle}
             onSelectAll={() => setSelected(new Set(savedHits.map(hitKey)))}
             selectionActions={picked => (
-              <button
-                onClick={() => {
-                  library.removeFromList(savedList.id, picked.map(toRef));
-                  setSelected(new Set());
-                }}
-              >
-                Remove from list
-              </button>
+              <>
+                <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>Copy to list…</button>
+                <button
+                  onClick={() => {
+                    library.removeFromList(savedList.id, picked.map(toRef));
+                    setSelected(new Set());
+                  }}
+                >
+                  Remove
+                </button>
+              </>
             )}
             onClearSelection={() => setSelected(new Set())}
             empty="This list is empty. Search, check verses, then tap “Save to list”."
@@ -398,7 +401,8 @@ export default function App() {
       {sheet && (
         <LibrarySheet
           library={library}
-          saving={Array.isArray(sheet) ? sheet : null}
+          saving={sheet === 'browse' ? null : Array.isArray(sheet) ? sheet : sheet.verses}
+          hideList={typeof sheet === 'object' && !Array.isArray(sheet) ? sheet.from : undefined}
           onClose={() => setSheet(null)}
           onRun={q => {
             setSheet(null);
@@ -928,9 +932,10 @@ function SharedListSheet({ incoming, existing, onClose, onAdd }: {
   );
 }
 
-function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved, onShare }: {
+function LibrarySheet({ library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare }: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
+  hideList?: string; // the list the verses are being copied from
   onClose: () => void;
   onRun: (query: string) => void;
   onOpenList: (id: string) => void;
@@ -939,7 +944,8 @@ function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved, on
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
   const [newName, setNewName] = useState('');
-  const { history, lists } = library;
+  const { history } = library;
+  const lists = library.lists.filter(l => l.id !== hideList);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
