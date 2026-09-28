@@ -1,8 +1,11 @@
 import type { BibleText } from './search';
+import { untag } from './strongs';
 
 // To add a translation: put its JSON (66 books → chapters → verses) in public/bibles/ and list it here.
+// A tagged translation marks words with Strong's numbers as {word|H430} (see scripts/build-kjvs.py).
 export const TRANSLATIONS = [
-  { id: 'kjv', abbrev: 'KJV', name: 'King James Version', file: 'bibles/kjv.json' },
+  { id: 'kjv', abbrev: 'KJV', name: 'King James Version', file: 'bibles/kjv.json', tagged: false },
+  { id: 'kjvs', abbrev: 'KJV+S', name: "King James Version with Strong's numbers", file: 'bibles/kjvs.json', tagged: true },
 ] as const;
 
 export type TranslationId = (typeof TRANSLATIONS)[number]['id'];
@@ -16,7 +19,7 @@ export function loadTranslation(id: TranslationId): Promise<BibleText> {
       id,
       fetch(import.meta.env.BASE_URL + t.file).then(r => {
         if (!r.ok) throw new Error(`Couldn't load ${t.abbrev} (${r.status})`);
-        return r.json();
+        return r.json().then((text: BibleText) => (t.tagged ? untag(text) : text));
       }),
     );
   }

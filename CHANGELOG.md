@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.21.0 — 2026-09-28
+- Word study with KJV + Strong's: pick "KJV+S" in the translation menu (top right). Words in a chapter get a faint dotted underline; tap one to see the Hebrew or Greek word behind it, how to say it, Strong's definition, how the KJV translates it, and the root word it comes from (tap to follow it).
+- "Every verse with H430" in that panel lists every verse that uses the same Hebrew or Greek word, with those words highlighted. You can also type a Strong's number like H430 or G26 in the search box; in plain KJV the app switches to KJV+S for it.
+- The translation you pick is now remembered.
+- Text: KJV with Strong's numbers from eBible.org and CrossWire (public domain). Dictionary: Strong's (1894) from Open Scriptures (CC BY-SA).
+
 ## v1.20.2 — 2026-09-28
 - "All words / Exact phrase" now always shows under the search box, with the one in use highlighted, instead of only popping up when you tap in the box.
 

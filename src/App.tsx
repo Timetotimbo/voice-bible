@@ -5,6 +5,8 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
+import { strongsCode, tagsOf, versesWithCode, type Tag } from './bible/strongs';
+import { WordSheet } from './WordSheet';
 import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
@@ -15,7 +17,7 @@ import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
 type View =
   | { kind: 'home' }
-  | { kind: 'search'; query: string; hits: VerseHit[] }
+  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string } // strongs: searching for a Strong's number
   | { kind: 'list'; id: string }
   | { kind: 'chapter'; ref: Reference }
   | { kind: 'chat'; id: string };
@@ -26,6 +28,41 @@ const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open)\s+/i;
 function Highlight({ text, pattern }: { text: string; pattern: RegExp | null }): ReactNode {
   if (!pattern) return text;
   return text.split(pattern).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part));
+}
+
+/**
+ * Verse text whose translated words can be tapped to study the Hebrew or Greek behind them. Without
+ * `onWord` (inside something already tappable) it only highlights the words translating `mark`.
+ */
+function TaggedText({ text, tags, mark, onWord }: {
+  text: string;
+  tags: Tag[];
+  mark?: string; // a Strong's number to highlight
+  onWord?: (word: string, code: string) => void;
+}) {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  tags.forEach(([start, end, code], i) => {
+    parts.push(text.slice(at, start));
+    const word = text.slice(start, end);
+    parts.push(
+      !onWord ? (
+        code === mark ? <mark key={i}>{word}</mark> : word
+      ) : <button
+        key={i}
+        className={`sw ${code === mark ? 'hit' : ''}`}
+        onClick={e => {
+          e.stopPropagation(); // don't also select the verse
+          onWord(word, code);
+        }}
+      >
+        {word}
+      </button>,
+    );
+    at = end;
+  });
+  parts.push(text.slice(at));
+  return <>{parts}</>;
 }
 
 /** Verse text with the word being read aloud marked. */
@@ -40,7 +77,24 @@ function ReadingText({ text, word }: { text: string; word: { start: number; end:
 }
 
 export default function App() {
-  const [translation, setTranslation] = useState<TranslationId>('kjv');
+  const [translation, setTranslationState] = useState<TranslationId>(() => {
+    try {
+      const saved = localStorage.getItem('translation');
+      return TRANSLATIONS.find(t => t.id === saved)?.id ?? 'kjv';
+    } catch {
+      return 'kjv';
+    }
+  });
+  const setTranslation = (id: TranslationId) => {
+    setTranslationState(id);
+    try {
+      localStorage.setItem('translation', id);
+    } catch {
+      // storage unavailable; lasts for this visit
+    }
+  };
+  // Word study: the tapped word and its Strong's number
+  const [studyWord, setStudyWord] = useState<{ word: string; code: string } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<View>({ kind: 'home' });
@@ -169,7 +223,15 @@ export default function App() {
         pending.current = input; // run once the text finishes loading
         return;
       }
+      const code = strongsCode(input);
+      if (code && !tagsOf(bible)) {
+        // Strong's numbers live in the KJV + Strong's text; switch to it and search once it's loaded
+        pending.current = input;
+        setTranslation('kjvs');
+        return;
+      }
       library.remember(input);
+      if (code) return openView({ kind: 'search', query: code, hits: versesWithCode(bible, code), strongs: code });
       const ref = parseReference(input, bible);
       openView(ref ? { kind: 'chapter', ref } : { kind: 'search', query: input, hits: searchVerses(index, input, searchMode) });
     },
@@ -184,7 +246,7 @@ export default function App() {
       // storage unavailable; lasts for this visit
     }
     // Redo the search on screen the new way
-    if (view.kind === 'search' && index) {
+    if (view.kind === 'search' && !view.strongs && index) {
       setSelected(new Set());
       setView({ ...view, hits: searchVerses(index, view.query, mode) });
     }
@@ -321,6 +383,8 @@ export default function App() {
 
         {view.kind === 'search' && (
           <SearchResults
+            strongs={view.strongs}
+            tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={<>{view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”</>}
             hits={view.hits}
             query={view.query}
@@ -417,6 +481,7 @@ export default function App() {
             onSave={picked => setSheet(picked.map(toRef))}
             onClearSelection={() => setSelected(new Set())}
             onShown={place => (shownChapter.current = place)}
+            onWord={(word, code) => setStudyWord({ word, code })}
             onPick={() => setGotoOpen(true)}
           />
         )}
@@ -488,6 +553,19 @@ export default function App() {
             setGotoOpen(false);
             library.remember(formatReference(ref));
             openView({ kind: 'chapter', ref });
+          }}
+        />
+      )}
+      {studyWord && bible && (
+        <WordSheet
+          word={studyWord.word}
+          code={studyWord.code}
+          count={code => versesWithCode(bible, code).length}
+          onClose={() => setStudyWord(null)}
+          onSearch={code => {
+            setStudyWord(null);
+            setTyped(code);
+            run(code);
           }}
         />
       )}
@@ -580,9 +658,11 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor,
 }: {
   title: ReactNode;
+  strongs?: string; // a Strong's number search: mark the words that translate it
+  tagsFor?: (hit: VerseHit) => Tag[] | undefined;
   hits: VerseHit[];
   query?: string;
   shown: number;
@@ -630,6 +710,8 @@ function SearchResults({
                   <span className="text">
                     {isCurrent && reader.word ? (
                       <ReadingText text={hit.text} word={reader.word} />
+                    ) : strongs && tagsFor?.(hit) ? (
+                      <TaggedText text={hit.text} tags={tagsFor(hit)!} mark={strongs} />
                     ) : (
                       <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
                     )}
@@ -697,7 +779,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
@@ -710,6 +792,7 @@ function Chapter({
   onClearSelection: () => void;
   onShown: (place: { book: number; chapter: number }) => void;
   onPick: () => void;
+  onWord: (word: string, code: string) => void;
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
@@ -743,6 +826,7 @@ function Chapter({
   }, [shownAt]);
 
   const all = versesOf(shownAt);
+  const tags = tagsOf(bible)?.[chapters[shownAt].book]?.[chapters[shownAt].chapter - 1];
   const asked = onMain ? all.filter(h => inRange(h.verse)) : [];
   const askedLabel = verseStart && asked.length
     ? `${chapter}:${asked[0].verse}${asked.length > 1 ? `-${asked[asked.length - 1].verse}` : ''}`
@@ -804,7 +888,8 @@ function Chapter({
           </button>
         </h2>
         <p className="chapter-hint">
-          {reader.supported && 'Tap verses to choose which ones to play. '}Swipe left or right for the next or previous chapter.
+          {tags ? 'Tap a word to study the Hebrew or Greek. ' : reader.supported ? 'Tap verses to choose which ones to play. ' : ''}
+          Swipe left or right for the next or previous chapter.
         </p>
         <ol className="chapter">
           {all.map(h => {
@@ -830,7 +915,13 @@ function Chapter({
                 })}
               >
                 <sup>{isSelected ? '✓' : ''}{v}</sup>{' '}
-                {key === readingKey && reader.word ? <ReadingText text={h.text} word={reader.word} /> : h.text}
+                {key === readingKey && reader.word ? (
+                  <ReadingText text={h.text} word={reader.word} />
+                ) : tags?.[v - 1] ? (
+                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={onWord} />
+                ) : (
+                  h.text
+                )}
               </li>
             );
           })}
