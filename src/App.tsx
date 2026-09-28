@@ -986,7 +986,7 @@ function LibrarySheet({
   onNewChat: () => void;
   onDeleteChat: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
+  const [tab, setTab] = useState<'history' | 'lists'>('lists');
   const [newName, setNewName] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
   const { history } = library;
@@ -1015,8 +1015,8 @@ function LibrarySheet({
             <h2>Save {saving.length} verse{saving.length === 1 ? '' : 's'} to…</h2>
           ) : (
             <div className="tabs" role="tablist">
-              <button role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>History</button>
               <button role="tab" aria-selected={tab === 'lists'} className={tab === 'lists' ? 'on' : ''} onClick={() => setTab('lists')}>Lists</button>
+              <button role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>History</button>
             </div>
           )}
           <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
