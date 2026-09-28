@@ -2,6 +2,14 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.24.0 — 2026-09-28
+- Bring chats over from ChatGPT: open the bookmark icon › Lists › "⇩ Import from ChatGPT".
+  - Best way: in ChatGPT go to Settings › Data controls › Export data, download the .zip from the email, and choose it here. Pick the chats you want (there's a search box), and they appear under ChatGPT with every message, ready to continue.
+  - Quick way: "Or paste one conversation". Turns marked "You said:" and "ChatGPT said:" are kept apart.
+  - Chats already brought over are marked "already here", so importing again never overwrites what you've added since.
+- Very long chats send only their most recent messages to ChatGPT, to keep answers quick and cheap.
+- The app title stays on one line on small phones.
+
 ## v1.23.0 — 2026-09-28
 - Word study shows how the KJV translates a word: under "Where it’s used", "Translated as" lists every English word or phrase used for it, with how many times, most used first (for G25: love 51 · loved 29 · loveth 20 · beloved 7 …). Tap one to see just those verses.
 - A capital from starting a sentence or a quote is counted with the lowercase word ("Love your enemies" counts as "love"), while "God" and "god" stay separate.

@@ -11,6 +11,7 @@ import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
+import { ImportChats } from './ImportChats';
 import { useChats, type Chat } from './useChats';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
@@ -113,6 +114,7 @@ export default function App() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
   const chats = useChats();
+  const [importing, setImporting] = useState(false);
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
@@ -528,6 +530,10 @@ export default function App() {
             openView({ kind: 'chat', id: chats.newChat() });
           }}
           onDeleteChat={chats.deleteChat}
+          onImportChats={() => {
+            setSheet(null);
+            setImporting(true);
+          }}
           onShare={list => {
             const url = listLink(list.name, list.verses);
             // The phone's share menu (text, email…) where there is one; otherwise copy the link
@@ -562,6 +568,19 @@ export default function App() {
             setGotoOpen(false);
             library.remember(formatReference(ref));
             openView({ kind: 'chapter', ref });
+          }}
+        />
+      )}
+      {importing && (
+        <ImportChats
+          existing={chats.chats}
+          onClose={() => setImporting(false)}
+          onImport={list => {
+            chats.importChats(list);
+            setImporting(false);
+            if (list.length === 1) openView({ kind: 'chat', id: list[0].id });
+            else setSheet('browse');
+            setToast(`Imported ${list.length} chat${list.length === 1 ? '' : 's'}`);
           }}
         />
       )}
@@ -1095,6 +1114,7 @@ function SharedListSheet({ incoming, existing, onClose, onAdd }: {
 
 function LibrarySheet({
   library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare, chats, onOpenChat, onNewChat, onDeleteChat,
+  onImportChats,
 }: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
@@ -1108,6 +1128,7 @@ function LibrarySheet({
   onOpenChat: (id: string) => void;
   onNewChat: () => void;
   onDeleteChat: (id: string) => void;
+  onImportChats: () => void;
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>('lists');
   const [newName, setNewName] = useState('');
@@ -1198,6 +1219,9 @@ function LibrarySheet({
             <ul className="sheet-list">
               <li>
                 <button className="sheet-item new-chat" onClick={onNewChat}>+ New chat</button>
+              </li>
+              <li>
+                <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
               </li>
               {chats.map(c => deleting === `chat:${c.id}` ? (
                 <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>

@@ -25,7 +25,8 @@ export async function askChatGPT(
     res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
+      // Long chats (imported ones especially) send only their recent part, to stay quick and cheap
+      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: SYSTEM }, ...messages.slice(-40)] }),
       signal,
     });
   } catch (e) {

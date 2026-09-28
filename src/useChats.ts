@@ -66,5 +66,15 @@ export function useChats() {
 
   const deleteChat = useCallback((id: string) => setChats(cs => cs.filter(c => c.id !== id)), [setChats]);
 
-  return { chats, newChat, setMessages, deleteChat, settings, setSettings };
+  /** Adds chats brought over from ChatGPT. One imported before is left as it is, since it may have been continued here. */
+  const importChats = useCallback(
+    (incoming: Chat[]) =>
+      setChats(cs => {
+        const have = new Set(cs.map(c => c.id));
+        return [...cs, ...incoming.filter(c => !have.has(c.id))].sort((a, b) => b.updated - a.updated);
+      }),
+    [setChats],
+  );
+
+  return { chats, newChat, setMessages, deleteChat, importChats, settings, setSettings };
 }

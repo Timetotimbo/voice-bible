@@ -37,7 +37,17 @@ button { cursor: pointer; }
   justify-content: space-between;
   gap: 12px;
 }
-.top h1 { font-size: 1.3rem; margin: 0; letter-spacing: 0.02em; }
+.top h1 { font-size: 1.3rem; margin: 0; letter-spacing: 0.02em; white-space: nowrap; }
+/* Small phones: keep the title on one line beside the icons and translation menu */
+@media (max-width: 400px) {
+  .top { gap: 6px; }
+  .top h1 { font-size: 1.1rem; letter-spacing: 0; }
+  .top select { padding: 6px 4px; }
+}
+@media (max-width: 340px) {
+  .top .cross { display: none; }
+  .top .library-btn { padding: 4px; }
+}
 .cross { color: var(--purple); margin-right: 4px; }
 .top select {
   background: var(--surface-2);
@@ -344,3 +354,24 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .book-counts { display: flex; flex-wrap: wrap; gap: 6px; }
 .book-counts button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 10px; font-size: 0.85rem; color: var(--text, inherit); }
 .book-counts b { color: var(--purple-bright); margin-left: 2px; }
+
+/* Import from ChatGPT */
+.import-steps { color: var(--muted); line-height: 1.5; padding-left: 20px; margin: 0 0 14px; }
+.import-steps b { color: inherit; font-weight: 600; }
+.file-pick { position: relative; text-align: center; cursor: pointer; }
+.file-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-pick.busy { opacity: 0.7; }
+.paste-chat { display: flex; flex-direction: column; gap: 10px; }
+.paste-chat input, .paste-chat textarea, .import-filter {
+  width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: inherit; font: inherit;
+}
+.paste-chat textarea { resize: vertical; }
+.import-bar { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; color: var(--muted); font-size: 0.9rem; }
+.import-bar span { margin-right: auto; }
+.import-bar button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; }
+.import-list { max-height: 45vh; overflow-y: auto; margin-bottom: 12px; }
+.import-item { display: flex; align-items: center; gap: 10px; padding: 10px 2px; width: 100%; cursor: pointer; }
+.import-item input { width: 18px; height: 18px; accent-color: var(--purple); flex: none; }
+.import-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-item small { color: var(--muted); white-space: nowrap; }
+.import-item.have { opacity: 0.55; }
