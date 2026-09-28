@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.20.0 — 2026-09-28
+- Reorder your lists: in Lists, press and hold the ⠿ handle at the left of a list and drag it up or down. The new order is saved on that device.
+
 ## v1.19.1 — 2026-09-28
 - Lists is now the left tab and opens first; History is on the right.
 

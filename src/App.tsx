@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { BOOKS } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
@@ -992,6 +992,34 @@ function LibrarySheet({
   const { history } = library;
   const lists = library.lists.filter(l => l.id !== hideList);
 
+  // Dragging a list by its handle: rows are measured when the drag starts, and the others slide aside
+  const rows = useRef(new Map<string, HTMLLIElement>());
+  const [drag, setDrag] = useState<{ id: string; from: number; to: number; startY: number; dy: number; mids: number[]; height: number } | null>(null);
+  const startDrag = (e: ReactPointerEvent, id: string, from: number) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const boxes = lists.map(l => rows.current.get(l.id)!.getBoundingClientRect());
+    setDrag({ id, from, to: from, startY: e.clientY, dy: 0, mids: boxes.map(b => b.top + b.height / 2), height: boxes[from].height });
+  };
+  const moveDrag = (e: ReactPointerEvent) => {
+    if (!drag) return;
+    const dy = e.clientY - drag.startY;
+    const center = drag.mids[drag.from] + dy;
+    const to = drag.mids.filter((m, i) => i !== drag.from && m < center).length;
+    setDrag({ ...drag, dy, to });
+  };
+  const endDrag = () => {
+    if (drag && drag.to !== drag.from) library.moveList(drag.id, drag.to);
+    setDrag(null);
+  };
+  const rowStyle = (i: number): CSSProperties | undefined => {
+    if (!drag) return undefined;
+    if (i === drag.from) return { transform: `translateY(${drag.dy}px)` };
+    if (drag.from < i && i <= drag.to) return { transform: `translateY(${-drag.height}px)` };
+    if (drag.to <= i && i < drag.from) return { transform: `translateY(${drag.height}px)` };
+    return { transform: 'none' };
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -1046,7 +1074,7 @@ function LibrarySheet({
             <h3 className="sheet-sub">ChatGPT</h3>
             <ul className="sheet-list">
               <li>
-                <button className="sheet-item new-chat" onClick={onNewChat}>＋ New chat</button>
+                <button className="sheet-item new-chat" onClick={onNewChat}>+ New chat</button>
               </li>
               {chats.map(c => deleting === `chat:${c.id}` ? (
                 <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
@@ -1081,7 +1109,7 @@ function LibrarySheet({
             </form>
             {!lists.length && !saving && <p className="notice">Check verses in your results, then tap “Save to list”.</p>}
             <ul className="sheet-list">
-              {lists.map(l => deleting === l.id ? (
+              {lists.map((l, i) => deleting === l.id ? (
                 <li key={l.id} className="confirm-row" role="alertdialog" aria-label={`Delete ${l.name}?`}>
                   <span>Delete “{l.name}”?</span>
                   <button
@@ -1096,7 +1124,31 @@ function LibrarySheet({
                   <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
                 </li>
               ) : (
-                <li key={l.id}>
+                <li
+                  key={l.id}
+                  ref={el => {
+                    if (el) rows.current.set(l.id, el);
+                    else rows.current.delete(l.id);
+                  }}
+                  className={drag?.id === l.id ? 'dragging' : drag ? 'shifting' : ''}
+                  style={rowStyle(i)}
+                >
+                  {!saving && lists.length > 1 && (
+                    <button
+                      className="drag-handle"
+                      aria-label={`Move ${l.name} (arrow keys)`}
+                      onPointerDown={e => startDrag(e, l.id, i)}
+                      onPointerMove={moveDrag}
+                      onPointerUp={endDrag}
+                      onPointerCancel={() => setDrag(null)}
+                      onKeyDown={e => {
+                        if (e.key === 'ArrowUp' && i > 0) library.moveList(l.id, i - 1);
+                        if (e.key === 'ArrowDown' && i < lists.length - 1) library.moveList(l.id, i + 1);
+                      }}
+                    >
+                      ⠿
+                    </button>
+                  )}
                   <button
                     className="sheet-item"
                     onClick={() => {

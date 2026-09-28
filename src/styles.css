@@ -258,6 +258,11 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .sheet-item { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 12px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-item small { color: var(--muted); margin-left: 6px; }
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
+/* Drag lists into order by the handle */
+.drag-handle { background: none; border: 0; color: var(--muted); font-size: 1.2rem; padding: 10px 10px 10px 2px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sheet-list li.shifting { transition: transform 0.15s ease; }
+.sheet-list li.dragging { position: relative; z-index: 2; background: var(--surface-2); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.sheet-list li.dragging .drag-handle { cursor: grabbing; color: var(--purple-bright); }
 /* Keep ✕ (delete) apart from ✎ so one isn't tapped for the other */
 .list-delete { margin-left: 14px; }
 .confirm-row { gap: 8px; padding: 8px 4px; background: var(--surface-2); border-radius: 10px; }

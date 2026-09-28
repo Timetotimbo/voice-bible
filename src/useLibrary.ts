@@ -70,6 +70,19 @@ export function useLibrary() {
     [setLists],
   );
   const deleteList = useCallback((id: string) => setLists(ls => ls.filter(l => l.id !== id)), [setLists]);
+  /** Moves a list to position `to` (0 = top). */
+  const moveList = useCallback(
+    (id: string, to: number) =>
+      setLists(ls => {
+        const from = ls.findIndex(l => l.id === id);
+        if (from < 0 || from === to) return ls;
+        const next = [...ls];
+        const [list] = next.splice(from, 1);
+        next.splice(Math.max(0, Math.min(to, next.length)), 0, list);
+        return next;
+      }),
+    [setLists],
+  );
 
-  return { history, remember, forget, clearHistory, lists, addToList, removeFromList, renameList, deleteList };
+  return { history, remember, forget, clearHistory, lists, addToList, removeFromList, renameList, deleteList, moveList };
 }
