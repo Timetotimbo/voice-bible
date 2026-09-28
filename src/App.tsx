@@ -5,8 +5,9 @@ import {
   type BibleText, type Reference, type VerseHit,
 } from './bible/search';
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
-import { useLibrary, type VerseRef } from './useLibrary';
+import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
+import { listLink, sharedListInLink } from './share';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { useSpeech } from './useSpeech';
 
@@ -14,7 +15,7 @@ type View =
   | { kind: 'home' }
   | { kind: 'search'; query: string; hits: VerseHit[] }
   | { kind: 'list'; id: string }
-  | { kind: 'chapter'; ref: Reference; from?: View };
+  | { kind: 'chapter'; ref: Reference };
 
 const PAGE = 50;
 const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open)\s+/i;
@@ -37,9 +38,19 @@ export default function App() {
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[]>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
-  const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
   const [toast, setToast] = useState('');
   const newVersion = useNewVersion();
+  // A list someone shared, from the link this page was opened with
+  const [incoming, setIncoming] = useState(() => sharedListInLink());
+  useEffect(() => {
+    const onHash = () => setIncoming(sharedListInLink());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const closeIncoming = () => {
+    history.replaceState(null, '', location.pathname + location.search);
+    setIncoming(null);
+  };
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 2500);
@@ -71,14 +82,54 @@ export default function App() {
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
 
-  /** Resets paging, selection and playback, then shows `next` (if given). */
+  const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
+  // Screens to go back to, newest last. Each also sits in the browser history, so the phone's own
+  // back gesture steps back through them instead of leaving the app.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const backStack = useRef<{ view: View; shown: number; scrollY: number }[]>([]);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const restoreScroll = useRef<number | null>(null);
+  useEffect(() => {
+    history.scrollRestoration = 'manual';
+    const onPop = () => {
+      const entry = backStack.current.pop();
+      setCanGoBack(backStack.current.length > 0);
+      if (!entry) return;
+      setSelected(new Set());
+      reader.stop();
+      setShown(entry.shown);
+      setView(entry.view);
+      restoreScroll.current = entry.scrollY;
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [reader.stop]);
+  useLayoutEffect(() => {
+    if (restoreScroll.current === null) return;
+    window.scrollTo({ top: restoreScroll.current });
+    restoreScroll.current = null;
+  }, [view]);
+
+  /** Shows `next`, remembering this screen for Back. Resets paging, selection and playback. */
   const openView = useCallback(
-    (next: View | null) => {
+    (next: View) => {
+      let here = viewRef.current;
+      // A chapter page may have been swiped to another chapter; come back to the one on screen
+      if (here.kind === 'chapter' && shownChapter.current &&
+          (shownChapter.current.book !== here.ref.book || shownChapter.current.chapter !== here.ref.chapter)) {
+        here = { kind: 'chapter', ref: { ...shownChapter.current } };
+      }
+      backStack.current.push({ view: here, shown: shownRef.current, scrollY: window.scrollY });
+      history.pushState({ voiceBible: backStack.current.length }, '');
+      setCanGoBack(true);
       setShown(PAGE);
       setSelected(new Set());
       reader.stop();
       window.scrollTo({ top: 0 });
-      if (next) setView(next);
+      setView(next);
     },
     [reader.stop],
   );
@@ -92,10 +143,8 @@ export default function App() {
         return;
       }
       library.remember(input);
-      openView(null);
       const ref = parseReference(input, bible);
-      if (ref) setView({ kind: 'chapter', ref });
-      else setView({ kind: 'search', query: input, hits: searchVerses(index, input) });
+      openView(ref ? { kind: 'chapter', ref } : { kind: 'search', query: input, hits: searchVerses(index, input) });
     },
     [bible, index, openView, library.remember],
   );
@@ -196,6 +245,7 @@ export default function App() {
       </form>
 
       <main>
+        {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>← Back</button>}
         {loadError && <p className="notice error">{loadError}. Check your connection and reload.</p>}
         {!bible && !loadError && <p className="notice">Loading the {abbrev} Bible…</p>}
 
@@ -214,10 +264,7 @@ export default function App() {
             shown={shown}
             abbrev={abbrev}
             onMore={() => setShown(s => s + PAGE)}
-            onOpen={hit => {
-              reader.stop();
-              setView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse }, from: view });
-            }}
+            onOpen={hit => openView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse } })}
             reader={reader}
             readAloud={readAloud}
             selected={selected}
@@ -252,10 +299,7 @@ export default function App() {
             shown={savedHits.length}
             abbrev={abbrev}
             onMore={() => {}}
-            onOpen={hit => {
-              reader.stop();
-              setView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse }, from: view });
-            }}
+            onOpen={hit => openView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse } })}
             reader={reader}
             readAloud={readAloud}
             selected={selected}
@@ -282,7 +326,6 @@ export default function App() {
             bible={bible}
             view={view}
             abbrev={abbrev}
-            onBack={view.from ? () => { reader.stop(); setSelected(new Set()); setView(view.from!); } : undefined}
             reader={reader}
             readAloud={readAloud}
             selected={selected}
@@ -316,6 +359,29 @@ export default function App() {
             setSelected(new Set());
             setToast(`Saved to “${name}”`);
           }}
+          onShare={list => {
+            const url = listLink(list.name, list.verses);
+            // The phone's share menu (text, email…) where there is one; otherwise copy the link
+            if (navigator.share) {
+              navigator.share({ title: list.name, text: `“${list.name}”: ${list.verses.length} verses from Voice Bible`, url }).catch(() => {});
+            } else {
+              navigator.clipboard?.writeText(url).then(() => setToast('Link copied'), () => prompt('Copy this link', url));
+            }
+          }}
+        />
+      )}
+      {incoming && (
+        <SharedListSheet
+          incoming={incoming}
+          existing={library.lists.find(l => l.name.toLowerCase() === incoming.name.toLowerCase())}
+          onClose={closeIncoming}
+          onAdd={existing => {
+            const id = library.addToList(incoming.verses, existing ? { id: existing.id } : { name: incoming.name });
+            closeIncoming();
+            setSheet(null);
+            openView({ kind: 'list', id });
+            setToast(existing ? `Added to “${existing.name}”` : `Added “${incoming.name}”`);
+          }}
         />
       )}
       {gotoOpen && bible && (
@@ -326,9 +392,7 @@ export default function App() {
           onGo={ref => {
             setGotoOpen(false);
             library.remember(formatReference(ref));
-            // Keep a way back to the search or list the picker was opened from
-            const from = view.kind === 'chapter' ? view.from : view.kind === 'home' ? undefined : view;
-            openView({ kind: 'chapter', ref, from });
+            openView({ kind: 'chapter', ref });
           }}
         />
       )}
@@ -516,12 +580,11 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, onBack, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
   abbrev: string;
-  onBack?: () => void;
   reader: ReturnType<typeof useReader>;
   readAloud: (verses: VerseHit[]) => void;
   selected: Set<string>;
@@ -617,7 +680,6 @@ function Chapter({
       onTouchCancel={onTouchEnd}
       className={`swipe-area ${reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}`}
     >
-      {onBack && <button className="back" onClick={onBack}>← Back</button>}
       <div key={shownAt} className={slide}>
         <h2 className="result-title">
           <button className="title-pick" onClick={onPick} aria-label="Choose another book, chapter or verse">
@@ -780,13 +842,38 @@ function GotoSheet({ bible, start, onClose, onGo }: {
   );
 }
 
-function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: {
+/** Asks before adding a list that arrived in a shared link. */
+function SharedListSheet({ incoming, existing, onClose, onAdd }: {
+  incoming: { name: string; verses: VerseRef[] };
+  existing: VerseList | undefined;
+  onClose: () => void;
+  onAdd: (existing: VerseList | undefined) => void;
+}) {
+  const n = incoming.verses.length;
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Shared list" onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>Shared list</h2>
+          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+        </div>
+        <p className="shared-name">“{incoming.name}” <small>{n.toLocaleString()} verse{n === 1 ? '' : 's'}</small></p>
+        {existing && <p className="notice">You already have a list called “{existing.name}”. Its verses will be added to it.</p>}
+        <button className="goto-open" onClick={() => onAdd(existing)}>{existing ? 'Add to my list' : 'Add list'}</button>
+        <button className="sheet-link" onClick={onClose}>Not now</button>
+      </div>
+    </div>
+  );
+}
+
+function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved, onShare }: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
   onClose: () => void;
   onRun: (query: string) => void;
   onOpenList: (id: string) => void;
   onSaved: (listName: string) => void;
+  onShare: (list: VerseList) => void;
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>(saving || !library.history.length ? 'lists' : 'history');
   const [newName, setNewName] = useState('');
@@ -863,6 +950,12 @@ function LibrarySheet({ library, saving, onClose, onRun, onOpenList, onSaved }: 
                   </button>
                   {!saving && (
                     <>
+                      <button className="sheet-x" aria-label={`Share ${l.name}`} disabled={!l.verses.length} onClick={() => onShare(l)}>
+                        <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
+                          <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
+                          <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
+                        </svg>
+                      </button>
                       <button
                         className="sheet-x"
                         aria-label={`Rename ${l.name}`}

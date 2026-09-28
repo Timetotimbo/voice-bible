@@ -251,6 +251,9 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .sheet-item { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 12px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-item small { color: var(--muted); margin-left: 6px; }
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
+.share-icon { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.shared-name { font-size: 1.1rem; margin: 4px 0 12px; }
+.shared-name small { color: var(--muted); font-size: 0.8em; margin-left: 4px; }
 .sheet-link { background: none; border: 0; color: var(--muted); text-decoration: underline; margin-top: 12px; padding: 6px 0; }
 .new-list { display: flex; gap: 8px; margin-bottom: 8px; }
 .new-list input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }

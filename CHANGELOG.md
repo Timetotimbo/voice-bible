@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.14.0 — 2026-09-27
+- Share a list: in Lists, tap the share icon next to a list to send it as a link by text, email or any app. Opening the link on another phone or computer asks "Add list?". If you already have a list with that name, the verses are added to it.
+- ← Back now appears on every screen that has somewhere to go back to: search results, lists and chapters. It returns you to the same spot, even far down a long search.
+- Your phone's back gesture now steps back through the app's screens instead of leaving the app.
+
 ## v1.13.0 — 2026-09-27
 - Searching several words also finds verses that have all of them apart or in a different order. For example, "principalities powers" now finds Ephesians 6:12 ("against principalities, against powers"). Exact-phrase matches still come first, and the others follow under "Also: verses with all these words", with each word highlighted.
 
