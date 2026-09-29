@@ -23,7 +23,8 @@ type View =
   // strongs: a Strong's number search, maybe narrowed to one book or one way the KJV translates it
   | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string }
   | { kind: 'list'; id: string }
-  | { kind: 'chapter'; ref: Reference }
+  // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
+  | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
   | { kind: 'chat'; id: string };
 
 const PAGE = 50;
@@ -448,7 +449,13 @@ export default function App() {
             shown={savedHits.length}
             abbrev={abbrev}
             onMore={() => {}}
-            onOpen={hit => openView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse } })}
+            onOpen={hit =>
+              openView({
+                kind: 'chapter',
+                ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse },
+                fromList: { id: savedList.id, anchor: toRef(hit) },
+              })
+            }
             reader={reader}
             readAloud={readAloud}
             selected={selected}
@@ -493,6 +500,25 @@ export default function App() {
         {view.kind === 'chapter' && bible && (
           <Chapter
             onShare={shareSelected}
+            aroundList={(() => {
+              const from = view.fromList && library.lists.find(l => l.id === view.fromList!.id);
+              if (!from) return undefined;
+              const anchor = view.fromList!.anchor;
+              const label = `${anchor[1]}:${anchor[2]}`;
+              return {
+                name: from.name,
+                label,
+                inList: new Set(from.verses.filter(v => v[0] === anchor[0] && v[1] === anchor[1]).map(v => v[2])),
+                onAdd: (picked: VerseHit[]) => {
+                  const added = library.addAround(from.id, anchor, picked.map(toRef));
+                  setSelected(new Set());
+                  setToast(
+                    added ? `Added ${added} around ${label} in “${from.name}”` : `Those are already in “${from.name}”`,
+                    from.id,
+                  );
+                },
+              };
+            })()}
             key={`${view.ref.book}-${view.ref.chapter}-${view.ref.verseStart}`}
             bible={bible}
             view={view}
@@ -831,7 +857,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord, onShare,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord, onShare, aroundList,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
@@ -846,6 +872,8 @@ function Chapter({
   onPick: () => void;
   onWord: (word: string, code: string) => void;
   onShare: (verses: VerseHit[]) => void;
+  // Opened from a list: add the chosen verses beside the verse opened (verses already in the list are marked)
+  aroundList?: { name: string; label: string; inList: Set<number>; onAdd: (picked: VerseHit[]) => void };
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
@@ -941,7 +969,9 @@ function Chapter({
           </button>
         </h2>
         <p className="chapter-hint">
-          {tags ? 'Tap a word to study the Hebrew or Greek. ' : reader.supported ? 'Tap verses to choose which ones to play. ' : ''}
+          {aroundList && onMain
+            ? `Tap verses around ${aroundList.label} to add them to “${aroundList.name}”. `
+            : tags ? 'Tap a word to study the Hebrew or Greek. ' : reader.supported ? 'Tap verses to choose which ones to play. ' : ''}
           Swipe left or right for the next or previous chapter.
         </p>
         <ol className="chapter">
@@ -953,7 +983,9 @@ function Chapter({
               <li
                 key={v}
                 ref={key === readingKey ? readingEl : onMain && v === verseStart ? first : undefined}
-                className={`${inRange(v) ? 'hit' : ''} ${key === readingKey ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
+                className={`${inRange(v) ? 'hit' : ''} ${key === readingKey ? 'reading' : ''} ${isSelected ? 'selected' : ''} ${
+                  aroundList && onMain && aroundList.inList.has(v) ? 'in-list' : ''
+                }`}
                 {...(reader.supported && {
                   role: 'button',
                   tabIndex: 0,
@@ -994,7 +1026,8 @@ function Chapter({
           {picked.length > 0 && (
             <div className="selection-bar">
               <span>{picked.length} selected</span>
-              <button onClick={() => onSave(picked)}>Save to list</button>
+              {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>Add around {aroundList.label}</button>}
+              <button onClick={() => onSave(picked)}>{aroundList && onMain ? 'Other list…' : 'Save to list'}</button>
               <button onClick={() => onShare(picked)}>Share</button>
               <button onClick={onClearSelection}>Clear</button>
             </div>

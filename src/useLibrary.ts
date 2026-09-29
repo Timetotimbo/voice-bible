@@ -34,6 +34,24 @@ function usePersisted<T>(key: string, fallback: T) {
 
 const sameRef = (a: VerseRef, b: VerseRef) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
 
+/**
+ * Puts `add` beside `anchor` in a list: the anchor and the list entries right next to it from the same chapter
+ * are joined with the new verses and put in Bible order, so the group plays together. Verses already in the
+ * list aren't added again. Returns the list unchanged if the anchor isn't in it.
+ */
+export function insertAround(list: VerseRef[], anchor: VerseRef, add: VerseRef[]): VerseRef[] {
+  const at = list.findIndex(v => sameRef(v, anchor));
+  if (at < 0) return list;
+  const sameChapter = (v: VerseRef) => v[0] === anchor[0] && v[1] === anchor[1];
+  let from = at;
+  let to = at;
+  while (from > 0 && sameChapter(list[from - 1])) from--;
+  while (to < list.length - 1 && sameChapter(list[to + 1])) to++;
+  const fresh = add.filter(v => sameChapter(v) && !list.some(x => sameRef(x, v)));
+  const group = [...list.slice(from, to + 1), ...fresh].sort((a, b) => a[2] - b[2]);
+  return [...list.slice(0, from), ...group, ...list.slice(to + 1)];
+}
+
 /** Search history and saved verse lists, remembered on this device. */
 export function useLibrary() {
   const [history, setHistory] = usePersisted<string[]>('history', []);
@@ -60,6 +78,16 @@ export function useLibrary() {
     },
     [setLists],
   );
+  /** Adds verses from the anchor's chapter right beside it in the list (see insertAround); returns how many were new. */
+  const addAround = useCallback(
+    (id: string, anchor: VerseRef, verses: VerseRef[]) => {
+      const list = lists.find(l => l.id === id);
+      const added = list ? insertAround(list.verses, anchor, verses).length - list.verses.length : 0;
+      setLists(ls => ls.map(l => (l.id === id ? { ...l, verses: insertAround(l.verses, anchor, verses) } : l)));
+      return added;
+    },
+    [lists, setLists],
+  );
   const removeFromList = useCallback(
     (id: string, verses: VerseRef[]) =>
       setLists(ls => ls.map(l => (l.id === id ? { ...l, verses: l.verses.filter(v => !verses.some(x => sameRef(x, v))) } : l))),
@@ -84,5 +112,5 @@ export function useLibrary() {
     [setLists],
   );
 
-  return { history, remember, forget, clearHistory, lists, addToList, removeFromList, renameList, deleteList, moveList };
+  return { history, remember, forget, clearHistory, lists, addToList, addAround, removeFromList, renameList, deleteList, moveList };
 }

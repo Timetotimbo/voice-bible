@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.31.0 — 2026-09-28
+- Add surrounding verses to a list, beside the verse: open a verse from a list, tap the verses around it on the chapter page, then tap "Add around 36:5". They go into the list right next to it in Bible order, so playing or repeating the list plays them together (Psalm 36:4-7, then the next verse). Verses already in the list are marked with a line at the left and aren't added twice. For a search, save it to a list first ("Save to “faithfulness”").
+
 ## v1.30.1 — 2026-09-28
 - Undid v1.30.0: the "1v / 3v / 5v" button is gone, and search results and lists play just their own verses again, as in v1.29.0.
 
