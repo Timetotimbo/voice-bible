@@ -1,0 +1,28 @@
+// Spoken punctuation and layout, as people dictate it
+const COMMANDS: [RegExp, string][] = [
+  [/\bnew paragraph\b/gi, '\n\n'],
+  [/\b(new|next) line\b/gi, '\n'],
+  [/\b(period|full stop)\b/gi, '.'],
+  [/\bcomma\b/gi, ','],
+  [/\bquestion mark\b/gi, '?'],
+  [/\bexclamation (mark|point)\b/gi, '!'],
+  [/\bcolon\b/gi, ':'],
+  [/\bsemicolon\b/gi, ';'],
+];
+
+/**
+ * Adds a dictated phrase to the end of `before`: spoken commands become punctuation or new lines, spacing is
+ * tidied, and a sentence starts with a capital.
+ */
+export function appendDictation(before: string, phrase: string): string {
+  let text = phrase.trim();
+  if (!text) return before;
+  for (const [said, mark] of COMMANDS) text = text.replace(said, mark);
+  text = text
+    .replace(/[ \t]+([.,?!:;])/g, '$1') // "word ." → "word."
+    .replace(/[ \t]*\n[ \t]*/g, '\n') // no spaces around line breaks
+    .replace(/([.?!:;,])(?=[^\s.,?!:;])/g, '$1 '); // a space after punctuation
+  const joined = !before || /[\s]$/.test(before) || /^[.,?!:;\n]/.test(text) ? before + text : `${before} ${text}`;
+  // Capitalise the start of the note, and after a sentence end or a new line
+  return joined.replace(/(^|[.?!]\s+|\n\s*)([a-z])/g, (_, gap: string, c: string) => gap + c.toUpperCase());
+}

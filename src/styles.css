@@ -388,3 +388,23 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .sheet-list + .section-head, .notice + .section-head { margin-top: 14px; }
 /* On a chapter opened from a list: verses already in that list */
 .chapter li.in-list { border-left: 3px solid var(--purple); padding-left: 6px; }
+
+/* Notes */
+.note { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+.note-title { font-size: 1.15rem; font-weight: 600; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 8px 2px; color: var(--purple-bright); }
+.note-title:focus { outline: none; border-bottom-color: var(--purple); }
+.note-tools { display: flex; gap: 8px; }
+.note-tools button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
+.note-tools .dictate { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.note-tools .dictate span { overflow: hidden; text-overflow: ellipsis; }
+.note-tools .dictate.on svg { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .note-tools .dictate.on svg { animation: none; } }
+.note-tools .dictate svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
+.note-tools .dictate.on { background: var(--purple-deep); border-color: var(--purple-bright); color: #fff; }
+.note-text {
+  min-height: 55vh; resize: vertical; field-sizing: content; font: inherit; line-height: 1.6; color: inherit;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+}
+.note-text:focus { outline: 2px solid var(--purple); outline-offset: 1px; }
+.live-line { margin: 0; color: var(--muted); font-style: italic; }

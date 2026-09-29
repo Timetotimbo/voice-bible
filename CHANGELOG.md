@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.32.0 — 2026-09-28
+- Notes, for thoughts and sermons: open the bookmark icon › Notes › "+ New". Notes sit between Lists and ChatGPT, fold away, and can be dragged into order.
+  - Dictate, like Live Transcribe: tap "Dictate" and talk. The words being heard show live under the note and settle into it as you go; on Android it keeps listening until you tap again. Say "new paragraph", "new line", "period", "comma" or "question mark".
+  - Insert: bring a list (its verses written out with references) or a ChatGPT chat into the note, where the cursor is.
+  - Share sends the note by text or email.
+  - Notes are saved on the device as you type. The search box is hidden while a note is open, to keep the page to your writing.
+
 ## v1.31.0 — 2026-09-28
 - Add surrounding verses to a list, beside the verse: open a verse from a list, tap the verses around it on the chapter page, then tap "Add around 36:5". They go into the list right next to it in Bible order, so playing or repeating the list plays them together (Psalm 36:4-7, then the next verse). Verses already in the list are marked with a line at the left and aren't added twice. For a search, save it to a list first ("Save to “faithfulness”").
 

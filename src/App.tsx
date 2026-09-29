@@ -11,8 +11,10 @@ import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
-import { shareVerses } from './shareVerses';
+import { shareVerses, versesAsText } from './shareVerses';
 import { ImportChats } from './ImportChats';
+import { NoteView } from './NoteView';
+import { noteTitle, useNotes, type Note } from './useNotes';
 import { useDragOrder } from './useDragOrder';
 import { useChats, type Chat } from './useChats';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
@@ -25,7 +27,8 @@ type View =
   | { kind: 'list'; id: string }
   // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
   | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
-  | { kind: 'chat'; id: string };
+  | { kind: 'chat'; id: string }
+  | { kind: 'note'; id: string };
 
 const PAGE = 50;
 const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open|busca(r)?|encuentra|abre|abrir|lee(r)?|ir a|ve a)\s+/i;
@@ -119,6 +122,7 @@ export default function App() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const library = useLibrary();
   const chats = useChats();
+  const notes = useNotes();
   const [importing, setImporting] = useState(false);
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -170,6 +174,12 @@ export default function App() {
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
+  const noteChangers = useRef(new Map<string, (change: Partial<Pick<Note, 'title' | 'text'>>) => void>());
+  const noteChanger = (id: string) => {
+    let f = noteChangers.current.get(id);
+    if (!f) noteChangers.current.set(id, (f = change => notes.updateNote(id, change)));
+    return f;
+  };
   const shareSelected = async (verses: VerseHit[]) => {
     const result = await shareVerses(verses, abbrev);
     if (result === 'copied') setToast(`Copied ${verses.length === 1 ? 'the verse' : `${verses.length} verses`} to paste into a text or email`);
@@ -274,10 +284,10 @@ export default function App() {
     }
   }, [index, run]);
 
-  // While a chat is open, what's said goes into the chat box instead of starting a search
-  const speakIntoChat = useRef<((text: string) => void) | null>(null);
+  // While a chat or note is open, what's said goes into it instead of starting a search
+  const speakInto = useRef<((text: string) => void) | null>(null);
   const speech = useSpeech(text => {
-    if (viewRef.current.kind === 'chat' && speakIntoChat.current) return speakIntoChat.current(text);
+    if ((viewRef.current.kind === 'chat' || viewRef.current.kind === 'note') && speakInto.current) return speakInto.current(text);
     setTyped(text);
     run(text);
   }, language);
@@ -351,38 +361,43 @@ export default function App() {
 
       <MicPanel speech={speech} />
 
-      <form className="search" onSubmit={onSubmit}>
-        <input
-          type="search"
-          inputMode="search"
-          placeholder="Word or John 3:16"
-          value={typed}
-          onChange={e => setTyped(e.target.value)}
-        />
-        <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
-          </svg>
-        </button>
-        <button type="submit">Search</button>
-      </form>
-      {/* Always showing, so it's clear which way searches work */}
-      <div className="search-mode" role="radiogroup" aria-label="Search for">
-        {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
-          <button
-            key={mode}
-            type="button"
-            role="radio"
-            aria-checked={searchMode === mode}
-            className={searchMode === mode ? 'on' : ''}
-            // If the keyboard is up, keep it up: choosing shouldn't take focus from the search box
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => setSearchMode(mode)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* A note is for writing: keep the page to the note (the mic above still shows dictation) */}
+      {view.kind !== 'note' && (
+        <>
+          <form className="search" onSubmit={onSubmit}>
+            <input
+              type="search"
+              inputMode="search"
+              placeholder="Word or John 3:16"
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+            />
+            <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
+              <svg viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
+              </svg>
+            </button>
+            <button type="submit">Search</button>
+          </form>
+          {/* Always showing, so it's clear which way searches work */}
+          <div className="search-mode" role="radiogroup" aria-label="Search for">
+            {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={searchMode === mode}
+                className={searchMode === mode ? 'on' : ''}
+                // If the keyboard is up, keep it up: choosing shouldn't take focus from the search box
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => setSearchMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <main>
         {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>← Back</button>}
@@ -479,6 +494,37 @@ export default function App() {
           />
         )}
 
+        {view.kind === 'note' && (() => {
+          const note = notes.notes.find(n => n.id === view.id);
+          return note ? (
+            <NoteView
+              key={note.id}
+              note={note}
+              onChange={noteChanger(note.id)}
+              speechInput={speakInto}
+              listening={speech.status === 'listening'}
+              interim={speech.interim}
+              onDictate={on => (on ? speech.start() : speech.stop())}
+              lists={library.lists}
+              chats={chats.chats}
+              listText={list =>
+                bible
+                  ? versesAsText(
+                      list.verses.flatMap(([b, c, v]) => (bible[b]?.[c - 1]?.[v - 1] ? [{ book: b, chapter: c, verse: v, text: bible[b][c - 1][v - 1] }] : [])),
+                      abbrev,
+                    )
+                  : ''
+              }
+              onShare={text => {
+                if (navigator.share) navigator.share({ text }).catch(() => {});
+                else navigator.clipboard?.writeText(text).then(() => setToast('Note copied'), () => setToast('Couldn’t share from this browser'));
+              }}
+            />
+          ) : (
+            <p className="notice">This note was deleted.</p>
+          );
+        })()}
+
         {view.kind === 'chat' && bible && (() => {
           const chat = chats.chats.find(c => c.id === view.id);
           return chat ? (
@@ -490,7 +536,7 @@ export default function App() {
               setSettings={chats.setSettings}
               setMessages={chats.setMessages}
               onOpenRef={ref => openView({ kind: 'chapter', ref })}
-              speechInput={speakIntoChat}
+              speechInput={speakInto}
             />
           ) : (
             <p className="notice">This chat was deleted.</p>
@@ -569,6 +615,17 @@ export default function App() {
           }}
           onDeleteChat={chats.deleteChat}
           onMoveChat={chats.moveChat}
+          notes={notes.notes}
+          onOpenNote={id => {
+            setSheet(null);
+            openView({ kind: 'note', id });
+          }}
+          onNewNote={() => {
+            setSheet(null);
+            openView({ kind: 'note', id: notes.newNote() });
+          }}
+          onDeleteNote={notes.deleteNote}
+          onMoveNote={notes.moveNote}
           onImportChats={() => {
             setSheet(null);
             setImporting(true);
@@ -1185,7 +1242,7 @@ function useFolded(key: string, openByDefault: boolean) {
 
 function LibrarySheet({
   library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare, chats, onOpenChat, onNewChat, onDeleteChat,
-  onImportChats, onMoveChat,
+  onImportChats, onMoveChat, notes, onOpenNote, onNewNote, onDeleteNote, onMoveNote,
 }: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
@@ -1201,12 +1258,18 @@ function LibrarySheet({
   onDeleteChat: (id: string) => void;
   onImportChats: () => void;
   onMoveChat: (id: string, to: number) => void;
+  notes: Note[];
+  onOpenNote: (id: string) => void;
+  onNewNote: () => void;
+  onDeleteNote: (id: string) => void;
+  onMoveNote: (id: string, to: number) => void;
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>('lists');
   const [newName, setNewName] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
   // The ChatGPT and Lists sections fold away to save space; each is remembered per device
   const [chatsOpen, setChatsOpen] = useFolded('chatsOpen', false);
+  const [notesOpen, setNotesOpen] = useFolded('notesOpen', false);
   const [listsOpen, setListsOpen] = useFolded('listsOpen', true);
   const { history } = library;
   const lists = library.lists.filter(l => l.id !== hideList);
@@ -1214,6 +1277,7 @@ function LibrarySheet({
   // Lists and chats can be dragged into order by their ⠿ handles
   const listDrag = useDragOrder(lists.map(l => l.id), library.moveList);
   const chatDrag = useDragOrder(chats.map(c => c.id), onMoveChat);
+  const noteDrag = useDragOrder(notes.map(n => n.id), onMoveNote);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -1340,7 +1404,45 @@ function LibrarySheet({
           </>
         )}
 
-        {/* ChatGPT chats come after the lists */}
+        {/* Notes, then ChatGPT chats, come after the lists */}
+        {!saving && tab === 'lists' && (
+          <>
+            <div className="section-head">
+              <button className="section-toggle" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+                <span className="chevron" aria-hidden>{notesOpen ? '▾' : '▸'}</span> Notes
+                {notes.length > 0 && <small>{notes.length}</small>}
+              </button>
+              <button className="section-new" onClick={onNewNote}>+ New</button>
+            </div>
+            {notesOpen && (
+              <ul className="sheet-list">
+                {!notes.length && <li className="notice">Thoughts and sermons. Tap + New, then type or dictate.</li>}
+                {notes.map((n, i) => deleting === `note:${n.id}` ? (
+                  <li key={n.id} className="confirm-row" role="alertdialog" aria-label={`Delete note ${noteTitle(n)}?`}>
+                    <span>Delete this note?</span>
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        onDeleteNote(n.id);
+                        setDeleting(null);
+                      }}
+                    >
+                      Delete
+                    </button>
+                    <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                  </li>
+                ) : (
+                  <li key={n.id} {...noteDrag.rowProps(n.id, i)}>
+                    {notes.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+                    <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{noteTitle(n)}</button>
+                    <button className="sheet-x" aria-label={`Delete note ${noteTitle(n)}`} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+
         {!saving && tab === 'lists' && (
           <>
             <div className="section-head">
