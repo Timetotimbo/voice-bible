@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.35.0 — 2026-09-29
+- Rainbow theme, in all seven colours in order (red, orange, yellow, green, blue, indigo, violet): a rainbow stripe across the top, a rainbow mic, rainbow Play and Search buttons and titles, and verse numbers and verse cards that run through the seven colours down the page. Pick it from the palette icon.
+- The Play button's words ("Play chapter", "Play all 3,877") fit again on phones up to about 420 pixels wide, including the Galaxy S22.
+
 ## v1.34.0 — 2026-09-29
 - Colours: tap the new palette icon at the top (between the speaker and bookmark icons) to pick a theme: Purple Night (as before), Midnight Blue, Forest, Rose, Parchment (warm and paper-like), Light, or Match phone (light or dark with your phone's setting). The choice is remembered on each device, and the phone's status bar takes the theme's colour.
 - The big mic's glow pulses again while listening (a clash with the Dictate button's blink had turned it into a blink).

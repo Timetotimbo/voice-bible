@@ -704,7 +704,16 @@ export default function App() {
                     setThemeState(t.id);
                   }}
                 >
-                  <span className="swatch" style={{ background: `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)` }} aria-hidden />
+                  <span
+                    className="swatch"
+                    style={{
+                      background:
+                        'wheel' in t
+                          ? `conic-gradient(${t.wheel.join(', ')}, ${t.wheel[0]})`
+                          : `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)`,
+                    }}
+                    aria-hidden
+                  />
                   {t.name}
                 </button>
               ))}

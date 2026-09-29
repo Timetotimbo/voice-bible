@@ -1,10 +1,14 @@
-/** Colour themes (defined in styles.css); swatches are [background, accent] for the picker. */
+// Red, orange, yellow, green, blue, indigo, violet
+export const ROYGBIV = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#3949ab', '#8e24aa'];
+
+/** Colour themes (defined in styles.css); swatches are [background, accent], or a `wheel` of colours, for the picker. */
 export const THEMES = [
   { id: 'auto', name: 'Match phone', swatch: ['#0a0710', '#f6f6fa'] },
   { id: 'purple', name: 'Purple Night', swatch: ['#0a0710', '#9b6dff'] },
   { id: 'midnight', name: 'Midnight Blue', swatch: ['#070b14', '#5b8cff'] },
   { id: 'forest', name: 'Forest', swatch: ['#07100b', '#3fbf7f'] },
   { id: 'rose', name: 'Rose', swatch: ['#120a0c', '#e0667f'] },
+  { id: 'rainbow', name: 'Rainbow', swatch: ['#0b0a12', '#fdd835'], wheel: ROYGBIV },
   { id: 'parchment', name: 'Parchment', swatch: ['#f4ecdd', '#8a5a2b'] },
   { id: 'light', name: 'Light', swatch: ['#f6f6fa', '#6d3fe0'] },
 ] as const;

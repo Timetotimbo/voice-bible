@@ -38,6 +38,14 @@
   --purple: #e0667f; --purple-bright: #f295a8; --purple-deep: #9e2f47; --mark: rgba(224, 102, 127, 0.32);
   --bar: rgba(18, 10, 12, 0.92);
 }
+/* Rainbow: seven colours in order (red, orange, yellow, green, blue, indigo, violet) on a dark page */
+[data-theme='rainbow'] {
+  --r: #e53935; --o: #fb8c00; --y: #fdd835; --g: #43a047; --b: #1e88e5; --i: #3949ab; --v: #8e24aa;
+  --roygbiv: var(--r), var(--o), var(--y), var(--g), var(--b), var(--i), var(--v);
+  --bg: #0b0a12; --surface: #15131f; --surface-2: #1f1c2c; --border: #332e47; --text: #f1eef8; --muted: #a9a3bd;
+  --purple: #1e88e5; --purple-bright: #fdd835; --purple-deep: #3949ab; --mark: rgba(251, 140, 0, 0.35);
+  --bar: rgba(11, 10, 18, 0.92);
+}
 [data-theme='parchment'] {
   --bg: #f4ecdd; --surface: #fffaf0; --surface-2: #ece0c9; --border: #d8c7a6; --text: #2b2118; --muted: #756451;
   --purple: #a0703a; --purple-bright: #7a4a1c; --purple-deep: #8a5a2b; --mark: rgba(214, 160, 60, 0.38);
@@ -471,3 +479,39 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .theme-choice.on { border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple); font-weight: 600; }
 .swatch { width: 26px; height: 26px; border-radius: 50%; flex: none; border: 1px solid var(--border); }
 .library-btn svg circle { fill: var(--purple-bright); stroke: none; }
+
+/* Rainbow theme touches: the seven colours in order */
+[data-theme='rainbow'] .app::before {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 50;
+  background: linear-gradient(90deg, var(--r) 0 14.28%, var(--o) 0 28.57%, var(--y) 0 42.85%, var(--g) 0 57.14%, var(--b) 0 71.42%, var(--i) 0 85.71%, var(--v) 0);
+}
+[data-theme='rainbow'] .mic-button { background: conic-gradient(var(--roygbiv), var(--r)); }
+[data-theme='rainbow'] .player-main,
+[data-theme='rainbow'] .search button[type='submit'],
+[data-theme='rainbow'] .goto-open {
+  background: linear-gradient(90deg, var(--roygbiv)) !important; border-color: transparent !important;
+  color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+[data-theme='rainbow'] .result-title,
+[data-theme='rainbow'] .sheet-head h2,
+[data-theme='rainbow'] .top h1 {
+  background: linear-gradient(90deg, var(--roygbiv)); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+[data-theme='rainbow'] .result-title small { -webkit-text-fill-color: var(--muted); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 1) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 1) { --c: var(--r); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 2) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 2) { --c: var(--o); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 3) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 3) { --c: var(--y); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 4) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 4) { --c: var(--g); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 5) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 5) { --c: var(--b); }
+[data-theme='rainbow'] .chapter li:nth-child(7n + 6) sup, [data-theme='rainbow'] .verse-card:nth-child(7n + 6) { --c: var(--i); }
+[data-theme='rainbow'] .chapter li:nth-child(7n) sup, [data-theme='rainbow'] .verse-card:nth-child(7n) { --c: var(--v); }
+[data-theme='rainbow'] .chapter sup { color: var(--c); }
+[data-theme='rainbow'] .verse-card { border-left: 4px solid var(--c); }
+
+/* Narrow phones: slimmer control buttons so the main Play button keeps its words */
+@media (max-width: 420px) {
+  .player { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .player > button:not(.player-main), .play-choice ~ button { padding: 10px 9px; }
+  .speed { min-width: 44px; }
+  .player-main { padding-left: 10px !important; padding-right: 10px !important; }
+}
