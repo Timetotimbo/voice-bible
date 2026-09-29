@@ -16,6 +16,7 @@ import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { noteTitle, useNotes, type Note } from './useNotes';
 import { useDragOrder } from './useDragOrder';
+import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
@@ -127,6 +128,8 @@ export default function App() {
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [theme, setThemeState] = useState<ThemeId>(savedTheme);
   // Brief message near the top; one about a list can be tapped to open it
   const [toast, setToastState] = useState<{ text: string; listId?: string } | null>(null);
   const setToast = (text: string, listId?: string) => setToastState(text ? { text, listId } : null);
@@ -350,6 +353,12 @@ export default function App() {
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M4 9h4l5-4v14l-5-4H4Z" />
             <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
+          </svg>
+        </button>
+        <button className="library-btn" aria-label="Colours" onClick={() => setThemeOpen(true)}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.7-9-7.7Z" />
+            <circle cx="7.5" cy="11.5" r="1.2" /><circle cx="10" cy="7.5" r="1.2" /><circle cx="14.5" cy="7.5" r="1.2" />
           </svg>
         </button>
         <button className="library-btn" aria-label="History and saved lists" onClick={() => setSheet('browse')}>
@@ -675,6 +684,33 @@ export default function App() {
             openView({ kind: 'chapter', ref });
           }}
         />
+      )}
+      {themeOpen && (
+        <div className="sheet-backdrop" onClick={() => setThemeOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="Colours" onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>Colours</h2>
+              <button className="sheet-close" aria-label="Close" onClick={() => setThemeOpen(false)}>✕</button>
+            </div>
+            <div className="themes" role="radiogroup" aria-label="Colour theme">
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  role="radio"
+                  aria-checked={theme === t.id}
+                  className={`theme-choice ${theme === t.id ? 'on' : ''}`}
+                  onClick={() => {
+                    setTheme(t.id);
+                    setThemeState(t.id);
+                  }}
+                >
+                  <span className="swatch" style={{ background: `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)` }} aria-hidden />
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       {importing && (
         <ImportChats

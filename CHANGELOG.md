@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.34.0 — 2026-09-29
+- Colours: tap the new palette icon at the top (between the speaker and bookmark icons) to pick a theme: Purple Night (as before), Midnight Blue, Forest, Rose, Parchment (warm and paper-like), Light, or Match phone (light or dark with your phone's setting). The choice is remembered on each device, and the phone's status bar takes the theme's colour.
+- The big mic's glow pulses again while listening (a clash with the Dictate button's blink had turned it into a blink).
+- The top bar fits on narrower phones.
+
 ## v1.33.1 — 2026-09-28
 - Fix: voice search was searching one word at a time ("heaven", then "and earth") since v1.32.1. It now waits a moment for you to finish and searches the whole phrase ("heaven and earth"), and partial words don't end up in your history.
 
