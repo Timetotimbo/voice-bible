@@ -26,7 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          # Served at the root of its own address, voicebible.eefavorbooks.com (the repo's Pages custom domain)
+          BASE_PATH: /
           # Cloudflare R2 bucket holding the Natural voice recordings (scripts/upload-audio.sh)
           VITE_AUDIO_BASE: https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/
       # SPA fallback so deep links and refreshes don't 404

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.41.1 — 2026-09-29
+- New address: **https://voicebible.eefavorbooks.com**. The old one (timetotimbo.github.io/voice-bible) takes you there. Your lists, notes and chats stay with the old address, so bring them over with Backup › "Restore from a backup", and add the app to your home screen again from the new address. The Heart voice plays there too.
+
 ## v1.41.0 — 2026-09-29
 - Backup and restore: open the bookmark icon › Lists and scroll to the bottom. "Save a backup" downloads one file with all your lists, notes, ChatGPT chats, the ChatGPT key and settings. "Restore from a backup" brings them back, on another phone or at a new web address, where the app starts out empty. It shows what's in the file and asks before replacing anything.
 

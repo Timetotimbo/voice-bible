@@ -2,7 +2,7 @@
 
 A mobile-friendly Bible you search by voice. The microphone turns on when the page loads: say a word or phrase to see every verse containing it, or say a reference like "John 3:16" or "Psalm 23" to open it.
 
-**Live site:** https://timetotimbo.github.io/voice-bible/
+**Live site:** https://voicebible.eefavorbooks.com/
 
 ## Run locally
 
