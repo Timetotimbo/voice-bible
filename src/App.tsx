@@ -1323,6 +1323,7 @@ function LibrarySheet({
 }) {
   const [tab, setTab] = useState<'history' | 'lists'>('lists');
   const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false); // the new-list box, shown by + New
   const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
   // The ChatGPT and Lists sections fold away to save space; each is remembered per device
   const [chatsOpen, setChatsOpen] = useFolded('chatsOpen', false);
@@ -1368,16 +1369,30 @@ function LibrarySheet({
     if (!name) return;
     const id = library.addToList(saving ?? [], { name });
     setNewName('');
+    setCreating(false);
     if (saving) onSaved(name, id, saving.length);
   };
 
   const listsBody = (
     <>
-      <form className="new-list" onSubmit={createList}>
-        <input placeholder="New list name" value={newName} onChange={e => setNewName(e.target.value)} aria-label="New list name" />
-        <button type="submit" disabled={!newName.trim()}>{saving ? 'Save' : 'Create'}</button>
-      </form>
-      {!lists.length && !saving && <p className="notice">Check verses in your results, then tap “Save to list”.</p>}
+      {/* Saving always offers a new list; otherwise the box appears with the header's + New */}
+      {(saving || creating) && (
+        <form className="new-list" onSubmit={createList}>
+          <input
+            placeholder="New list name"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Escape' && !saving && (e.stopPropagation(), setCreating(false))}
+            aria-label="New list name"
+            autoFocus={creating}
+          />
+          <button type="submit" disabled={!newName.trim()}>{saving ? 'Save' : 'Create'}</button>
+          {!saving && (
+            <button type="button" className="new-list-cancel" aria-label="Cancel" onClick={() => setCreating(false)}>✕</button>
+          )}
+        </form>
+      )}
+      {!lists.length && !saving && !creating && <p className="notice">Tap + New, or check verses in your results and tap “Save to list”.</p>}
       <ul className="sheet-list">
         {lists.map((l, i) => deleting === l.id ? (
           <li key={l.id} className="confirm-row" role="alertdialog" aria-label={`Delete ${l.name}?`}>
@@ -1446,6 +1461,15 @@ function LibrarySheet({
           <button className="section-toggle" aria-expanded={listsOpen} onClick={() => setListsOpen(!listsOpen)}>
             <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> Lists
             {lists.length > 0 && <small>{lists.length}</small>}
+          </button>
+          <button
+            className="section-new"
+            onClick={() => {
+              setListsOpen(true);
+              setCreating(true);
+            }}
+          >
+            + New
           </button>
         </div>
         {listsOpen && listsBody}

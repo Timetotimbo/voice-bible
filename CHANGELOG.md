@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.35.1 — 2026-09-29
+- Lists has a "+ New" button on its header, like Notes and ChatGPT. It opens Lists and shows the name box ready to type; the box is out of the way otherwise (✕ to cancel). Saving verses still offers a new list right there.
+
 ## v1.35.0 — 2026-09-29
 - Rainbow theme, in all seven colours in order (red, orange, yellow, green, blue, indigo, violet): a rainbow stripe across the top, a rainbow mic, rainbow Play and Search buttons and titles, and verse numbers and verse cards that run through the seven colours down the page. Pick it from the palette icon.
 - The Play button's words ("Play chapter", "Play all 3,877") fit again on phones up to about 420 pixels wide, including the Galaxy S22.
