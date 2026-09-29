@@ -533,6 +533,19 @@ export default function App() {
                     )
                   : ''
               }
+              versesText={verses => versesAsText(verses, abbrev)}
+              findVerses={q => {
+                if (!bible || !index) return { verses: [], picked: [] };
+                const ref = parseReference(q, bible);
+                if (ref) {
+                  // The whole chapter, with the verses asked for already ticked
+                  const chapter = bible[ref.book][ref.chapter - 1].map((text, i) => ({ book: ref.book, chapter: ref.chapter, verse: i + 1, text }));
+                  const from = ref.verseStart ?? 0;
+                  const to = ref.verseEnd ?? from;
+                  return { verses: chapter, picked: from ? chapter.filter(v => v.verse >= from && v.verse <= to) : [] };
+                }
+                return { verses: searchVerses(index, q, searchMode), picked: [] };
+              }}
               onShare={text => {
                 if (navigator.share) navigator.share({ text }).catch(() => {});
                 else navigator.clipboard?.writeText(text).then(() => setToast('Note copied'), () => setToast('Couldn’t share from this browser'));

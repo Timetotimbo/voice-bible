@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.36.0 — 2026-09-29
+- Insert a verse into a note: in a note, tap Insert, then type (or say) a reference like "John 3:16" or "Psalm 23", or some words. A reference lists its chapter with the verse already ticked (tick the ones around it too); words list the matching verses. Tap "Insert N verses" and they go into the note where your cursor was, written out with the reference.
+- Inserting now always lands where your cursor was in the note (it used to go to the end when Insert took the focus away).
+
 ## v1.35.1 — 2026-09-29
 - Lists has a "+ New" button on its header, like Notes and ChatGPT. It opens Lists and shows the name box ready to type; the box is out of the way otherwise (✕ to cancel). Saving verses still offers a new list right there.
 

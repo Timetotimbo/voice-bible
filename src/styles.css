@@ -516,3 +516,11 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
   .speed { min-width: 44px; }
   .player-main { padding-left: 10px !important; padding-right: 10px !important; }
 }
+
+/* Picking verses to insert into a note */
+.pick-verses { list-style: none; margin: 0 0 10px; padding: 0; max-height: 40vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+.pick-verses li + li { border-top: 1px solid var(--border); }
+.pick-verses label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; cursor: pointer; line-height: 1.45; }
+.pick-verses label.on { background: var(--surface-2); }
+.pick-verses input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--purple); }
+.pick-verses b { color: var(--purple-bright); font-weight: 600; }
