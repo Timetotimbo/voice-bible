@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.33.1 — 2026-09-28
+- Fix: voice search was searching one word at a time ("heaven", then "and earth") since v1.32.1. It now waits a moment for you to finish and searches the whole phrase ("heaven and earth"), and partial words don't end up in your history.
+
 ## v1.33.0 — 2026-09-28
 - Drag the Lists, Notes and ChatGPT sections into the order you like: press and hold the ⠿ handle on a section's header and move it up or down. It's easiest with the sections folded. The order is remembered on each device.
 - Dragging lists, chats, notes and sections now follows your finger, so a tall open section drops where you point.

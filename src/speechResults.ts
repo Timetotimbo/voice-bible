@@ -28,7 +28,7 @@ export function createResultReader() {
       done.clear();
       heard = '';
     },
-    /** New finished phrases in this event, and what's being heard right now (for showing live). */
+    /** New finished phrases in this event (new words only), and what's being heard right now (for showing live). */
     read(e: RecognitionResults): { phrases: string[]; interim: string } {
       const phrases: string[] = [];
       let interim = '';

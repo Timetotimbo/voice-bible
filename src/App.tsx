@@ -286,10 +286,19 @@ export default function App() {
 
   // While a chat or note is open, what's said goes into it instead of starting a search
   const speakInto = useRef<((text: string) => void) | null>(null);
-  const speech = useSpeech(text => {
-    if ((viewRef.current.kind === 'chat' || viewRef.current.kind === 'note') && speakInto.current) return speakInto.current(text);
-    setTyped(text);
-    run(text);
+  // A spoken search waits a moment for the rest of the sentence: phones send "heaven", then "and earth"
+  const spokenSearch = useRef<{ words: string; timer?: ReturnType<typeof setTimeout> }>({ words: '' });
+  const speech = useSpeech(newWords => {
+    if ((viewRef.current.kind === 'chat' || viewRef.current.kind === 'note') && speakInto.current) return speakInto.current(newWords);
+    const pending = spokenSearch.current;
+    pending.words = `${pending.words} ${newWords}`.trim();
+    setTyped(pending.words);
+    clearTimeout(pending.timer);
+    pending.timer = setTimeout(() => {
+      const words = pending.words;
+      pending.words = '';
+      run(words);
+    }, 750);
   }, language);
   speechRef.current = speech;
 

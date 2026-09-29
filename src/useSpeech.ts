@@ -33,7 +33,8 @@ export const TAP_TO_TALK =
  * and reports each final phrase. Starts automatically, except with TAP_TO_TALK, where each
  * start() listens until the browser stops and then waits for the next tap.
  */
-export function useSpeech(onPhrase: (text: string) => void, language: 'en' | 'es' = 'en') {
+/** `onPhrase` gets each finished phrase, as its new words only (see createResultReader). */
+export function useSpeech(onPhrase: (newWords: string) => void, language: 'en' | 'es' = 'en') {
   // Listen in the language of the Bible being read
   const speechLang = language === 'es' ? 'es-ES' : 'en-US';
   const speechLangRef = useRef(speechLang);
