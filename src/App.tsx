@@ -12,7 +12,6 @@ import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
 import { shareVerses } from './shareVerses';
-import { withContext } from './bible/context';
 import { ImportChats } from './ImportChats';
 import { useDragOrder } from './useDragOrder';
 import { useChats, type Chat } from './useChats';
@@ -170,25 +169,6 @@ export default function App() {
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
-  // Verses to play before and after each search result or list verse (0, 1 or 2), remembered per device
-  const [around, setAround] = useState(() => {
-    try {
-      return Math.min(2, Math.max(0, Number(localStorage.getItem('around')) || 0));
-    } catch {
-      return 0;
-    }
-  });
-  const cycleAround = () => {
-    const next = (around + 1) % 3;
-    setAround(next);
-    try {
-      localStorage.setItem('around', String(next));
-    } catch {
-      // storage unavailable; lasts for this visit
-    }
-    setToast(next ? `Each verse plays with ${next} before and after (${1 + 2 * next} verses)` : 'Each verse plays on its own');
-  };
-  const expandVerses = (verses: VerseHit[]) => (bible ? withContext(bible, verses, around) : verses);
   const shareSelected = async (verses: VerseHit[]) => {
     const result = await shareVerses(verses, abbrev);
     if (result === 'copied') setToast(`Copied ${verses.length === 1 ? 'the verse' : `${verses.length} verses`} to paste into a text or email`);
@@ -418,9 +398,6 @@ export default function App() {
         {view.kind === 'search' && (
           <SearchResults
             onShare={shareSelected}
-            around={around}
-            onAround={cycleAround}
-            expand={expandVerses}
             strongs={view.strongs}
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={
@@ -466,9 +443,6 @@ export default function App() {
         {view.kind === 'list' && bible && savedList && (
           <SearchResults
             onShare={shareSelected}
-            around={around}
-            onAround={cycleAround}
-            expand={expandVerses}
             title={<>{savedList.name} <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small></>}
             hits={savedHits}
             shown={savedHits.length}
@@ -734,15 +708,12 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, around, onAround, expand,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare,
 }: {
   title: ReactNode;
   strongs?: string; // a Strong's number search: mark the words that translate it
   tagsFor?: (hit: VerseHit) => Tag[] | undefined;
   onShare: (verses: VerseHit[]) => void; // text or email the selected verses
-  around: number; // verses to play before and after each one
-  onAround: () => void; // cycle 1 → 3 → 5 verses
-  expand: (verses: VerseHit[]) => VerseHit[]; // add those surrounding verses
   hits: VerseHit[];
   query?: string;
   shown: number;
@@ -778,9 +749,7 @@ function SearchResults({
         {hits.slice(0, shown).map((hit, i) => {
           const key = hitKey(hit);
           const isSelected = selected.has(key);
-          // With surrounding verses playing, the card stays lit while its neighbours are read
-          const isCurrent = key === current || (around > 0 && !!reader.current && reader.current.book === hit.book &&
-            reader.current.chapter === hit.chapter && Math.abs(reader.current.verse - hit.verse) <= around);
+          const isCurrent = key === current;
           return (
             <Fragment key={key}>
               {hit.loose && !hits[i - 1]?.loose && (
@@ -804,7 +773,7 @@ function SearchResults({
                     <button
                       className="icon-btn"
                       aria-label={isCurrent ? 'Stop' : `Play ${bookName(hit.book)} ${hit.chapter}:${hit.verse}`}
-                      onClick={() => (isCurrent ? reader.stop() : readAloud(expand([hit])))}
+                      onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
                     >
                       {isCurrent ? '■' : '▶'}
                     </button>
@@ -850,23 +819,10 @@ function SearchResults({
               ■ Stop · <StopDetail reader={reader} full />
             </button>
           ) : (
-            <button
-              className="player-main"
-              // The count is in the title above; a short label leaves room on narrow phones
-              aria-label={picked.length ? `Play ${picked.length} selected` : n === 1 ? 'Play verse' : `Play all ${n.toLocaleString()}`}
-              onClick={() => readAloud(expand(queue))}
-            >
-              ▶ {picked.length && picked.length < n ? `Play ${picked.length.toLocaleString()}` : n === 1 ? 'Play verse' : 'Play all'}
+            <button className="player-main" onClick={() => readAloud(queue)}>
+              ▶ {picked.length ? `Play ${picked.length} selected` : n === 1 ? 'Play verse' : `Play all ${n.toLocaleString()}`}
             </button>
           )}
-          <button
-            className={`around ${around ? 'on' : ''}`}
-            aria-label={`Play each verse with its neighbours: ${1 + 2 * around} verses`}
-            title="Verses to play around each one"
-            onClick={onAround}
-          >
-            {1 + 2 * around}v
-          </button>
           <PlayerControls reader={reader} />
         </div>
       )}
