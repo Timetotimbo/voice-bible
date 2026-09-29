@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chunks, paragraphsOf, speakingWeight, wordAt, wordSpans } from './words';
+import { chunks, paragraphAt, paragraphsOf, speakingWeight, wordAt, wordSpans } from './words';
 
 const verse = 'Jesus wept. And the Jews said, Behold how he loved him!';
 
@@ -43,5 +43,15 @@ describe('chunks', () => {
 describe('paragraphsOf', () => {
   it('reads each non-blank line', () => {
     expect(paragraphsOf('One.\n\n  Two  \nThree\n')).toEqual(['One.', 'Two', 'Three']);
+  });
+});
+
+describe('paragraphAt', () => {
+  it('finds the paragraph the cursor is in', () => {
+    const text = 'One.\n\nTwo two.\nThree.';
+    expect(paragraphAt(text, 0)).toBe(0);
+    expect(paragraphAt(text, 5)).toBe(1); // the blank line: the next paragraph
+    expect(paragraphAt(text, text.indexOf('two.'))).toBe(1);
+    expect(paragraphAt(text, text.length)).toBe(2);
   });
 });

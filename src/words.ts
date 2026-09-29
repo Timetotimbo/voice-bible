@@ -58,3 +58,10 @@ export function chunks(text: string): string[] {
 
 /** A note's paragraphs as they're read aloud: each non-blank line. */
 export const paragraphsOf = (text: string) => text.split('\n').map(p => p.trim()).filter(Boolean);
+
+/** Which of paragraphsOf(text) the cursor at `at` is in (or the next one, on a blank line). */
+export function paragraphAt(text: string, at: number): number {
+  const line = text.slice(0, at).split('\n').length - 1;
+  const count = paragraphsOf(text).length;
+  return Math.max(0, Math.min(text.split('\n').slice(0, line).filter(l => l.trim()).length, count - 1));
+}

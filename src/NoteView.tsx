@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
-import { appendDictation } from './dictation';
+import { insertDictation } from './dictation';
 import { historyFor } from './editHistory';
-import { paragraphsOf } from './words';
+import { paragraphAt, paragraphsOf } from './words';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
@@ -80,17 +80,31 @@ export function NoteView({
     speechInput.current = phrase => {
       // With Insert open, speaking fills in the verse search instead ("John three sixteen")
       if (insertingRef.current) return setQuery(q => `${q} ${phrase}`.trim());
-      // Phrases can arrive together, before the note re-renders: build each on the one just added
-      setTextRef.current(appendDictation(textRef.current, phrase), 'edit');
+      // Phrases can arrive together, before the note re-renders: build each on the one just added.
+      // They go where the cursor is (the end, if it hasn't been placed), and the cursor follows them.
+      const text = textRef.current;
+      const next = insertDictation(text, Math.min(caret.current ?? text.length, text.length), phrase);
+      setTextRef.current(next.text, 'edit');
+      caret.current = next.text.length === next.caret ? null : next.caret;
+      placeCaret.current = true;
     };
     return () => {
       speechInput.current = null;
     };
   }, [speechInput, onChange]);
 
-  // Keep the end in view while dictating
+  // After dictating into the middle, put the cursor back after the new words (changing the text moves it to the end)
+  const placeCaret = useRef(false);
+  useLayoutEffect(() => {
+    if (!placeCaret.current || !box.current) return;
+    placeCaret.current = false;
+    const at = caret.current ?? note.text.length;
+    if (document.activeElement === box.current) box.current.setSelectionRange(at, at);
+  }, [note.text]);
+
+  // Keep the end in view while dictating there
   useEffect(() => {
-    if (listening && box.current) box.current.scrollTop = box.current.scrollHeight;
+    if (listening && box.current && caret.current === null) box.current.scrollTop = box.current.scrollHeight;
   }, [note.text, interim, listening]);
 
   /** Puts a block of text where the cursor is (or at the end), on its own lines. */
@@ -164,7 +178,12 @@ export function NoteView({
           className={`undo listen ${reading ? 'on' : ''}`}
           aria-label={reading ? 'Stop reading aloud' : 'Read aloud'}
           title={reading ? 'Stop reading aloud' : 'Read aloud'}
-          onClick={() => (reading ? reader.stop() : readFrom(0))}
+          // From the paragraph the cursor is in; from the top if it's at the end or hasn't been placed
+          onClick={() => {
+            if (reading) return reader.stop();
+            const at = caret.current;
+            readFrom(at === null || at >= note.text.trimEnd().length ? 0 : paragraphAt(note.text, at));
+          }}
           disabled={!reader.canReadText || (!reading && !paragraphs.length)}
         >
           <SpeakerIcon />

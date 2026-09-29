@@ -26,3 +26,15 @@ export function appendDictation(before: string, phrase: string): string {
   // Capitalise the start of the note, and after a sentence end or a new line
   return joined.replace(/(^|[.?!]\s+|\n\s*)([a-z])/g, (_, gap: string, c: string) => gap + c.toUpperCase());
 }
+
+/**
+ * Puts a dictated phrase where the cursor is (`at`), tidied as appendDictation does, keeping the text after it.
+ * Returns the new text and where the cursor goes: just after the phrase, so the next one follows it.
+ */
+export function insertDictation(text: string, at: number, phrase: string): { text: string; caret: number } {
+  const before = appendDictation(text.slice(0, at), phrase);
+  let after = text.slice(at);
+  // A space between the phrase and a word that follows it
+  if (before !== text.slice(0, at) && /^[^\s.,?!:;]/.test(after) && !/\s$/.test(before)) after = ` ${after}`;
+  return { text: before + after, caret: before.length };
+}

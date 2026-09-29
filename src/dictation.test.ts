@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appendDictation } from './dictation';
+import { appendDictation, insertDictation } from './dictation';
 
 describe('dictating into a note', () => {
   it('adds phrases with a space and a capital to start', () => {
@@ -21,5 +21,24 @@ describe('dictating into a note', () => {
 
   it('leaves the note alone for an empty phrase', () => {
     expect(appendDictation('Text', '   ')).toBe('Text');
+  });
+});
+
+describe('dictating where the cursor is', () => {
+  it('puts the phrase at the cursor, with spaces either side', () => {
+    const text = 'Grace is a gift. Faith comes by hearing.';
+    const at = text.indexOf(' Faith');
+    expect(insertDictation(text, at, 'it cannot be earned period')).toEqual({
+      text: 'Grace is a gift. It cannot be earned. Faith comes by hearing.',
+      caret: 'Grace is a gift. It cannot be earned.'.length,
+    });
+  });
+
+  it('joins onto a word the cursor sits before', () => {
+    expect(insertDictation('Grace gift', 6, 'is a')).toEqual({ text: 'Grace is a gift', caret: 10 });
+  });
+
+  it('adds at the end like before when the cursor is there', () => {
+    expect(insertDictation('Intro.', 6, 'new paragraph first')).toEqual({ text: 'Intro.\n\nFirst', caret: 13 });
   });
 });
