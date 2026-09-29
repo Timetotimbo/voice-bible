@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.30.0 — 2026-09-28
+- Play search results and lists with their surrounding verses: tap the new "1v" button in the play bar to switch to "3v" (each verse with the one before and after) or "5v" (two before and after). Context stays within the chapter, and verses that are close together are joined so nothing plays twice. Works with Repeat, and the setting is remembered.
+- The Play button now reads "▶ Play all" (the count is in the title above), which leaves room for the controls on narrower phones.
+
 ## v1.29.0 — 2026-09-28
 - Repeat keeps going all night, on lists, searches and chapters:
   - The screen stays awake while reading (your phone's own dimming still applies). Plug the phone in overnight.

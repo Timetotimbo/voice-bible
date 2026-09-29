@@ -386,3 +386,13 @@ mark { background: var(--mark); color: #fff; border-radius: 3px; padding: 0 2px;
 .section-toggle small { background: var(--surface-2); border-radius: 999px; padding: 1px 8px; letter-spacing: 0; text-transform: none; font-size: 0.8rem; }
 .section-new { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; color: var(--purple-bright); font-weight: 600; font-size: 0.85rem; }
 .sheet-list + .section-head, .notice + .section-head { margin-top: 14px; }
+.around { min-width: 46px; font-variant-numeric: tabular-nums; }
+.around.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: #fff; }
+/* Narrow phones: slimmer control buttons so the main Play button keeps its words */
+@media (max-width: 400px) {
+  .player { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .player > button:not(.player-main), .play-choice ~ button { padding: 10px 9px; }
+  .speed { min-width: 44px; }
+  .around { min-width: 36px; }
+  .player-main { padding-left: 10px !important; padding-right: 10px !important; }
+}
