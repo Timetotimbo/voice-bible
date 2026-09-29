@@ -450,7 +450,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .note { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
 .note-title { font-size: 1.15rem; font-weight: 600; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 8px 2px; color: var(--purple-bright); }
 .note-title:focus { outline: none; border-bottom-color: var(--purple); }
-.note-tools { display: flex; gap: 8px; }
+.note-tools { display: flex; gap: 6px; }
 .note-tools button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
 .note-tools .dictate { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
 .note-tools .dictate span { overflow: hidden; text-overflow: ellipsis; }
@@ -526,3 +526,9 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .pick-verses b { color: var(--purple-bright); font-weight: 600; }
 .word-sheet .add-note { background: var(--surface-2); border-color: var(--border); color: var(--purple-bright); }
 .choose-note { margin-top: 10px; }
+.note-tools .undo { padding: 8px 10px; font-size: 1.05rem; line-height: 1; }
+.note-tools button:disabled { opacity: 0.4; }
+@media (max-width: 380px) {
+  .note-tools button { padding-left: 10px; padding-right: 10px; }
+  .note-tools .undo { padding-left: 8px; padding-right: 8px; }
+}

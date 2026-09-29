@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.38.0 — 2026-09-29
+- Undo and Redo in notes: ↶ and ↷ in the note toolbar. An insert (a ChatGPT chat, a list, verses) comes back out in one tap; each dictated phrase is a step; typing is undone a burst at a time, not letter by letter. Redo puts back what you undid until you change something new. Ctrl+Z / Ctrl+Y work on a computer. The history lasts while the app is open, even after leaving and coming back to a note.
+- The note's Share button is now a share icon, to leave room for the others.
+
 ## v1.37.0 — 2026-09-29
 - Add a word study to a note: in the Strong's panel (KJV+S or RV1909, tap a word), tap "Add to note" and pick a note or "+ New note". It adds the word, the verse you tapped it in, the Hebrew or Greek word and how to say it, its meaning, how the KJV translates it, its root, the books it's used in, and how it's translated, to the end of the note. The message that follows opens the note.
 

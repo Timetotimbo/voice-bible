@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import { bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { appendDictation } from './dictation';
+import { historyFor } from './editHistory';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import type { Note } from './useNotes';
@@ -49,13 +50,34 @@ export function NoteView({
   const textRef = useRef(note.text);
   textRef.current = note.text;
 
+  // Undo / redo: every change to the text goes through setText, which remembers what it was
+  const history = historyFor(note.id);
+  const [, redraw] = useState(0); // the buttons follow whether there's anything to undo or redo
+  const setText = (next: string, kind: 'typing' | 'edit') => {
+    if (next === textRef.current) return;
+    history.record(textRef.current, kind);
+    textRef.current = next;
+    onChange({ text: next });
+    redraw(n => n + 1);
+  };
+  const setTextRef = useRef(setText);
+  setTextRef.current = setText;
+  const step = (to: string | null) => {
+    if (to === null) return;
+    textRef.current = to;
+    caret.current = null;
+    onChange({ text: to });
+    redraw(n => n + 1);
+  };
+  const undo = () => step(history.undo(textRef.current));
+  const redo = () => step(history.redo(textRef.current));
+
   useEffect(() => {
     speechInput.current = phrase => {
       // With Insert open, speaking fills in the verse search instead ("John three sixteen")
       if (insertingRef.current) return setQuery(q => `${q} ${phrase}`.trim());
       // Phrases can arrive together, before the note re-renders: build each on the one just added
-      textRef.current = appendDictation(textRef.current, phrase);
-      onChange({ text: textRef.current });
+      setTextRef.current(appendDictation(textRef.current, phrase), 'edit');
     };
     return () => {
       speechInput.current = null;
@@ -74,7 +96,7 @@ export function NoteView({
     const before = text.slice(0, at).replace(/\s*$/, '');
     const after = text.slice(at).replace(/^\s*/, '');
     const next = [before, block, after].filter(Boolean).join('\n\n');
-    onChange({ text: next });
+    setText(next, 'edit');
     // The cursor goes after what was inserted, so a second insert follows it
     caret.current = next.length - after.length;
     setInserting(false);
@@ -123,7 +145,14 @@ export function NoteView({
           <span>{listening ? 'Listening' : 'Dictate'}</span>
         </button>
         <button onClick={openInsert}>Insert</button>
-        <button onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>Share</button>
+        <button className="undo" aria-label="Undo" title="Undo" disabled={!history.canUndo} onClick={undo}>↶</button>
+        <button className="undo" aria-label="Redo" title="Redo" disabled={!history.canRedo} onClick={redo}>↷</button>
+        <button className="undo" aria-label="Share" title="Share" onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
+          <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
+            <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
+            <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
+          </svg>
+        </button>
       </div>
       <textarea
         ref={box}
@@ -131,8 +160,20 @@ export function NoteView({
         placeholder="Write, or tap Dictate and speak. Say “new paragraph”, “period”, “comma”…"
         value={note.text}
         onChange={e => {
-          onChange({ text: e.target.value });
+          setText(e.target.value, 'typing');
           rememberCaret();
+        }}
+        onKeyDown={e => {
+          // Ctrl/Cmd+Z undoes, Ctrl+Y or Ctrl/Cmd+Shift+Z redoes (the browser's own undo can't see inserts)
+          const mod = e.ctrlKey || e.metaKey;
+          if (mod && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) redo();
+            else undo();
+          } else if (mod && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            redo();
+          }
         }}
         onSelect={rememberCaret}
         onKeyUp={rememberCaret}
