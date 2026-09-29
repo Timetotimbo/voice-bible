@@ -549,3 +549,5 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .note-reading p.reading { background: color-mix(in srgb, var(--purple) 15%, transparent); }
 .bubble.reading { outline: 2px solid var(--purple-bright); outline-offset: 1px; }
 .messages:has(.reading) .bubble { cursor: pointer; }
+.backup { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
+.backup-actions { display: flex; flex-direction: column; gap: 6px; }

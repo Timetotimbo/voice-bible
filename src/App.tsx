@@ -18,6 +18,7 @@ import { noteTitle, useNotes, type Note } from './useNotes';
 import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
+import { describeBackup, makeBackup, restoreBackup } from './backup';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
@@ -1628,7 +1629,48 @@ function LibrarySheet({
               </div>
             );
           })}
+        {!saving && tab === 'lists' && <Backup />}
       </div>
+    </div>
+  );
+}
+
+/** Save everything on this device to a file, or bring it back from one (another phone, or a new web address). */
+function Backup() {
+  const file = useRef<HTMLInputElement>(null);
+  const save = () => {
+    const url = URL.createObjectURL(new Blob([makeBackup(localStorage)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `voice-bible-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  };
+  const restore = async (picked: File | undefined) => {
+    if (!picked) return;
+    const text = await picked.text();
+    try {
+      const what = describeBackup(text);
+      if (!confirm(`Restore this backup${what ? ` (${what})` : ''}? It replaces the lists, notes and chats on this device.`)) return;
+      restoreBackup(text, localStorage);
+      location.reload();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      if (file.current) file.current.value = '';
+    }
+  };
+  return (
+    <div className="backup">
+      <h3 className="sheet-sub">Backup</h3>
+      <p className="voice-help">Your lists, notes, chats and settings are kept only on this device. Save a backup file to keep them safe or move them to another phone. It includes your ChatGPT key, so keep the file private.</p>
+      <div className="backup-actions">
+        <button className="sheet-item" onClick={save}>⇩ Save a backup</button>
+        <button className="sheet-item" onClick={() => file.current?.click()}>⇧ Restore from a backup</button>
+      </div>
+      <input ref={file} type="file" accept=".json,application/json" hidden onChange={e => restore(e.target.files?.[0])} />
     </div>
   );
 }

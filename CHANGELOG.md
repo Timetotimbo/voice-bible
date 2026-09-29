@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.41.0 — 2026-09-29
+- Backup and restore: open the bookmark icon › Lists and scroll to the bottom. "Save a backup" downloads one file with all your lists, notes, ChatGPT chats, the ChatGPT key and settings. "Restore from a backup" brings them back, on another phone or at a new web address, where the app starts out empty. It shows what's in the file and asks before replacing anything.
+
 ## v1.40.0 — 2026-09-29
 - Dictate where your cursor is: tap into the middle of a note, then Dictate, and the words go there instead of at the end. Each phrase follows the last, and the cursor moves along after them. A note you haven't tapped into still fills from the end, as before.
 - Listen reads from the paragraph your cursor is in. With the cursor at the end (or not placed), it reads from the top.
