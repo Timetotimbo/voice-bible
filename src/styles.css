@@ -524,3 +524,5 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .pick-verses label.on { background: var(--surface-2); }
 .pick-verses input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--purple); }
 .pick-verses b { color: var(--purple-bright); font-weight: 600; }
+.word-sheet .add-note { background: var(--surface-2); border-color: var(--border); color: var(--purple-bright); }
+.choose-note { margin-top: 10px; }

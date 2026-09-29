@@ -105,7 +105,7 @@ export default function App() {
   const language = TRANSLATIONS.find(t => t.id === translation)!.lang;
   setBookLanguage(language); // book names on screen follow the Bible's language
   // Word study: the tapped word and its Strong's number
-  const [studyWord, setStudyWord] = useState<{ word: string; code: string } | null>(null);
+  const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<View>({ kind: 'home' });
@@ -131,8 +131,8 @@ export default function App() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemeId>(savedTheme);
   // Brief message near the top; one about a list can be tapped to open it
-  const [toast, setToastState] = useState<{ text: string; listId?: string } | null>(null);
-  const setToast = (text: string, listId?: string) => setToastState(text ? { text, listId } : null);
+  const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
+  const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
   // A list someone shared, from the link this page was opened with
   const [incoming, setIncoming] = useState(() => sharedListInLink());
@@ -148,7 +148,7 @@ export default function App() {
   useEffect(() => {
     if (!toast) return;
     // Longer when it can be tapped, so there's time to
-    const t = setTimeout(() => setToastState(null), toast.listId ? 4000 : 2500);
+    const t = setTimeout(() => setToastState(null), toast.listId || toast.noteId ? 4000 : 2500);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -607,7 +607,7 @@ export default function App() {
             onSave={picked => setSheet(picked.map(toRef))}
             onClearSelection={() => setSelected(new Set())}
             onShown={place => (shownChapter.current = place)}
-            onWord={(word, code) => setStudyWord({ word, code })}
+            onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
             onPick={() => setGotoOpen(true)}
           />
         )}
@@ -751,6 +751,18 @@ export default function App() {
         <WordSheet
           word={studyWord.word}
           code={studyWord.code}
+          where={studyWord.verse && `${bookName(studyWord.verse.book)} ${studyWord.verse.chapter}:${studyWord.verse.verse}`}
+          notes={notes.notes.map(n => ({ id: n.id, title: noteTitle(n) }))}
+          onAddToNote={(noteId, text, word) => {
+            const id = noteId ?? notes.newNote();
+            const current = notes.notes.find(n => n.id === id);
+            notes.updateNote(id, {
+              ...(noteId ? {} : { title: `Word study: ${word}` }),
+              text: [current?.text.trimEnd(), text].filter(Boolean).join('\n\n'),
+            });
+            setStudyWord(null);
+            setToast(`Added to “${current ? noteTitle(current) : `Word study: ${word}`}”`, undefined, id);
+          }}
           versesWith={studyVerses}
           renderingsOf={studyRenderings}
           onRendering={(code, r) => {
@@ -781,13 +793,13 @@ export default function App() {
           }}
         />
       )}
-      {toast && (toast.listId ? (
+      {toast && (toast.listId || toast.noteId ? (
         <button
           className="toast toast-link"
           onClick={() => {
-            const id = toast.listId!;
+            const { listId, noteId } = toast;
             setToastState(null);
-            openView({ kind: 'list', id });
+            openView(listId ? { kind: 'list', id: listId } : { kind: 'note', id: noteId! });
           }}
         >
           <span className="toast-text">{toast.text}</span>
@@ -994,7 +1006,7 @@ function Chapter({
   onClearSelection: () => void;
   onShown: (place: { book: number; chapter: number }) => void;
   onPick: () => void;
-  onWord: (word: string, code: string) => void;
+  onWord: (word: string, code: string, verse: VerseHit) => void;
   onShare: (verses: VerseHit[]) => void;
   // Opened from a list: add the chosen verses beside the verse opened (verses already in the list are marked)
   aroundList?: { name: string; label: string; inList: Set<number>; onAdd: (picked: VerseHit[]) => void };
@@ -1127,7 +1139,7 @@ function Chapter({
                 {key === readingKey && reader.word ? (
                   <ReadingText text={h.text} word={reader.word} />
                 ) : tags?.[v - 1] ? (
-                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={onWord} />
+                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={(word, code) => onWord(word, code, h)} />
                 ) : (
                   h.text
                 )}

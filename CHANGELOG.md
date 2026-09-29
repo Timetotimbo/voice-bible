@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.37.0 — 2026-09-29
+- Add a word study to a note: in the Strong's panel (KJV+S or RV1909, tap a word), tap "Add to note" and pick a note or "+ New note". It adds the word, the verse you tapped it in, the Hebrew or Greek word and how to say it, its meaning, how the KJV translates it, its root, the books it's used in, and how it's translated, to the end of the note. The message that follows opens the note.
+
 ## v1.36.0 — 2026-09-29
 - Insert a verse into a note: in a note, tap Insert, then type (or say) a reference like "John 3:16" or "Psalm 23", or some words. A reference lists its chapter with the verse already ticked (tick the ones around it too); words list the matching verses. Tap "Insert N verses" and they go into the note where your cursor was, written out with the reference.
 - Inserting now always lands where your cursor was in the note (it used to go to the end when Insert took the focus away).

@@ -18,9 +18,12 @@ function Codes({ text, known, onCode }: { text: string; known: (code: string) =>
 }
 
 /** Word study: the Hebrew or Greek word behind an English word, from Strong's dictionary. */
-export function WordSheet({ word, code: first, versesWith, renderingsOf, onClose, onSearch, onRendering }: {
+export function WordSheet({ word, code: first, where, versesWith, renderingsOf, onClose, onSearch, onRendering, notes, onAddToNote }: {
   word: string;
   code: string;
+  where?: string; // the verse the word was tapped in, e.g. "John 3:16"
+  notes: { id: string; title: string }[];
+  onAddToNote: (noteId: string | null, text: string, word: string) => void; // null = a new note
   versesWith: (code: string) => VerseHit[]; // every verse using a word
   renderingsOf: (code: string) => Rendering[]; // the English words it's translated as
   onClose: () => void;
@@ -52,6 +55,20 @@ export function WordSheet({ word, code: first, versesWith, renderingsOf, onClose
     return [...counts];
   }, [verses]);
   const [lemma, xlit, pron, definition, kjv, derivation] = entry ?? [];
+  const [choosingNote, setChoosingNote] = useState(false);
+
+  /** This word study written out, for a note. */
+  const asText = () =>
+    [
+      `“${word}”${where ? ` (${where})` : ''}: ${code} ${lemma ?? ''} (${[xlit, pron && `“${pron}”`].filter(Boolean).join(', ')}), ${hebrew ? 'Hebrew' : 'Greek'}`,
+      definition && `Meaning: ${definition}`,
+      kjv && `KJV translates it as: ${kjv}`,
+      derivation && `Comes from: ${derivation}`,
+      byBook.length && `Used in ${uses.toLocaleString()} verse${uses === 1 ? '' : 's'}: ${byBook.map(([b, n]) => `${bookAbbrev(b)} ${n}`).join(' · ')}`,
+      renderings.length && `Translated as: ${renderings.map(r => `${r.word} ${r.count.toLocaleString()}`).join(' · ')}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -94,6 +111,25 @@ export function WordSheet({ word, code: first, versesWith, renderingsOf, onClose
           </>
         )}
         {code !== first && <button className="sheet-link" onClick={() => setCode(first)}>← Back to {first}</button>}
+        {entry && !choosingNote && (
+          <button className="goto-open add-note" onClick={() => setChoosingNote(true)}>Add to note</button>
+        )}
+        {entry && choosingNote && (
+          <div className="choose-note">
+            <h3 className="sheet-sub">Add to which note?</h3>
+            <ul className="sheet-list">
+              <li>
+                <button className="sheet-item new-chat" onClick={() => onAddToNote(null, asText(), word)}>+ New note</button>
+              </li>
+              {notes.map(n => (
+                <li key={n.id}>
+                  <button className="sheet-item" onClick={() => onAddToNote(n.id, asText(), word)}>{n.title}</button>
+                </li>
+              ))}
+            </ul>
+            <button className="sheet-link" onClick={() => setChoosingNote(false)}>Cancel</button>
+          </div>
+        )}
         <button className="goto-open" disabled={!uses} onClick={() => onSearch(code)}>
           Every verse with {code} ({uses.toLocaleString()})
         </button>
