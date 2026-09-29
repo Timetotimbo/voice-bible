@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.32.1 — 2026-09-28
+- Fix: doubled words when dictating (and in voice search). Chrome on Android, listening continuously, repeats the earlier words at the start of each new phrase and sometimes sends a phrase twice; now only the new words are added. There was only ever one microphone listening.
+- Fix: when two phrases arrived together, the first could be lost from the note.
+
 ## v1.32.0 — 2026-09-28
 - Notes, for thoughts and sermons: open the bookmark icon › Notes › "+ New". Notes sit between Lists and ChatGPT, fold away, and can be dragged into order.
   - Dictate, like Live Transcribe: tap "Dictate" and talk. The words being heard show live under the note and settle into it as you go; on Android it keeps listening until you tap again. Say "new paragraph", "new line", "period", "comma" or "question mark".

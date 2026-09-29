@@ -24,7 +24,11 @@ export function NoteView({ note, onChange, speechInput, listening, interim, onDi
   textRef.current = note.text;
 
   useEffect(() => {
-    speechInput.current = phrase => onChange({ text: appendDictation(textRef.current, phrase) });
+    speechInput.current = phrase => {
+      // Phrases can arrive together, before the note re-renders: build each on the one just added
+      textRef.current = appendDictation(textRef.current, phrase);
+      onChange({ text: textRef.current });
+    };
     return () => {
       speechInput.current = null;
     };

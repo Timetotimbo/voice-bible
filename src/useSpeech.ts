@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createResultReader } from './speechResults';
 
 // Web Speech API isn't in TypeScript's DOM lib yet
 interface SpeechRecognitionLike extends EventTarget {
@@ -51,19 +52,16 @@ export function useSpeech(onPhrase: (text: string) => void, language: 'en' | 'es
       const r = new Recognition();
       r.continuous = true;
       r.interimResults = true;
-      r.onstart = () => setStatus('listening');
+      // Each finished phrase once, without the repeats Android sends (see createResultReader)
+      const results = createResultReader();
+      r.onstart = () => {
+        results.reset();
+        setStatus('listening');
+      };
       r.onresult = e => {
-        let partial = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const res = e.results[i];
-          const text = res[0].transcript.trim();
-          if (res.isFinal) {
-            if (text) onPhraseRef.current(text);
-          } else {
-            partial += text + ' ';
-          }
-        }
-        setInterim(partial.trim());
+        const { phrases, interim } = results.read(e);
+        phrases.forEach(p => onPhraseRef.current(p));
+        setInterim(interim);
       };
       r.onerror = e => {
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
