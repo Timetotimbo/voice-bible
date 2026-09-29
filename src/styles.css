@@ -528,7 +528,24 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .choose-note { margin-top: 10px; }
 .note-tools .undo { padding: 8px 10px; font-size: 1.05rem; line-height: 1; }
 .note-tools button:disabled { opacity: 0.4; }
-@media (max-width: 380px) {
+@media (max-width: 440px) {
+  .note-tools { gap: 4px; }
   .note-tools button { padding-left: 10px; padding-right: 10px; }
-  .note-tools .undo { padding-left: 8px; padding-right: 8px; }
+  .note-tools .undo { padding-left: 7px; padding-right: 7px; }
 }
+@media (max-width: 380px) {
+  .note-tools button { padding-left: 8px; padding-right: 8px; }
+  .note-tools .undo { padding-left: 5px; padding-right: 5px; }
+  .note-tools .dictate { gap: 4px; }
+}
+
+/* Reading a note or chat aloud */
+.listen { display: inline-flex; align-items: center; justify-content: center; }
+.listen-icon { width: 18px; height: 18px; fill: currentColor; }
+.listen.on { background: var(--purple-deep) !important; border-color: var(--purple-bright) !important; color: var(--on-accent); }
+.chat-head .listen { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; align-self: center; }
+.note-reading { cursor: pointer; }
+.note-reading p { margin: 0 0 0.8em; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-reading p.reading { background: color-mix(in srgb, var(--purple) 15%, transparent); }
+.bubble.reading { outline: 2px solid var(--purple-bright); outline-offset: 1px; }
+.messages:has(.reading) .bubble { cursor: pointer; }

@@ -50,3 +50,11 @@ export function wordAt(spans: WordSpan[], fraction: number): WordSpan | null {
   }
   return found;
 }
+
+/** Short utterances: some browsers cut off speech that runs longer than ~15 seconds. "41:10" and "3.5" stay whole. */
+export function chunks(text: string): string[] {
+  return text.match(/(?:[^.;:?!]|[.:](?=\d))+[.;:?!]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
+}
+
+/** A note's paragraphs as they're read aloud: each non-blank line. */
+export const paragraphsOf = (text: string) => text.split('\n').map(p => p.trim()).filter(Boolean);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOKS, BOOKS_ES, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
-import { speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
+import { chunks, speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
 
@@ -103,6 +103,11 @@ const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Thi
 
 export type ReadingLanguage = 'en' | 'es';
 
+// Text that isn't a verse (a note, a chat) is read as "verses" of this book: one per paragraph or message,
+// numbered from 1. It's always read by a device voice (the recordings are of the Bible), without references.
+export const TEXT_BOOK = -1;
+const isText = (verses: VerseHit[]) => verses[0]?.book === TEXT_BOOK;
+
 // "1 Samuel" is "Primero de Samuel" (a book), "1 Juan" is "Primera de Juan" (a letter)
 const ORDINAL_ES: Record<string, [string, string]> = { '1': ['Primero', 'Primera'], '2': ['Segundo', 'Segunda'], '3': ['Tercero', 'Tercera'] };
 
@@ -119,10 +124,6 @@ function spokenReference(v: VerseHit, language: ReadingLanguage): string {
   return `${book} ${v.chapter}, verse ${v.verse}.`;
 }
 
-/** Short utterances: some browsers cut off speech that runs longer than ~15 seconds. */
-function chunks(text: string): string[] {
-  return text.match(/[^.;:?!]+[.;:?!]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
-}
 
 const lang = (v: SpeechSynthesisVoice) => (v.lang || '').replace('_', '-');
 
@@ -265,6 +266,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   onDoneRef.current = onDone;
 
   const queue = useRef<VerseHit[]>([]);
+  const textTitle = useRef(''); // what's being read, when it's a note or chat, for the lock screen
   const index = useRef(0); // verse being read, so a speed or voice change can restart it
 
   // The word being said, as a character range in the verse being read
@@ -313,7 +315,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
 
   const play = useCallback(
     (verses: VerseHit[], from = 0) => {
-      const recorded = recordedRef.current;
+      const text = isText(verses);
+      const recorded = text ? undefined : recordedRef.current;
       if ((!synth && !recorded) || !verses.length) return;
       const id = ++run.current;
       synth?.cancel();
@@ -393,9 +396,10 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           pos = at < 0 ? pos : at + c.length;
           return Math.max(at, 0);
         });
-        const parts = [...(sayRefsRef.current ? [{ text: spokenReference(verse, languageRef.current), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
+        const parts = [...(sayRefsRef.current && !text ? [{ text: spokenReference(verse, languageRef.current), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
         parts.forEach(({ text, at }, j) => {
-          const u = new SpeechSynthesisUtterance(text);
+          // Markdown in chats (**bold**, # headings) would be read out as symbols; blank them, keeping word positions
+          const u = new SpeechSynthesisUtterance(text && isText(verses) ? text.replace(/[*#_`~>|]/g, ' ') : text);
           const voice = voiceRef.current;
           if (voice) u.voice = voice;
           u.lang = voice?.lang ?? (languageRef.current === 'es' ? 'es-ES' : 'en-US');
@@ -509,7 +513,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       return;
     }
     session.metadata = new MediaMetadata({
-      title: `${bookName(current.book)} ${current.chapter}:${current.verse}`,
+      title: current.book === TEXT_BOOK ? textTitle.current : `${bookName(current.book)} ${current.chapter}:${current.verse}`,
       artist: 'Voice Bible',
       album: current.text.slice(0, 80),
     });
@@ -549,7 +553,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         // storage unavailable; setting lasts for this visit
       }
       // Recordings can change speed as they play; device speech has to restart
-      if (recordedRef.current) allEls.forEach(el => (el.playbackRate = el.defaultPlaybackRate = next));
+      if (recordedRef.current && !isText(queue.current)) allEls.forEach(el => (el.playbackRate = el.defaultPlaybackRate = next));
       else restart();
     },
     [restart],
@@ -595,6 +599,15 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     [stop],
   );
 
+  /** Reads paragraphs of text (a note, a chat) aloud from paragraph `from`, highlighting each word. */
+  const playText = useCallback(
+    (paragraphs: string[], title: string, from = 0) => {
+      textTitle.current = title;
+      play(paragraphs.map((text, i) => ({ book: TEXT_BOOK, chapter: 0, verse: i + 1, text })), from);
+    },
+    [play],
+  );
+
   useEffect(() => () => {
     run.current++;
     synth?.cancel();
@@ -602,5 +615,10 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   }, []);
 
   return { supported: !!synth || !!mainEl, language, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
-    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, stop };
+    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop,
+    /** Whether a note or chat can be read aloud (it needs a device voice) */
+    canReadText: !!synth,
+    /** The paragraph of text being read (0-based), or -1 */
+    textAt: current?.book === TEXT_BOOK ? current.verse - 1 : -1,
+    readingText: !!playing && isText(playing) };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { speakingWeight, wordAt, wordSpans } from './words';
+import { chunks, paragraphsOf, speakingWeight, wordAt, wordSpans } from './words';
 
 const verse = 'Jesus wept. And the Jews said, Behold how he loved him!';
 
@@ -31,5 +31,17 @@ describe('word timing', () => {
     const part = wordSpans(text, 18);
     expect(part.map(s => text.slice(s.start, s.end))).toEqual(['and', 'the', 'king’s']);
     expect(speakingWeight(text)).toBeGreaterThan(speakingWeight('the LORD'));
+  });
+});
+
+describe('chunks', () => {
+  it('splits at sentence ends but keeps references and decimals whole', () => {
+    expect(chunks('See Isaiah 41:10. Do not fear; he is 3.5 miles away: go!')).toEqual(['See Isaiah 41:10.', 'Do not fear;', 'he is 3.5 miles away:', 'go!']);
+  });
+});
+
+describe('paragraphsOf', () => {
+  it('reads each non-blank line', () => {
+    expect(paragraphsOf('One.\n\n  Two  \nThree\n')).toEqual(['One.', 'Two', 'Three']);
   });
 });

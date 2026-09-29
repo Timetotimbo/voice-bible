@@ -19,6 +19,7 @@ import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
+import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 
 type View =
@@ -75,16 +76,6 @@ function TaggedText({ text, tags, mark, onWord }: {
 }
 
 /** Verse text with the word being read aloud marked. */
-function ReadingText({ text, word }: { text: string; word: { start: number; end: number } }) {
-  return (
-    <>
-      {text.slice(0, word.start)}
-      <mark className="word-now">{text.slice(word.start, word.end)}</mark>
-      {text.slice(word.end)}
-    </>
-  );
-}
-
 export default function App() {
   const [translation, setTranslationState] = useState<TranslationId>(() => {
     try {
@@ -161,13 +152,20 @@ export default function App() {
       speechRef.current?.start();
     }
   }, language);
-  const readAloud = (verses: VerseHit[]) => {
+  const pauseMic = () => {
     if (speechRef.current?.status === 'listening') {
       // Turning it back on by itself would make Apple devices ask for the microphone again
       micWasOn.current = !TAP_TO_TALK;
       speechRef.current.stop();
     }
+  };
+  const readAloud = (verses: VerseHit[]) => {
+    pauseMic();
     reader.play(verses);
+  };
+  const listen: Listen = (paragraphs, title, from) => {
+    pauseMic();
+    reader.playText(paragraphs, title, from);
   };
 
   useEffect(() => {
@@ -519,6 +517,8 @@ export default function App() {
               key={note.id}
               note={note}
               onChange={noteChanger(note.id)}
+              reader={reader}
+              listen={listen}
               speechInput={speakInto}
               listening={speech.status === 'listening'}
               interim={speech.interim}
@@ -568,6 +568,8 @@ export default function App() {
               setMessages={chats.setMessages}
               onOpenRef={ref => openView({ kind: 'chapter', ref })}
               speechInput={speakInto}
+              reader={reader}
+              listen={listen}
             />
           ) : (
             <p className="notice">This chat was deleted.</p>

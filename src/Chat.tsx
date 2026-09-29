@@ -3,6 +3,7 @@ import { BOOKS } from './bible/books';
 import { parseReference, type BibleText, type Reference } from './bible/search';
 import { ChatError, askChatGPT } from './openai';
 import type { Chat as ChatData, ChatMessage, ChatSettings } from './useChats';
+import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 // "Romans 8:28", "1 John 4:7-8", "Psalm 23" in an answer, to make them tappable
 const NAMES = [...new Set([...BOOKS.map(b => b.replace(/^[123] /, '')), 'Psalm'])].sort((a, b) => b.length - a.length);
@@ -64,7 +65,7 @@ function KeySetup({ settings, onSave, onCancel }: {
 }
 
 /** A ChatGPT conversation about the Bible. */
-export function ChatView({ chat, bible, settings, setSettings, setMessages, onOpenRef, speechInput }: {
+export function ChatView({ chat, bible, settings, setSettings, setMessages, onOpenRef, speechInput, reader, listen }: {
   chat: ChatData;
   bible: BibleText;
   settings: ChatSettings;
@@ -72,6 +73,8 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
   setMessages: (id: string, messages: ChatMessage[]) => void;
   onOpenRef: (ref: Reference) => void;
   speechInput: MutableRefObject<((text: string) => void) | null>; // spoken words land in the box
+  reader: Reader;
+  listen: Listen;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -81,9 +84,16 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
   const end = useRef<HTMLDivElement>(null);
   const last = chat.messages[chat.messages.length - 1]?.content;
   const empty = !chat.messages.length;
+  // Reading aloud: one message after another, with the word being said marked; tap a message to read from there
+  const reading = reader.readingText;
+  const readFrom = (i: number) => listen(chat.messages.map(m => m.content), chat.title, i);
+  const readingEl = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    readingEl.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [reader.textAt]);
 
   useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end' });
+    if (!reading) end.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.length, last]);
   useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => {
@@ -141,37 +151,62 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
     <section className="chat">
       <div className="chat-head">
         <h2 className="result-title">{chat.title}</h2>
+        <button
+          className={`listen ${reading ? 'on' : ''}`}
+          aria-label={reading ? 'Stop reading aloud' : 'Read aloud'}
+          title={reading ? 'Stop reading aloud' : 'Read aloud'}
+          onClick={() => (reading ? reader.stop() : readFrom(0))}
+          disabled={!reader.canReadText || empty || busy}
+        >
+          <SpeakerIcon />
+        </button>
         <button className="sheet-link" onClick={() => setEditingKey(true)}>API key</button>
       </div>
       {empty && (
         <p className="notice">Ask anything about the Bible, like “What does the Bible say about fear?” or “Explain Romans 8:28”. Verse references in answers open when tapped.</p>
       )}
       <ol className="messages">
-        {chat.messages.map((m, i) => (
-          <li key={i} className={`bubble ${m.role}`}>
-            {m.role === 'assistant' ? <Linked text={m.content} bible={bible} onOpenRef={onOpenRef} /> : m.content}
-          </li>
-        ))}
+        {chat.messages.map((m, i) => {
+          const now = reading && i === reader.textAt;
+          return (
+            <li
+              key={i}
+              ref={now ? readingEl : undefined}
+              className={`bubble ${m.role} ${now ? 'reading' : ''}`}
+              onClick={reading ? () => readFrom(i) : undefined}
+            >
+              {now && reader.word ? (
+                <ReadingText text={m.content} word={reader.word} />
+              ) : m.role === 'assistant' && !reading ? (
+                <Linked text={m.content} bible={bible} onOpenRef={onOpenRef} />
+              ) : (
+                m.content
+              )}
+            </li>
+          );
+        })}
         {busy && chat.messages[chat.messages.length - 1]?.role === 'user' && <li className="bubble assistant thinking">…</li>}
       </ol>
       {error && <p className="notice error">{error}</p>}
       <div ref={end} />
-      <form className="composer" onSubmit={send}>
-        <textarea
-          rows={1}
-          placeholder="Ask ChatGPT, or speak…"
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) send(e);
-          }}
-        />
-        {busy ? (
-          <button type="button" onClick={() => abort.current?.abort()}>Stop</button>
-        ) : (
-          <button type="submit" disabled={!draft.trim()}>Send</button>
-        )}
-      </form>
+      {reading ? <ListenBar reader={reader} total={chat.messages.length} /> : (
+        <form className="composer" onSubmit={send}>
+          <textarea
+            rows={1}
+            placeholder="Ask ChatGPT, or speak…"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) send(e);
+            }}
+          />
+          {busy ? (
+            <button type="button" onClick={() => abort.current?.abort()}>Stop</button>
+          ) : (
+            <button type="submit" disabled={!draft.trim()}>Send</button>
+          )}
+        </form>
+      )}
     </section>
   );
 }

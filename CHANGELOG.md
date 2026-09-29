@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.39.0 — 2026-09-29
+- Listen to notes and ChatGPT chats, like Speechify: tap the speaker button (in a note's toolbar, or at the top of a chat). It reads the note paragraph by paragraph, or the chat message by message, with each word lit up as it's said.
+  - Tap any paragraph or message while it's reading to jump there.
+  - ⟳ Loop starts again from the top when it reaches the end, for as long as you like (it keeps going with the screen off, like the Bible reading). Tap the speed button for 0.5× to 2×.
+  - Stop, or the speaker button again, returns to editing. Dictating stops the reading so the mic doesn't hear it.
+  - It uses your phone's voice (the Heart recordings are of the Bible only). Symbols like ** and # in ChatGPT answers aren't read out, and references like “Isaiah 41:10” are read without a break in the middle.
+
 ## v1.38.0 — 2026-09-29
 - Undo and Redo in notes: ↶ and ↷ in the note toolbar. An insert (a ChatGPT chat, a list, verses) comes back out in one tap; each dictated phrase is a step; typing is undone a burst at a time, not letter by letter. Redo puts back what you undid until you change something new. Ctrl+Z / Ctrl+Y work on a computer. The history lasts while the app is open, even after leaving and coming back to a note.
 - The note's Share button is now a share icon, to leave room for the others.
