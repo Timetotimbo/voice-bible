@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.33.0 — 2026-09-28
+- Drag the Lists, Notes and ChatGPT sections into the order you like: press and hold the ⠿ handle on a section's header and move it up or down. It's easiest with the sections folded. The order is remembered on each device.
+- Dragging lists, chats, notes and sections now follows your finger, so a tall open section drops where you point.
+
 ## v1.32.1 — 2026-09-28
 - Fix: doubled words when dictating (and in voice search). Chrome on Android, listening continuously, repeats the earlier words at the start of each new phrase and sometimes sends a phrase twice; now only the new words are added. There was only ever one microphone listening.
 - Fix: when two phrases arrived together, the first could be lost from the note.

@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerE
 
 /**
  * Reordering rows by dragging a handle. Rows are measured when a drag starts; the dragged row follows the
- * finger and the rows it passes slide aside, and letting go calls `move(id, newIndex)`. Arrow keys on a
+ * finger, the rows whose middle it passes slide aside, and letting go calls `move(id, newIndex)`. Arrow keys on a
  * focused handle move it one place.
  */
 export function useDragOrder(ids: string[], move: (id: string, to: number) => void) {
@@ -35,9 +35,9 @@ export function useDragOrder(ids: string[], move: (id: string, to: number) => vo
     },
     onPointerMove: (e: PointerEvent) => {
       if (!drag) return;
+      // The row lands where the finger is (not the row's middle), so tall rows like an open section move naturally
       const dy = e.clientY - drag.startY;
-      const center = drag.mids[drag.from] + dy;
-      setDrag({ ...drag, dy, to: drag.mids.filter((m, k) => k !== drag.from && m < center).length });
+      setDrag({ ...drag, dy, to: drag.mids.filter((m, k) => k !== drag.from && m < e.clientY).length });
     },
     onPointerUp: () => {
       if (drag && drag.to !== drag.from) move(drag.id, drag.to);
