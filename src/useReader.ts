@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BOOKS, BOOKS_ES } from './bible/books';
+import { BOOKS, BOOKS_ES, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
 import { speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
@@ -22,6 +22,17 @@ const SILENCE = (() => {
   text(36, 'data'); view.setUint32(40, 800, true);
   return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
 })();
+// Plays silence on a loop while a device voice reads, so the phone treats the page as playing audio and keeps it
+// running with the screen off (speech itself doesn't count)
+const keepAliveEl = makeAudio();
+function keepAwake(on: boolean) {
+  if (!keepAliveEl) return;
+  if (on) {
+    keepAliveEl.loop = true;
+    if (keepAliveEl.src !== SILENCE) keepAliveEl.src = SILENCE;
+    keepAliveEl.play().catch(() => {});
+  } else keepAliveEl.pause();
+}
 /** Call from a tap so the elements may play later. */
 function unlockAudio() {
   for (const el of allEls) {
@@ -41,11 +52,11 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
   return new Promise<'done' | 'error'>(resolve => {
     endSegment?.();
     let done = false;
-    let frame = 0;
+    let timer = 0;
     const finish = (result: 'done' | 'error') => {
       if (done) return;
       done = true;
-      cancelAnimationFrame(frame);
+      clearInterval(timer);
       el.removeEventListener('timeupdate', tick);
       el.onended = el.onerror = null;
       endSegment = null;
@@ -57,10 +68,11 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
       if (!keepGoing) el.pause();
       finish('done');
     };
-    // timeupdate only comes ~4 times a second, late enough to catch the next word; check every frame too
+    // timeupdate only comes ~4 times a second, late enough to catch the next word, so check often too. A timer
+    // (not animation frames) keeps checking when the screen is off, since the page is playing audio.
     const poll = () => {
-      tick();
-      if (!done) frame = requestAnimationFrame(poll);
+      clearInterval(timer);
+      timer = window.setInterval(tick, 40);
     };
     endSegment = () => {
       el.pause();
@@ -75,7 +87,7 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
     el.addEventListener('timeupdate', tick);
     el.onended = () => finish('done');
     el.onerror = () => finish('error');
-    if (el.src !== src) {
+    if (el.src !== src || el.error) {
       el.src = src;
       el.addEventListener('loadedmetadata', begin, { once: true });
       el.load();
@@ -83,6 +95,9 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
   });
 }
 const REC = 'rec:';
+// Chrome can garbage-collect an utterance mid-speech and never fire its end, which stalls reading, so hold on to them
+const speaking = new Set<SpeechSynthesisUtterance>();
+const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
@@ -276,7 +291,11 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   const hasBoundaries = useRef(false);
   const secondsPerWeight = useRef(0.07);
 
+  // When reading last moved on; the watchdog picks up again if it stalls
+  const lastProgress = useRef(0);
+
   const finish = useCallback(() => {
+    keepAwake(false);
     queue.current = [];
     unfollow();
     showWord(null);
@@ -314,7 +333,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         const next = verses[i + 1];
         setCurrent(verse);
         showWord(null);
-        try {
+        lastProgress.current = Date.now();
+        for (let attempt = 1; ; attempt++) try {
           const starts = await verseStarts(voiceName, verse.book, verse.chapter);
           if (id !== run.current) return;
           if (sayRefsRef.current) {
@@ -340,9 +360,17 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           const result = await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows, SPEECH_TAIL - 0.15);
           unfollow();
           if (result === 'error') throw 0;
+          break;
         } catch {
-          // Recording missing or offline: read the rest with the device voice
+          unfollow();
           if (id !== run.current) return;
+          // A dropped connection often comes back: try this verse again a few times, waiting a little longer each time
+          if (attempt < 4) {
+            await wait(3000 * attempt);
+            if (id !== run.current) return;
+            continue;
+          }
+          // Recording missing or still offline: read the rest with the device voice
           return synth ? speak(i) : finish();
         }
         speakRecorded(i + 1, voiceName);
@@ -375,6 +403,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           const spans = at < 0 ? [] : wordSpans(verse.text, at, at + text.length);
           let began = 0;
           u.onstart = () => {
+            lastProgress.current = Date.now();
             if (id !== run.current) return;
             if (j === 0) setCurrent(verse);
             showWord(spans[0] ?? null);
@@ -392,6 +421,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
             showWord(spans.filter(s => s.start <= c).pop() ?? null);
           };
           const ended = () => {
+            speaking.delete(u);
             unfollow();
             const took = (performance.now() - began) / 1000;
             // Learn this voice's pace from whole phrases, ignoring blips
@@ -410,18 +440,101 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
               if (e.error !== 'interrupted' && e.error !== 'canceled') speak(i + 1);
             };
           }
+          speaking.add(u);
+          lastProgress.current = Date.now();
           synth!.speak(u);
         });
       };
       if (recorded) {
+        keepAwake(false);
         unlockAudio();
         speakRecorded(from, recorded);
-      } else speak(from);
+      } else {
+        keepAwake(true);
+        speak(from);
+      }
     },
     [finish, follow, unfollow, showWord],
   );
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
+  // All-night repeats: if nothing has moved for a while (a lost phrase, a stalled recording), carry on from this verse
+  useEffect(() => {
+    if (!playing) return;
+    let times = allEls.map(el => el.currentTime);
+    const check = setInterval(() => {
+      const now = allEls.map(el => el.currentTime);
+      if (now.some((t, k) => t !== times[k])) lastProgress.current = Date.now();
+      times = now;
+      if (queue.current.length && Date.now() - lastProgress.current > 45_000) {
+        lastProgress.current = Date.now();
+        play(queue.current, index.current);
+      }
+    }, 5000);
+    return () => clearInterval(check);
+  }, [playing, play]);
+
+  // Keep the screen awake while reading, so the phone doesn't put the page to sleep partway through the night
+  useEffect(() => {
+    if (!playing || !('wakeLock' in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let done = false;
+    const get = () => {
+      if (document.visibilityState !== 'visible') return;
+      navigator.wakeLock.request('screen').then(
+        l => {
+          if (done) l.release();
+          else lock = l;
+        },
+        () => {}, // not allowed (battery saver, etc.): read on without it
+      );
+    };
+    get();
+    // The lock is dropped when the page is hidden; take it again on return
+    const onVisible = () => (!lock || lock.released) && get();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      done = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      lock?.release();
+    };
+  }, [playing]);
+
+  // Lock-screen and notification controls, which also tell the phone this is audio meant to keep playing
+  useEffect(() => {
+    const session = navigator.mediaSession;
+    if (!session) return;
+    if (!current) {
+      session.playbackState = 'none';
+      return;
+    }
+    session.metadata = new MediaMetadata({
+      title: `${bookName(current.book)} ${current.chapter}:${current.verse}`,
+      artist: 'Voice Bible',
+      album: current.text.slice(0, 80),
+    });
+    session.playbackState = 'playing';
+  }, [current]);
+  useEffect(() => {
+    const session = navigator.mediaSession;
+    if (!session) return;
+    const actions: MediaSessionAction[] = ['pause', 'stop'];
+    for (const a of actions) {
+      try {
+        session.setActionHandler(a, stop);
+      } catch {
+        // action not supported here
+      }
+    }
+    return () => actions.forEach(a => {
+      try {
+        session.setActionHandler(a, null);
+      } catch {
+        // ignore
+      }
+    });
+  }, [stop]);
+
   const restart = useCallback(() => {
     if (queue.current.length) play(queue.current, index.current);
   }, [play]);

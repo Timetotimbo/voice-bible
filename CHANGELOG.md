@@ -2,6 +2,14 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.29.0 — 2026-09-28
+- Repeat keeps going all night, on lists, searches and chapters:
+  - The screen stays awake while reading (your phone's own dimming still applies). Plug the phone in overnight.
+  - Pressing the side button to turn the screen off no longer stops reading. The Heart voice keeps moving from verse to verse with the screen off, and a silent sound keeps the page awake for your phone's own voice.
+  - If the internet drops while the Heart voice moves to the next chapter, it tries again a few times instead of switching to the phone's voice.
+  - If reading ever stalls (Chrome sometimes loses a spoken phrase), it picks up again from the same verse within about 45 seconds.
+  - Reading shows on the lock screen and in notifications ("John 11:35 · Voice Bible"), with pause/stop.
+
 ## v1.28.0 — 2026-09-28
 - Share verses by text or email: select verses (on a chapter, in search results or in a list) and tap "Share". Your phone's share menu opens (Messages, Gmail, WhatsApp …) with the verses and their references, like "John 3:16-17 (KJV)". Verses that follow each other are grouped and numbered. On a computer without a share menu, the verses are copied to paste into a message.
 
