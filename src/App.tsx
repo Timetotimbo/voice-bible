@@ -11,6 +11,7 @@ import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
+import { shareVerses } from './shareVerses';
 import { ImportChats } from './ImportChats';
 import { useDragOrder } from './useDragOrder';
 import { useChats, type Chat } from './useChats';
@@ -168,6 +169,11 @@ export default function App() {
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
   const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
+  const shareSelected = async (verses: VerseHit[]) => {
+    const result = await shareVerses(verses, abbrev);
+    if (result === 'copied') setToast(`Copied ${verses.length === 1 ? 'the verse' : `${verses.length} verses`} to paste into a text or email`);
+    if (result === 'failed') setToast('Couldn’t share from this browser');
+  };
   const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
 
@@ -391,6 +397,7 @@ export default function App() {
 
         {view.kind === 'search' && (
           <SearchResults
+            onShare={shareSelected}
             strongs={view.strongs}
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={
@@ -435,6 +442,7 @@ export default function App() {
 
         {view.kind === 'list' && bible && savedList && (
           <SearchResults
+            onShare={shareSelected}
             title={<>{savedList.name} <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small></>}
             hits={savedHits}
             shown={savedHits.length}
@@ -484,6 +492,7 @@ export default function App() {
 
         {view.kind === 'chapter' && bible && (
           <Chapter
+            onShare={shareSelected}
             key={`${view.ref.book}-${view.ref.chapter}-${view.ref.verseStart}`}
             bible={bible}
             view={view}
@@ -699,11 +708,12 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare,
 }: {
   title: ReactNode;
   strongs?: string; // a Strong's number search: mark the words that translate it
   tagsFor?: (hit: VerseHit) => Tag[] | undefined;
+  onShare: (verses: VerseHit[]) => void; // text or email the selected verses
   hits: VerseHit[];
   query?: string;
   shown: number;
@@ -795,6 +805,7 @@ function SearchResults({
             <div className="selection-bar">
               <span>{picked.length.toLocaleString()} selected</span>
               {selectionActions(picked)}
+              <button onClick={() => onShare(picked)}>Share</button>
               {picked.length < n && <button onClick={onSelectAll}>All</button>}
               <button onClick={onClearSelection}>Clear</button>
             </div>
@@ -820,7 +831,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord, onShare,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
@@ -834,6 +845,7 @@ function Chapter({
   onShown: (place: { book: number; chapter: number }) => void;
   onPick: () => void;
   onWord: (word: string, code: string) => void;
+  onShare: (verses: VerseHit[]) => void;
 }) {
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
@@ -983,6 +995,7 @@ function Chapter({
             <div className="selection-bar">
               <span>{picked.length} selected</span>
               <button onClick={() => onSave(picked)}>Save to list</button>
+              <button onClick={() => onShare(picked)}>Share</button>
               <button onClick={onClearSelection}>Clear</button>
             </div>
           )}

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.28.0 — 2026-09-28
+- Share verses by text or email: select verses (on a chapter, in search results or in a list) and tap "Share". Your phone's share menu opens (Messages, Gmail, WhatsApp …) with the verses and their references, like "John 3:16-17 (KJV)". Verses that follow each other are grouped and numbered. On a computer without a share menu, the verses are copied to paste into a message.
+
 ## v1.27.0 — 2026-09-28
 - Spanish: pick "RV1909" (Reina-Valera 1909) in the translation menu. It's the public-domain Reina-Valera; the 1960 revision is still under copyright.
   - Book names show in Spanish (Génesis, Juan, Salmos…), and references like "Juan 3:16", "Salmo 23" or "Apocalipsis 21:1 al 4" open directly.
