@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.42.0 — 2026-09-29
+- Share Voice Bible: the new share icon at the top (after the bookmark) opens your phone's share menu with the app's link, https://voicebible.eefavorbooks.com, to send by text, email or any app. It works from the home-screen app too. On a computer without a share menu it copies the link.
+- The translation menu at the top is slimmer on phones, so everything still fits on one line.
+
 ## v1.41.1 — 2026-09-29
 - New address: **https://voicebible.eefavorbooks.com**. The old one (timetotimbo.github.io/voice-bible) takes you there. Your lists, notes and chats stay with the old address, so bring them over with Backup › "Restore from a backup", and add the app to your home screen again from the new address. The Heart voice plays there too.
 

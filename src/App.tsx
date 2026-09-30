@@ -77,6 +77,9 @@ function TaggedText({ text, tags, mark, onWord }: {
 }
 
 /** Verse text with the word being read aloud marked. */
+// The app's own address, to share (not the page's, which may be a test copy)
+const APP_URL = 'https://voicebible.eefavorbooks.com/';
+
 export default function App() {
   const [translation, setTranslationState] = useState<TranslationId>(() => {
     try {
@@ -189,6 +192,12 @@ export default function App() {
   };
   const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
+  /** Sends the app's link to someone (the phone's share menu), or copies it where there's no share menu. */
+  const shareApp = () => {
+    const text = 'Voice Bible: speak a word, phrase or verse and find it in the Bible, and listen to it read aloud.';
+    if (navigator.share) navigator.share({ title: 'Voice Bible', text, url: APP_URL }).catch(() => {});
+    else navigator.clipboard?.writeText(APP_URL).then(() => setToast('Link copied: ' + APP_URL), () => setToast(APP_URL));
+  };
 
   const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
   // Screens to go back to, newest last. Each also sits in the browser history, so the phone's own
@@ -363,6 +372,12 @@ export default function App() {
         <button className="library-btn" aria-label="History and saved lists" onClick={() => setSheet('browse')}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+          </svg>
+        </button>
+        <button className="library-btn" aria-label="Share Voice Bible" onClick={shareApp}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
+            <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
           </svg>
         </button>
         <select

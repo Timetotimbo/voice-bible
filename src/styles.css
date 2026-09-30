@@ -89,12 +89,17 @@ button { cursor: pointer; }
 /* Small phones: keep the title on one line beside the icons and translation menu */
 @media (max-width: 440px) {
   .top h1 { font-size: 1.15rem; letter-spacing: 0; }
-  .top select { padding: 6px 2px; font-size: 0.9rem; }
+  /* A small drawn arrow instead of the browser's wide one, so "RV1909" fits beside the icons */
+  header.top select { /* header. outranks the .top select rule below, which sets the whole background */
+    font-size: 0.9rem; appearance: none; -webkit-appearance: none; padding: 6px 17px 6px 7px;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: right 10px center, right 6px center; background-size: 4px 4px; background-repeat: no-repeat;
+  }
+  .top { gap: 3px; }
+  .top .library-btn { padding: 2px; }
 }
 @media (max-width: 400px) {
-  .top { gap: 4px; }
   .top h1 { font-size: 1.1rem; }
-  .top .library-btn { padding: 3px; }
 }
 @media (max-width: 380px) {
   .top .cross { display: none; }
