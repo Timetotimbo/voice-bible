@@ -7,7 +7,7 @@ A new look, built from the Neon Book design (mockup Option E):
 - The app opens on the chapter you last read, set like an open book: the book's name, a big chapter number, and the verses running together in a reading font (Spectral). "Go to ▾" picks another place.
 - Tabs along the bottom: Read · Search · Verse Lists · Notes · Chat. Each tab comes back to where you left it; tapping the tab you're on goes to its first page.
 - The search bar, with the mic inside it, is at the top of every screen. The Search tab has All words / Exact phrase and your recent searches.
-- Tap verses to choose them, in chapters and in results. In results, tap a verse's reference to open its chapter.
+- In a chapter, tap verses to choose them. In search results and lists, tap a verse to open it in its chapter, or tap its circle to choose it (once one is chosen, tapping others chooses them too).
 - Verse Lists, Notes and ChatGPT each have their own page. Edit shows the drag handles, rename and delete.
 - ⚙ Settings holds Reading voice, Colours, Hints, Share Voice Bible, Backup and the version.
 - The play bar has ⟳ repeat, speed, and ⋯ for "Say the reference first".

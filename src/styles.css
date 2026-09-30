@@ -707,7 +707,10 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 
 /* Search results and list verses: tap a card to choose it; its reference opens the chapter */
 .verse-card { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 12px 12px 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.verse-card .tick { width: 20px; height: 20px; margin-top: 3px; border-radius: 50%; border: 1.5px solid var(--border); display: grid; place-items: center; font-size: 0.7rem; color: var(--on-accent); }
+/* The circle chooses the verse; a bigger invisible target around it makes it easy to hit */
+.verse-card .tick { position: relative; width: 22px; height: 22px; margin-top: 2px; padding: 0; border-radius: 50%; border: 1.5px solid var(--muted); background: none;
+  display: grid; place-items: center; font-size: 0.72rem; color: var(--on-accent); }
+.verse-card .tick::before { content: ''; position: absolute; inset: -12px; }
 .verse-card.selected .tick { background: var(--purple); border-color: var(--purple); }
 .verse-card .verse-body { padding: 0; }
 .ref-open { background: none; border: 0; padding: 2px 0; text-align: left; cursor: pointer; }

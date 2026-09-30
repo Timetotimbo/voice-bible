@@ -1268,27 +1268,32 @@ function SearchResults({
                 className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
                 role="button"
                 tabIndex={0}
-                aria-pressed={isSelected}
-                onClick={() => onToggle(key)}
+                aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
+                // Tapping a verse opens its chapter; while choosing verses, it chooses instead
+                onClick={() => (picked.length ? onToggle(key) : onOpen(hit))}
                 onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
-                    onToggle(key);
+                    if (picked.length) onToggle(key);
+                    else onOpen(hit);
                   }
                 }}
               >
-                <span className="tick" aria-hidden>{isSelected ? '✓' : ''}</span>
+                <button
+                  className="tick"
+                  aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
+                  aria-pressed={isSelected}
+                  onClick={e => {
+                    e.stopPropagation(); // choosing, not opening
+                    onToggle(key);
+                  }}
+                >
+                  {isSelected ? '✓' : ''}
+                </button>
                 <div className="verse-body">
-                  <button
-                    className="ref ref-open"
-                    aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
-                    onClick={e => {
-                      e.stopPropagation(); // opening, not choosing
-                      onOpen(hit);
-                    }}
-                  >
+                  <span className="ref">
                     {bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev} ›</small>
-                  </button>
+                  </span>
                   <span className="text">
                     {isCurrent && reader.word ? (
                       <ReadingText text={hit.text} word={reader.word} />
