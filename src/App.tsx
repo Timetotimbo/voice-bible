@@ -666,7 +666,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="version">Voice Bible v{__APP_VERSION__}</footer>
+      {hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
 
       {sheet && (
         <LibrarySheet

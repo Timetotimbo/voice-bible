@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.49.1 — 2026-09-29
+- Turning Hints off also hides the "Voice Bible v…" version line at the bottom of the page.
+
 ## v1.49.0 — 2026-09-29
 - A Hints switch under the Voice Bible title ("Ayudas" in Spanish). Turn it off to hide the instructions: the mic's "Tap the mic…" and "Listening…", the front page's "Say a word or phrase…", and the chapter page's "Tap a word… Swipe left or right…". What the mic hears, and problems like a blocked microphone, still show. It's remembered on each device.
 
