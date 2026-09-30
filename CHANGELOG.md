@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.47.0 — 2026-09-29
+- Rename a Verse List from inside it: tap its name at the top of the list and type, like a note's title. It saves as you type. Clearing it and tapping away puts the old name back, since a list needs a name.
+
 ## v1.46.0 — 2026-09-29
 - Two more neon themes: Neon Purple and Neon Blue (a deep, true blue; Electric Blue is the bright cyan one).
 - The colour picker puts all seven neon themes together under a "Neon" heading, below the others.

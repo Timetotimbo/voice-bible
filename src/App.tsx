@@ -494,7 +494,12 @@ export default function App() {
         {view.kind === 'list' && bible && savedList && (
           <SearchResults
             onShare={shareSelected}
-            title={<>{savedList.name} <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small></>}
+            title={
+              <span className="list-title">
+                <ListName name={savedList.name} onRename={name => library.renameList(savedList.id, name)} />
+                <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small>
+              </span>
+            }
             hits={savedHits}
             shown={savedHits.length}
             abbrev={abbrev}
@@ -1729,6 +1734,29 @@ function LibrarySheet({
         )}
       </div>
     </div>
+  );
+}
+
+/** A list's name, edited in place like a note's title. A list can't be left without a name: blank goes back. */
+function ListName({ name, onRename }: { name: string; onRename: (name: string) => void }) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  return (
+    <input
+      className="note-title"
+      value={draft}
+      aria-label="List name"
+      onChange={e => {
+        setDraft(e.target.value);
+        // Saved as typed (trimming now would swallow the space before the next word)
+        if (e.target.value.trim()) onRename(e.target.value);
+      }}
+      onBlur={() => {
+        if (name.trim() !== name) onRename(name.trim());
+        setDraft(name.trim());
+      }}
+      onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+    />
   );
 }
 

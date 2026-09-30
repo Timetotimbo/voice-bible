@@ -644,3 +644,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 /* The bookmark sheet's tab row stays in view as the sections scroll under it */
 .sheet-head:has(.tabs) { position: sticky; top: -14px; z-index: 3; background: var(--surface); margin: -14px -16px 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--border); border-radius: 18px 18px 0 0; }
 .section[data-section] { scroll-margin-top: 64px; }
+/* A list's name, editable at the top of the list */
+.list-title { display: flex; align-items: baseline; gap: 10px; }
+.list-title .note-title { flex: 1; min-width: 0; font-size: inherit; }
+.list-title small { flex: none; }
