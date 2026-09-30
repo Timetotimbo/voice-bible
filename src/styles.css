@@ -348,8 +348,15 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .sheet-head h2 { font-size: 1.05rem; margin: 0; color: var(--purple-bright); }
-.tabs { display: flex; gap: 6px; }
-.tabs button { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; color: var(--muted); }
+.tabs { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; color: var(--muted); white-space: nowrap; flex: none; font-size: 0.9rem; }
+/* Phones: all four tabs on one line beside the ✕ */
+@media (max-width: 440px) {
+  .sheet-head:has(.tabs) { gap: 6px; }
+  .tabs { gap: 3px; }
+  .tabs button { flex: 1 1 auto; padding: 5px 6px; font-size: 0.82rem; }
+}
 .tabs button.on { background: var(--purple-deep); border-color: var(--purple); color: var(--on-accent); }
 .sheet-close { background: none; border: 0; font-size: 1.1rem; color: var(--muted); padding: 6px; }
 .sheet-list { list-style: none; margin: 0; padding: 0; }
@@ -623,3 +630,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .messages:has(.reading) .bubble { cursor: pointer; }
 .backup { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
 .backup-actions { display: flex; flex-direction: column; gap: 6px; }
+/* Bookmark sheet tabs: Verse Lists, Notes, ChatGPT, History */
+.tab-head { margin-top: 6px; }
+.tab-count { flex: 1; color: var(--muted); font-size: 0.85rem; }
+@media (max-width: 350px) { .tabs button { padding: 4px 4px; font-size: 0.76rem; } }

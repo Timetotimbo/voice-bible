@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.45.0 — 2026-09-29
+- The bookmark sheet has four tabs across the top: Verse Lists, Notes, ChatGPT and History. Each shows just its own items, with how many there are and "+ New". It opens on the tab you used last. Import from ChatGPT is on the ChatGPT tab, and Backup is at the bottom of Verse Lists.
+- With tabs, the folding sections and dragging whole sections into order are gone. Lists, notes and chats can still be dragged into order within their tab.
+
 ## v1.44.0 — 2026-09-29
 - Five neon themes in the palette: Neon Pink, Neon Green, Electric Blue, Neon Orange and Synthwave (hot pink and cyan). Near-black backgrounds with a glowing line along the top, glowing titles, icons and verse numbers, a glowing ring for the mic, and glowing Play and Search buttons.
 
