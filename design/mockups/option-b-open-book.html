@@ -1,0 +1,390 @@
+<title>Voice Bible Open Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+<style>
+  /* Day palette first; night follows the phone (or the viewer's toggle) */
+  :root {
+    --page: #f4f5f9;
+    --paper: #ffffff;
+    --tint: #eceef6;
+    --rule: #dcdfeb;
+    --ink: #1b1d2b;
+    --soft: #5d6178;
+    --faint: #8f93a8;
+    --accent: #3f3cbb;
+    --accent-ink: #ffffff;
+    --accent-wash: rgba(63, 60, 187, 0.1);
+    --mark: rgba(63, 60, 187, 0.16);
+    --shadow: 0 12px 34px rgba(27, 29, 43, 0.14);
+    --scrim: rgba(20, 21, 32, 0.4);
+    --ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --read: 'Literata', Georgia, 'Times New Roman', serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0f1017; --paper: #171924; --tint: #20222f; --rule: #2c2f40; --ink: #e9eaf3; --soft: #a4a7bd; --faint: #72758b;
+      --accent: #9d9bff; --accent-ink: #11121b; --accent-wash: rgba(157, 155, 255, 0.14); --mark: rgba(157, 155, 255, 0.24);
+      --shadow: 0 12px 34px rgba(0, 0, 0, 0.5); --scrim: rgba(0, 0, 0, 0.55);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0f1017; --paper: #171924; --tint: #20222f; --rule: #2c2f40; --ink: #e9eaf3; --soft: #a4a7bd; --faint: #72758b;
+    --accent: #9d9bff; --accent-ink: #11121b; --accent-wash: rgba(157, 155, 255, 0.14); --mark: rgba(157, 155, 255, 0.24);
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.5); --scrim: rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--page); color: var(--ink); font: 16px/1.5 var(--ui); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; }
+  .ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .app { height: 100%; max-width: 460px; margin: 0 auto; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--page); }
+
+  /* Top: menu, the place you're reading (tap to change), search */
+  .top { display: flex; align-items: center; gap: 6px; padding: 10px 12px 6px; }
+  .round { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--soft); flex: none; }
+  .round:hover { background: var(--tint); color: var(--ink); }
+  .place { flex: 1; min-width: 0; display: flex; justify-content: center; }
+  .place button { display: inline-flex; align-items: center; gap: 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 14px; font-weight: 600; max-width: 100%; }
+  .place b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .place small { color: var(--faint); font-weight: 600; font-size: 0.78rem; }
+
+  /* The open page */
+  .page { flex: 1; overflow-y: auto; padding: 8px 22px 150px; }
+  .chapter-head { text-align: center; margin: 14px 0 18px; }
+  .chapter-head .book { font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  .chapter-head .num { font-family: var(--read); font-size: 3.2rem; line-height: 1.05; font-weight: 600; }
+  .chapter-head .sub { font-family: var(--read); font-style: italic; color: var(--soft); font-size: 0.95rem; }
+  .hint { text-align: center; color: var(--faint); font-size: 0.82rem; margin: -6px 0 16px; }
+  body.nohints .hint { display: none; }
+  .text { font-family: var(--read); font-size: 1.16rem; line-height: 1.85; max-width: 62ch; margin: 0 auto; }
+  .v { border-radius: 6px; padding: 2px 3px; margin: 0 -3px; cursor: pointer; transition: background 0.15s; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .v sup { font-family: var(--ui); font-size: 0.62rem; font-weight: 700; color: var(--accent); margin-right: 3px; vertical-align: 0.6em; }
+  .v.sel { background: var(--accent-wash); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 5px; text-decoration-thickness: 2px; }
+  .v.now { background: var(--mark); }
+
+  /* The voice dock */
+  .dock { position: absolute; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 26px; box-shadow: var(--shadow);
+    display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr; align-items: center; padding: 8px 10px; }
+  .dock .side { justify-self: center; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: var(--soft); }
+  .dock .side.on { color: var(--accent); background: var(--accent-wash); }
+  .dock .side small { font-size: 0.8rem; font-weight: 700; }
+  .mic { width: 68px; height: 68px; border-radius: 50%; margin: -26px 6px 0; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 22px rgba(63, 60, 187, 0.35); }
+  .mic svg { width: 30px; height: 30px; fill: currentColor; }
+  .mic.on { animation: ring 1.4s ease-out infinite; }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 var(--mark); } 100% { box-shadow: 0 0 0 24px transparent; } }
+  .fill svg { fill: currentColor; stroke: none; }
+  .progress { position: absolute; left: 22px; right: 22px; top: 0; height: 3px; border-radius: 2px; background: var(--tint); overflow: hidden; }
+  .progress i { display: block; height: 100%; background: var(--accent); transition: width 0.4s; }
+
+  /* Chosen verses: a pill above the dock */
+  .chosen { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+    display: flex; align-items: center; gap: 4px; background: var(--ink); color: var(--page); border-radius: 999px; padding: 6px; box-shadow: var(--shadow); max-width: calc(100% - 24px); overflow-x: auto; }
+  .chosen span { padding: 0 8px 0 10px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .chosen button { padding: 7px 8px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .chosen span { padding-right: 4px; }
+  .chosen button:hover { background: rgba(127, 127, 160, 0.25); }
+
+  /* Sheets (search results, pickers) and the side menu */
+  .scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 10; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; background: var(--paper); border-radius: 22px 22px 0 0; box-shadow: var(--shadow);
+    max-height: 78%; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .sheet.tall { max-height: 94%; height: 94%; }
+  .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--rule); margin: 8px auto 4px; flex: none; }
+  .sheet-head { display: flex; align-items: center; gap: 8px; padding: 6px 16px 10px; flex: none; }
+  .sheet-head h3 { flex: 1; margin: 0; font-size: 1.05rem; }
+  .sheet-body { overflow-y: auto; padding: 0 16px 16px; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--tint); border-radius: 14px; padding: 4px 4px 4px 12px; margin: 0 16px 10px; flex: none; }
+  .searchbox input { flex: 1; min-width: 0; background: none; border: 0; outline: none; font: inherit; color: var(--ink); padding: 8px 0; }
+  .searchbox .go { background: var(--accent); color: var(--accent-ink); border-radius: 10px; padding: 7px 12px; font-weight: 600; font-size: 0.9rem; }
+  .listening { text-align: center; padding: 18px 0 8px; }
+  .listening .said { font-family: var(--read); font-size: 1.6rem; min-height: 2.2rem; }
+  .listening p { color: var(--faint); margin: 4px 0 0; }
+  .filters { display: flex; gap: 6px; padding: 0 16px 10px; flex: none; }
+  .filters button { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; color: var(--soft); }
+  .filters button.on { background: var(--ink); color: var(--page); border-color: var(--ink); }
+  .result { display: block; width: 100%; text-align: left; padding: 12px 2px; border-bottom: 1px solid var(--rule); }
+  .result .r { font-size: 0.78rem; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+  .result p { margin: 2px 0 0; font-family: var(--read); line-height: 1.55; }
+  mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+  .sheet-foot { display: flex; gap: 8px; padding: 10px 16px 12px; border-top: 1px solid var(--rule); flex: none; }
+  .btn { flex: 1; border-radius: 12px; padding: 11px 12px; font-weight: 700; text-align: center; border: 1px solid var(--rule); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; font-size: 0.92rem; }
+  .label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin: 16px 0 8px; }
+
+  .menu { position: absolute; top: 0; bottom: 0; left: 0; width: min(82%, 340px); z-index: 11; background: var(--paper); box-shadow: var(--shadow);
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 16px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .menu .brand { font-family: var(--read); font-size: 1.35rem; font-weight: 600; padding: 4px 8px 12px; }
+  .menu .item { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-radius: 12px; text-align: left; font-weight: 600; }
+  .menu .item:hover { background: var(--tint); }
+  .menu .item .ico { color: var(--soft); }
+  .menu .item small { margin-left: auto; color: var(--faint); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .menu hr { border: 0; border-top: 1px solid var(--rule); margin: 8px 0; }
+  .menu .foot { margin-top: auto; color: var(--faint); font-size: 0.78rem; padding: 12px 8px 0; }
+
+  .row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--rule); }
+  .row > button { flex: 1; min-width: 0; text-align: left; padding: 13px 2px; display: grid; }
+  .row .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .s { font-size: 0.84rem; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .n { color: var(--faint); font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .set { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 13px 2px; border-bottom: 1px solid var(--rule); }
+  .set .l { flex: 1; min-width: 0; }
+  .set .l div { font-weight: 600; }
+  .set .l small { color: var(--soft); }
+  .set .val { color: var(--faint); }
+  .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--tint); border: 1px solid var(--rule); position: relative; flex: none; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--faint); transition: transform 0.2s; }
+  .switch.on { background: var(--accent); border-color: var(--accent); }
+  .switch.on::after { transform: translateX(18px); background: var(--accent-ink); }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; line-height: 1.5; margin-bottom: 10px; }
+  .msg.me { margin-left: auto; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .msg.ai { background: var(--tint); border-bottom-left-radius: 4px; }
+  .msg .ref { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-weight: 600; }
+  textarea.note { width: 100%; min-height: 40vh; border: 0; outline: none; resize: none; background: none; color: var(--ink); font: 1.05rem/1.7 var(--read); }
+  .note-title { width: 100%; border: 0; border-bottom: 1px solid var(--rule); outline: none; background: none; color: var(--ink); font: 700 1.15rem var(--ui); padding: 4px 0 10px; margin-bottom: 10px; }
+  .tools { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tools button { border: 1px solid var(--rule); border-radius: 999px; padding: 6px 12px; font-size: 0.86rem; }
+  .tools button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  .toast { position: absolute; left: 16px; right: 16px; top: calc(62px + env(safe-area-inset-top, 0px)); z-index: 30; background: var(--ink); color: var(--page); border-radius: 12px; padding: 11px 14px; font-size: 0.9rem; box-shadow: var(--shadow); }
+  .proto { text-align: center; color: var(--faint); font-size: 0.74rem; margin-top: 26px; }
+  @media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } .v, .switch::after, .progress i { transition: none; } }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <button class="round" id="menu" aria-label="Menu"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="place"><button id="place" aria-label="Choose book and chapter"><b id="placename">Psalms 23</b><small>KJV ▾</small></button></div>
+    <button class="round" id="find" aria-label="Search"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+  </header>
+  <div class="page" id="page"></div>
+  <div id="chosen"></div>
+  <nav class="dock" id="dock" aria-label="Reading controls"></nav>
+  <div id="layer"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>';
+const ico = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const I = {
+  prev: '<path d="m15 18-6-6 6-6"/>', next: '<path d="m9 18 6-6-6-6"/>',
+  play: '<path d="M7 5v14l12-7Z"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>',
+  repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+  lists: '<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/>', notes: '<path d="M5 4h10l4 4v12H5Z"/><path d="M15 4v4h4M8 12h8M8 16h6"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4Z"/>', history: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6"/>',
+  back: '<path d="m15 18-6-6 6-6"/>', close: '<path d="M6 6l12 12M18 6 6 18"/>',
+};
+
+// Sample text (KJV, public domain)
+const BOOK = {
+  'Psalms 23': { sub: 'A Psalm of David.', v: [
+    'The LORD is my shepherd; I shall not want.',
+    'He maketh me to lie down in green pastures: he leadeth me beside the still waters.',
+    'He restoreth my soul: he leadeth me in the paths of righteousness for his name’s sake.',
+    'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.',
+    'Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.',
+    'Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.'] },
+  'Psalms 24': { sub: 'A Psalm of David.', v: [
+    'The earth is the LORD’S, and the fulness thereof; the world, and they that dwell therein.',
+    'For he hath founded it upon the seas, and established it upon the floods.',
+    'Who shall ascend into the hill of the LORD? or who shall stand in his holy place?',
+    'He that hath clean hands, and a pure heart; who hath not lifted up his soul unto vanity, nor sworn deceitfully.',
+    'He shall receive the blessing from the LORD, and righteousness from the God of his salvation.',
+    'This is the generation of them that seek him, that seek thy face, O Jacob. Selah.'] },
+  'Hebrews 11': { sub: 'The faith chapter.', v: [
+    'Now faith is the substance of things hoped for, the evidence of things not seen.',
+    'For by it the elders obtained a good report.',
+    'Through faith we understand that the worlds were framed by the word of God, so that things which are seen were not made of things which do appear.',
+    'By faith Abel offered unto God a more excellent sacrifice than Cain, by which he obtained witness that he was righteous, God testifying of his gifts: and by it he being dead yet speaketh.',
+    'By faith Enoch was translated that he should not see death; and was not found, because God had translated him: for before his translation he had this testimony, that he pleased God.',
+    'But without faith it is impossible to please him: for he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him.'] },
+};
+const ORDER = ['Hebrews 11', 'Psalms 23', 'Psalms 24'];
+const RESULTS = [
+  ['Hebrews 11:1', 'Now faith is the substance of things hoped for, the evidence of things not seen.', 'Hebrews 11', 0],
+  ['Romans 10:17', 'So then faith cometh by hearing, and hearing by the word of God.'],
+  ['2 Corinthians 5:7', '(For we walk by faith, not by sight:)'],
+  ['Ephesians 2:8', 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:'],
+  ['Hebrews 11:6', 'But without faith it is impossible to please him: for he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him.', 'Hebrews 11', 5],
+  ['Mark 11:22', 'And Jesus answering saith unto them, Have faith in God.'],
+  ['James 2:17', 'Even so faith, if it hath not works, is dead, being alone.'],
+];
+const LISTS = [['Faith', 'Hebrews 11:1 · Romans 10:17 · 2 Corinthians 5:7', 4], ['Peace', 'John 14:27 · Philippians 4:7 · Isaiah 26:3', 3], ['Sunday readings', 'Psalm 23:1 · Psalm 23:2 · Psalm 23:3', 6]];
+const NOTES = [['Walking by faith', 'Sunday sermon. Faith is trusting what God has said before we can see it.\n\n2 Corinthians 5:7 (KJV)\n(For we walk by faith, not by sight:)'], ['Prayer list', 'Mom’s surgery on Thursday.\nThe youth retreat.\nWisdom for the new job.']];
+const HISTORY = ['faith', 'Psalm 23', 'love your enemies', 'peace', 'John 3:16'];
+
+let S = { at: 'Psalms 23', sel: new Set(), playing: false, now: -1, repeat: false, speed: 1, hints: true };
+let timer = 0, toastTimer = 0;
+const verses = () => BOOK[S.at].v;
+
+function toast(m) {
+  clearTimeout(toastTimer); $('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m; $('#app').append(t);
+  toastTimer = setTimeout(() => t.remove(), 2600);
+}
+function stop() { clearInterval(timer); S.playing = false; S.now = -1; }
+function play(list) {
+  const order = list ?? verses().map((_, i) => i);
+  let k = 0; S.playing = true; S.now = order[0]; S.sel.clear(); render();
+  clearInterval(timer);
+  timer = setInterval(() => {
+    k++;
+    if (k >= order.length) {
+      if (S.repeat) k = 0;
+      else if (!list && ORDER.indexOf(S.at) < ORDER.length - 1) { S.at = ORDER[ORDER.indexOf(S.at) + 1]; render(); return play(); }
+      else { stop(); return render(); }
+    }
+    S.now = order[k]; render();
+    document.querySelector('.v.now')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, 2400 / S.speed);
+}
+function go(place, verse) {
+  stop(); S.at = place; S.sel.clear(); closeLayer(); render();
+  $('#page').scrollTop = 0;
+  if (verse !== undefined) { S.sel.add(verse); render(); document.querySelector(`.v[data-i="${verse}"]`)?.scrollIntoView({ block: 'center' }); }
+}
+
+function render() {
+  document.body.classList.toggle('nohints', !S.hints);
+  const [book, num] = S.at.split(' ');
+  $('#placename').textContent = S.at;
+  $('#page').innerHTML = `
+    <div class="chapter-head"><div class="book">${esc(book)}</div><div class="num">${num}</div><div class="sub">${esc(BOOK[S.at].sub)}</div></div>
+    <p class="hint">Tap the mic and say a word or a verse. Tap verses to choose them.</p>
+    <div class="text">${verses().map((t, i) => `<span class="v ${S.sel.has(i) ? 'sel' : ''} ${S.now === i ? 'now' : ''}" data-i="${i}" role="button" tabindex="0" aria-pressed="${S.sel.has(i)}"><sup>${i + 1}</sup>${esc(t)}</span> `).join('')}</div>
+    <p class="proto">Clickable prototype · Option B · sample chapters</p>`;
+  const idx = ORDER.indexOf(S.at);
+  const pct = S.playing ? ((S.now + 1) / verses().length) * 100 : 0;
+  $('#dock').innerHTML = `
+    ${S.playing ? `<div class="progress"><i style="width:${pct}%"></i></div>` : ''}
+    <button class="side" id="prev" aria-label="Previous chapter" ${idx ? '' : 'disabled style="opacity:.35"'}>${ico(I.prev)}</button>
+    <button class="side fill ${S.playing ? 'on' : ''}" id="play" aria-label="${S.playing ? 'Pause' : 'Play chapter'}">${ico(S.playing ? I.pause : I.play)}</button>
+    <button class="mic" id="mic" aria-label="Speak a search">${MIC}</button>
+    <button class="side ${S.repeat ? 'on' : ''}" id="repeat" aria-label="Repeat" aria-pressed="${S.repeat}">${ico(I.repeat)}</button>
+    <button class="side" id="next" aria-label="Next chapter" ${idx < ORDER.length - 1 ? '' : 'disabled style="opacity:.35"'}>${ico(I.next)}</button>`;
+  $('#chosen').innerHTML = S.sel.size ? `<div class="chosen" role="toolbar" aria-label="Chosen verses"><span>${S.sel.size} chosen</span>
+    <button id="c-play">▶ Play</button><button id="c-save">Save</button><button id="c-note">To note</button><button id="c-share">Share</button><button id="c-clear" aria-label="Clear">✕</button></div>` : '';
+}
+
+function layer(html) { $('#layer').innerHTML = `<div class="scrim" id="scrim"></div>${html}`; }
+function closeLayer() { $('#layer').innerHTML = ''; $('#mic')?.classList.remove('on'); }
+function sheet(title, body, { tall = false, foot = '', back = false, extra = '' } = {}) {
+  layer(`<section class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="grab"></div>
+    <div class="sheet-head">${back ? `<button class="round" id="menu" aria-label="Back to menu">${ico(I.back)}</button>` : ''}<h3>${esc(title)}</h3><button class="round" id="close" aria-label="Close">${ico(I.close)}</button></div>
+    ${extra}<div class="sheet-body">${body}</div>${foot ? `<div class="sheet-foot">${foot}</div>` : ''}</section>`);
+}
+
+function hi(t, q) { return esc(t).replace(new RegExp(`\\b(${q.replace(/[^\w]/g, '')})\\b`, 'gi'), '<mark>$1</mark>'); }
+function results(q) {
+  sheet(`${RESULTS.length} verses with “${q}”`, RESULTS.map(([r, t, place, v], i) => `<button class="result" data-r="${i}"><div class="r">${esc(r)}</div><p>${hi(t, q)}</p></button>`).join(''), {
+    tall: true,
+    extra: `<form class="searchbox" id="sform"><input id="sq" value="${esc(q)}" aria-label="Search the Bible" autocomplete="off"><button class="go">Search</button></form>
+      <div class="filters" role="radiogroup"><button class="on" data-f="1">All words</button><button data-f="1">Exact phrase</button></div>`,
+    foot: `<button class="btn primary" id="playall">▶ Play all ${RESULTS.length}</button><button class="btn" id="saveall">Save to list</button>`,
+  });
+}
+function listening() {
+  $('#mic').classList.add('on');
+  sheet('Listening', `<div class="listening"><div class="said" id="said"></div><p>Say a word, a phrase, or a verse like “John 3:16”</p></div>`);
+  const word = 'faith'; let i = 0;
+  const tick = setInterval(() => {
+    i++; const said = $('#said'); if (!said) return clearInterval(tick);
+    said.textContent = `“${word.slice(0, i)}”`;
+    if (i >= word.length) { clearInterval(tick); setTimeout(() => { $('#mic')?.classList.remove('on'); results(word); }, 500); }
+  }, 180);
+}
+function menu() {
+  layer(`<nav class="menu" aria-label="Menu">
+    <div class="brand">Voice Bible</div>
+    <button class="item" data-open="lists">${ico(I.lists)}Verse Lists<small>${LISTS.length}</small></button>
+    <button class="item" data-open="notes">${ico(I.notes)}Notes<small>${NOTES.length}</small></button>
+    <button class="item" data-open="chat">${ico(I.chat)}ChatGPT<small>1</small></button>
+    <button class="item" data-open="history">${ico(I.history)}History</button>
+    <hr>
+    <button class="item" data-open="settings">${ico(I.settings)}Settings</button>
+    <button class="item" id="shareapp">${ico(I.share)}Share Voice Bible</button>
+    <div class="foot">voicebible.eefavorbooks.com</div></nav>`);
+}
+const PANELS = {
+  lists: () => sheet('Verse Lists', `${LISTS.map(([n, s, c]) => `<div class="row"><button data-soon="The list opens here, with Play and Share"><span class="t">${esc(n)}</span><span class="s">${esc(s)}</span></button><span class="n">${c}</span></div>`).join('')}`,
+    { tall: true, back: true, foot: '<button class="btn primary" data-soon="A name box appears">＋ New list</button>' }),
+  notes: () => sheet('Notes', NOTES.map(([t, b], i) => `<div class="row"><button data-note="${i}"><span class="t">${esc(t)}</span><span class="s">${esc(b.replace(/\n+/g, ' '))}</span></button></div>`).join(''),
+    { tall: true, back: true, foot: '<button class="btn primary" data-note="0">＋ New note</button>' }),
+  chat: () => sheet('Fear · ChatGPT', `<div class="msg me">What does the Bible say about fear?</div><div class="msg ai">Scripture speaks to fear many times, usually with a promise that God is present.\n\n<span class="ref" data-go="Psalms 23" data-v="3">Psalm 23:4</span> pictures walking through the darkest valley without fear, because the Lord is with us.\n\n<span class="ref" data-go="Hebrews 11" data-v="5">Hebrews 11:6</span> reminds us that God rewards those who seek him.</div>`,
+    { tall: true, back: true, foot: '<form class="searchbox" id="cform" style="margin:0;flex:1"><input id="cq" placeholder="Ask ChatGPT, or speak…" aria-label="Message" autocomplete="off"><button class="go">Send</button></form>' }),
+  history: () => sheet('History', `<div class="chips">${HISTORY.map(h => `<button data-q="${esc(h)}">${esc(h)}</button>`).join('')}</div>`, { back: true }),
+  settings: () => sheet('Settings', `
+    <button class="set" data-soon="Voice picker"><span class="l"><div>Reading voice</div><small>Recorded or device voices</small></span><span class="val">Heart ›</span></button>
+    <button class="set" data-soon="Colour picker"><span class="l"><div>Colours</div><small>Day, Night, and the neon themes</small></span><span class="val">Day ›</span></button>
+    <button class="set" id="speed"><span class="l"><div>Reading speed</div></span><span class="val" id="speedval">${S.speed}×</span></button>
+    <button class="set" id="refs"><span class="l"><div>Say the reference first</div><small>“Psalm 23, verse 1” before each verse</small></span><span class="switch on" role="switch" aria-checked="true"></span></button>
+    <button class="set" id="hints"><span class="l"><div>Hints</div><small>Short instructions on the page</small></span><span class="switch ${S.hints ? 'on' : ''}" role="switch" aria-checked="${S.hints}"></span></button>
+    <button class="set" data-soon="Backup"><span class="l"><div>Backup</div><small>Save or restore your lists, notes and chats</small></span><span class="val">›</span></button>`, { back: true }),
+};
+function openNote(i) {
+  const [t, b] = NOTES[i];
+  sheet('Note', `<input class="note-title" value="${esc(t)}" aria-label="Title"><div class="tools"><button class="primary" data-soon="Dictation goes where your cursor is">🎙 Dictate</button><button data-soon="Reads the note aloud, with Loop">Listen</button><button data-soon="Insert a verse, a list or a chat">＋ Insert</button><button aria-label="Undo">↶</button><button aria-label="Redo">↷</button></div><textarea class="note" aria-label="Note">${esc(b)}</textarea>`, { tall: true, back: true });
+}
+function picker() {
+  sheet('Go to', `<div class="label">Books</div><div class="chips">${['Genesis', 'Psalms', 'Proverbs', 'Isaiah', 'Matthew', 'John', 'Romans', 'Hebrews'].map(b => `<button data-book="${b}">${b}</button>`).join('')}</div>
+    <div class="label">Translation</div><div class="chips"><button data-soon="KJV">KJV</button><button data-soon="KJV with Strong’s">KJV+S</button><button data-soon="Reina-Valera, with the app in Spanish,">RV1909</button></div>`);
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, .v, .ref, #scrim'); if (!el) return;
+  const d = el.dataset;
+  if (el.id === 'scrim') return closeLayer();
+  if (el.classList.contains('v')) { if (S.playing) stop(); const i = +d.i; S.sel.has(i) ? S.sel.delete(i) : S.sel.add(i); return render(); }
+  if (d.open) return PANELS[d.open]();
+  if (d.note !== undefined) return openNote(+d.note);
+  if (d.q) return results(d.q);
+  if (d.go) return go(d.go, +d.v);
+  if (d.r !== undefined) { const r = RESULTS[+d.r]; return r[2] ? go(r[2], r[3]) : toast(`Opens ${r[0]} in its chapter.`); }
+  if (d.book) return d.book === 'Psalms' ? go('Psalms 23') : d.book === 'Hebrews' ? go('Hebrews 11') : toast('The Book · Chapter · Verse wheels open here.');
+  if (d.soon) { closeLayer(); return toast(`${d.soon}${/[.,]$/.test(d.soon) ? '' : '.'}`); }
+  if (d.f) { el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); return; }
+  switch (el.id) {
+    case 'menu': return menu();
+    case 'close': return closeLayer();
+    case 'place': return picker();
+    case 'find': return results('faith');
+    case 'mic': return listening();
+    case 'prev': return go(ORDER[ORDER.indexOf(S.at) - 1]);
+    case 'next': return go(ORDER[ORDER.indexOf(S.at) + 1]);
+    case 'play': if (S.playing) { stop(); return render(); } return play();
+    case 'repeat': S.repeat = !S.repeat; return render();
+    case 'c-play': return play([...S.sel].sort((a, b) => a - b));
+    case 'c-save': S.sel.clear(); render(); return sheet('Save to…', `<div class="chips">${LISTS.map(([n]) => `<button data-soon="Added to ${esc(n)}">${esc(n)}</button>`).join('')}<button data-soon="A name box appears">＋ New list</button></div>`);
+    case 'c-note': S.sel.clear(); render(); return sheet('Add to a note', `<div class="chips">${NOTES.map(([t]) => `<button data-soon="Added to ${esc(t)}">${esc(t)}</button>`).join('')}<button data-soon="Added to a new note">＋ New note</button></div>`);
+    case 'c-share': S.sel.clear(); render(); return toast('Opens your phone’s share menu with the verses.');
+    case 'c-clear': S.sel.clear(); return render();
+    case 'playall': closeLayer(); return toast('Plays the 7 results, one after another.');
+    case 'saveall': closeLayer(); return toast('Saves all 7 to a list named “faith”.');
+    case 'shareapp': closeLayer(); return toast('Opens your phone’s share menu with voicebible.eefavorbooks.com.');
+    case 'hints': S.hints = !S.hints; render(); return PANELS.settings();
+    case 'refs': el.querySelector('.switch').classList.toggle('on'); return;
+    case 'speed': { const sp = [0.75, 1, 1.25, 1.5, 2]; S.speed = sp[(sp.indexOf(S.speed) + 1) % sp.length]; $('#speedval').textContent = `${S.speed}×`; return; }
+  }
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('v')) { e.preventDefault(); e.target.click(); }
+  if (e.key === 'Escape') closeLayer();
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'sform') results($('#sq').value.trim() || 'faith');
+  if (e.target.id === 'cform') toast('This is a prototype, so answers aren’t live here.');
+});
+render();
+</script>
