@@ -32,6 +32,20 @@ jobs:
           VITE_AUDIO_BASE: https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/
       # SPA fallback so deep links and refreshes don't 404
       - run: cp dist/index.html dist/404.html
+      # A test copy of the `redesign` branch at /preview/, while it's tried out. The live app above is unchanged.
+      # Same address, so it sees the same lists, notes and chats on the phone.
+      - name: Build the redesign test copy into /preview/
+        run: |
+          if git ls-remote --exit-code --heads origin redesign >/dev/null; then
+            git fetch --depth 1 origin redesign
+            git worktree add ../redesign FETCH_HEAD
+            cd ../redesign
+            npm ci
+            npm run build -- --outDir "$GITHUB_WORKSPACE/dist/preview" --emptyOutDir
+          fi
+        env:
+          BASE_PATH: /preview/
+          VITE_AUDIO_BASE: https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
