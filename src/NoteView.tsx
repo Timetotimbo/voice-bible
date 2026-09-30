@@ -286,7 +286,7 @@ export function NoteView({
               </>
             )}
 
-            <h3 className="sheet-sub">Lists</h3>
+            <h3 className="sheet-sub">Verse Lists</h3>
             {!lists.length && <p className="notice">No lists yet.</p>}
             <ul className="sheet-list">
               {lists.map(l => (

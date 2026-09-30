@@ -126,6 +126,8 @@ export default function App() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemeId>(savedTheme);
   // Brief message near the top; one about a list can be tapped to open it
+  // Verses on their way into a note, while the note picker is open
+  const [toNote, setToNote] = useState<{ verses: VerseHit[]; title: string } | null>(null);
   const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
@@ -482,6 +484,7 @@ export default function App() {
                   Save to “{view.query}”
                 </button>
                 <button onClick={() => setSheet(picked.map(toRef))}>Other list…</button>
+                <button onClick={() => setToNote({ verses: picked, title: view.query })}>To note…</button>
               </>
             )}
             onClearSelection={() => setSelected(new Set())}
@@ -511,6 +514,7 @@ export default function App() {
             selectionActions={picked => (
               <>
                 <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>Copy to list…</button>
+                <button onClick={() => setToNote({ verses: picked, title: savedList.name })}>To note…</button>
                 <button
                   onClick={() => {
                     library.removeFromList(savedList.id, picked.map(toRef));
@@ -623,6 +627,7 @@ export default function App() {
             selected={selected}
             onToggle={toggle}
             onSave={picked => setSheet(picked.map(toRef))}
+            onToNote={picked => setToNote({ verses: picked, title: `${bookName(view.ref.book)} ${view.ref.chapter}` })}
             onClearSelection={() => setSelected(new Set())}
             onShown={place => (shownChapter.current = place)}
             onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
@@ -713,6 +718,26 @@ export default function App() {
             setGotoOpen(false);
             library.remember(formatReference(ref));
             openView({ kind: 'chapter', ref });
+          }}
+        />
+      )}
+      {toNote && (
+        <NotePicker
+          count={toNote.verses.length}
+          notes={notes.notes}
+          onClose={() => setToNote(null)}
+          onPick={noteId => {
+            // At the end of the note, written out with references, like Insert in a note
+            const id = noteId ?? notes.newNote();
+            const current = notes.notes.find(n => n.id === id);
+            const title = current ? noteTitle(current) : toNote.title;
+            notes.updateNote(id, {
+              ...(noteId ? {} : { title }),
+              text: [current?.text.trimEnd(), versesAsText(toNote.verses, abbrev)].filter(Boolean).join('\n\n'),
+            });
+            setToNote(null);
+            setSelected(new Set());
+            setToast(`Added ${toNote.verses.length === 1 ? 'the verse' : `${toNote.verses.length} verses`} to “${title}”`, undefined, id);
           }}
         />
       )}
@@ -1011,7 +1036,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onClearSelection, onShown, onPick, onWord, onShare, aroundList,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, aroundList,
 }: {
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
@@ -1021,6 +1046,7 @@ function Chapter({
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSave: (picked: VerseHit[]) => void;
+  onToNote: (picked: VerseHit[]) => void; // add the chosen verses to a note
   onClearSelection: () => void;
   onShown: (place: { book: number; chapter: number }) => void;
   onPick: () => void;
@@ -1182,6 +1208,7 @@ function Chapter({
               <span>{picked.length} selected</span>
               {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>Add around {aroundList.label}</button>}
               <button onClick={() => onSave(picked)}>{aroundList && onMain ? 'Other list…' : 'Save to list'}</button>
+              <button onClick={() => onToNote(picked)}>To note…</button>
               <button onClick={() => onShare(picked)}>Share</button>
               <button onClick={onClearSelection}>Clear</button>
             </div>
@@ -1500,9 +1527,9 @@ function LibrarySheet({
     lists: (
       <>
         <div className="section-head">
-          {handle('lists', 'Lists')}
+          {handle('lists', 'Verse Lists')}
           <button className="section-toggle" aria-expanded={listsOpen} onClick={() => setListsOpen(!listsOpen)}>
-            <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> Lists
+            <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> Verse Lists
             {lists.length > 0 && <small>{lists.length}</small>}
           </button>
           <button
@@ -1605,7 +1632,7 @@ function LibrarySheet({
             <h2>Save {saving.length} verse{saving.length === 1 ? '' : 's'} to…</h2>
           ) : (
             <div className="tabs" role="tablist">
-              <button role="tab" aria-selected={tab === 'lists'} className={tab === 'lists' ? 'on' : ''} onClick={() => setTab('lists')}>Lists</button>
+              <button role="tab" aria-selected={tab === 'lists'} className={tab === 'lists' ? 'on' : ''} onClick={() => setTab('lists')}>Verse Lists</button>
               <button role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>History</button>
             </div>
           )}
@@ -1645,6 +1672,35 @@ function LibrarySheet({
             );
           })}
         {!saving && tab === 'lists' && <Backup />}
+      </div>
+    </div>
+  );
+}
+
+/** Picks the note that chosen verses go into, or a new one. */
+function NotePicker({ count, notes, onPick, onClose }: {
+  count: number;
+  notes: Note[];
+  onPick: (noteId: string | null) => void; // null = a new note
+  onClose: () => void;
+}) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Add to a note" onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>Add {count === 1 ? 'the verse' : `${count} verses`} to a note</h2>
+          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+        </div>
+        <ul className="sheet-list">
+          <li>
+            <button className="sheet-item new-chat" onClick={() => onPick(null)}>+ New note</button>
+          </li>
+          {notes.map(n => (
+            <li key={n.id}>
+              <button className="sheet-item" onClick={() => onPick(n.id)}>{noteTitle(n)}</button>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

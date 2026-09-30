@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.43.0 — 2026-09-29
+- Send verses to a note: tick verses in a Verse List, in search results or on a chapter page, then tap "To note…" and pick a note or "+ New note". They're added to the end of the note, written out with references, the same as Insert does from inside a note. A new note is named after the list, the search or the chapter. The message that follows opens the note.
+- "Lists" is now called "Verse Lists" (the bookmark sheet's tab and section, and Insert in a note).
+
 ## v1.42.0 — 2026-09-29
 - Share Voice Bible: the new share icon at the top (after the bookmark) opens your phone's share menu with the app's link, https://voicebible.eefavorbooks.com, to send by text, email or any app. It works from the home-screen app too. On a computer without a share menu it copies the link.
 - The translation menu at the top is slimmer on phones, so everything still fits on one line.
