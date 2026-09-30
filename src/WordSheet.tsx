@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { bookAbbrev, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { loadStrongs, type Rendering, type StrongsEntry } from './bible/strongs';
+import { n as plural, t } from './i18n';
 
 /** Makes "from H433 (אֱלוֹהַּ)" in a derivation tappable, to follow a word back to its root. */
 function Codes({ text, known, onCode }: { text: string; known: (code: string) => boolean; onCode: (code: string) => void }) {
@@ -60,66 +61,66 @@ export function WordSheet({ word, code: first, where, versesWith, renderingsOf, 
   /** This word study written out, for a note. */
   const asText = () =>
     [
-      `“${word}”${where ? ` (${where})` : ''}: ${code} ${lemma ?? ''} (${[xlit, pron && `“${pron}”`].filter(Boolean).join(', ')}), ${hebrew ? 'Hebrew' : 'Greek'}`,
-      definition && `Meaning: ${definition}`,
-      kjv && `KJV translates it as: ${kjv}`,
-      derivation && `Comes from: ${derivation}`,
-      byBook.length && `Used in ${uses.toLocaleString()} verse${uses === 1 ? '' : 's'}: ${byBook.map(([b, n]) => `${bookAbbrev(b)} ${n}`).join(' · ')}`,
-      renderings.length && `Translated as: ${renderings.map(r => `${r.word} ${r.count.toLocaleString()}`).join(' · ')}`,
+      `“${word}”${where ? ` (${where})` : ''}: ${code} ${lemma ?? ''} (${[xlit, pron && `“${pron}”`].filter(Boolean).join(', ')}), ${t(hebrew ? 'Hebrew' : 'Greek')}`,
+      definition && t('Meaning: {text}', { text: definition }),
+      kjv && t('KJV translates it as: {text}', { text: kjv }),
+      derivation && t('Comes from: {text}', { text: derivation }),
+      byBook.length && plural('Used in {n} verse: {books}', 'Used in {n} verses: {books}', uses, { books: byBook.map(([b, n]) => `${bookAbbrev(b)} ${n}`).join(' · ') }),
+      renderings.length && t('Translated as: {words}', { words: renderings.map(r => `${r.word} ${r.count.toLocaleString()}`).join(' · ') }),
     ]
       .filter(Boolean)
       .join('\n');
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet word-sheet" role="dialog" aria-modal="true" aria-label={`Word study: ${word}`} onClick={e => e.stopPropagation()}>
+      <div className="sheet word-sheet" role="dialog" aria-modal="true" aria-label={t('Word study: {word}', { word })} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>{code === first ? `“${word}”` : 'Root word'}</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{code === first ? `“${word}”` : t('Root word')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         {error && <p className="notice error">{error}</p>}
-        {entry === undefined && !error && <p className="notice">Looking up {code}…</p>}
-        {entry === null && <p className="notice">No dictionary entry for {code}.</p>}
+        {entry === undefined && !error && <p className="notice">{t('Looking up {code}…', { code })}</p>}
+        {entry === null && <p className="notice">{t('No dictionary entry for {code}.', { code })}</p>}
         {entry && (
           <>
             <div className="lemma-row">
               <span className="lemma" lang={hebrew ? 'he' : 'grc'} dir={hebrew ? 'rtl' : 'ltr'}>{lemma}</span>
-              <span className="code">{code} · {hebrew ? 'Hebrew' : 'Greek'}</span>
+              <span className="code">{code} · {t(hebrew ? 'Hebrew' : 'Greek')}</span>
             </div>
             <p className="xlit">
               {xlit}
-              {pron && <span> · say “{pron}”</span>}
+              {pron && <span>{t(' · say “{pron}”', { pron })}</span>}
             </p>
             {definition && (
               <p>
-                <span className="label">Meaning</span>
+                <span className="label">{t('Meaning')}</span>
                 {definition}
               </p>
             )}
             {kjv && (
               <p>
-                <span className="label">KJV translates it as</span>
+                <span className="label">{t('KJV translates it as')}</span>
                 {kjv}
               </p>
             )}
             {derivation && (
               <p>
-                <span className="label">Comes from</span>
+                <span className="label">{t('Comes from')}</span>
                 <Codes text={derivation} known={c => !!dictionary?.[c]} onCode={setCode} />
               </p>
             )}
           </>
         )}
-        {code !== first && <button className="sheet-link" onClick={() => setCode(first)}>← Back to {first}</button>}
+        {code !== first && <button className="sheet-link" onClick={() => setCode(first)}>{t('← Back to {code}', { code: first })}</button>}
         {entry && !choosingNote && (
-          <button className="goto-open add-note" onClick={() => setChoosingNote(true)}>Add to note</button>
+          <button className="goto-open add-note" onClick={() => setChoosingNote(true)}>{t('Add to note')}</button>
         )}
         {entry && choosingNote && (
           <div className="choose-note">
-            <h3 className="sheet-sub">Add to which note?</h3>
+            <h3 className="sheet-sub">{t('Add to which note?')}</h3>
             <ul className="sheet-list">
               <li>
-                <button className="sheet-item new-chat" onClick={() => onAddToNote(null, asText(), word)}>+ New note</button>
+                <button className="sheet-item new-chat" onClick={() => onAddToNote(null, asText(), word)}>{t('+ New note')}</button>
               </li>
               {notes.map(n => (
                 <li key={n.id}>
@@ -127,18 +128,18 @@ export function WordSheet({ word, code: first, where, versesWith, renderingsOf, 
                 </li>
               ))}
             </ul>
-            <button className="sheet-link" onClick={() => setChoosingNote(false)}>Cancel</button>
+            <button className="sheet-link" onClick={() => setChoosingNote(false)}>{t('Cancel')}</button>
           </div>
         )}
         <button className="goto-open" disabled={!uses} onClick={() => onSearch(code)}>
-          Every verse with {code} ({uses.toLocaleString()})
+          {t('Every verse with {code} ({n})', { code, n: uses })}
         </button>
         {byBook.length > 0 && (
           <>
-            <h3 className="sheet-sub">Where it’s used <small>verses per book</small></h3>
+            <h3 className="sheet-sub">{t('Where it’s used')} <small>{t('verses per book')}</small></h3>
             <div className="book-counts">
               {byBook.map(([book, n]) => (
-                <button key={book} aria-label={`${n} in ${bookName(book)}`} onClick={() => onSearch(code, book)}>
+                <button key={book} aria-label={t('{n} in {book}', { n, book: bookName(book) })} onClick={() => onSearch(code, book)}>
                   {bookAbbrev(book)} <b>{n}</b>
                 </button>
               ))}
@@ -147,17 +148,17 @@ export function WordSheet({ word, code: first, where, versesWith, renderingsOf, 
         )}
         {renderings.length > 0 && (
           <>
-            <h3 className="sheet-sub">Translated as <small>times, most used first</small></h3>
+            <h3 className="sheet-sub">{t('Translated as')} <small>{t('times, most used first')}</small></h3>
             <div className="book-counts">
               {renderings.map(r => (
-                <button key={r.word} aria-label={`${r.word}, ${r.count} times`} onClick={() => onRendering(code, r)}>
+                <button key={r.word} aria-label={t('{word}, {n} times', { word: r.word, n: r.count })} onClick={() => onRendering(code, r)}>
                   {r.word} <b>{r.count.toLocaleString()}</b>
                 </button>
               ))}
             </div>
           </>
         )}
-        <p className="credit">Strong’s dictionary (1894), from Open Scriptures, CC BY-SA</p>
+        <p className="credit">{t('Strong’s dictionary (1894), from Open Scriptures, CC BY-SA')}</p>
       </div>
     </div>
   );

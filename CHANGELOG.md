@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.48.0 — 2026-09-29
+- En español: with the Reina-Valera (RV1909) chosen, the whole app is in Spanish. That covers the front page, microphone messages, search, buttons, the play bar, Verse Lists, Notes, ChatGPT, History, Backup, colours, voices, word study, Go to, import and messages. The name stays Voice Bible. Switching back to KJV puts it back in English.
+- Dictating a note in Spanish understands "punto", "coma", "punto y coma", "dos puntos", "nuevo párrafo", "nueva línea", "punto y aparte", "signo de interrogación" and "signo de exclamación".
+- ChatGPT answers in Spanish and quotes the Reina-Valera when RV1909 is chosen. Spanish references in answers ("Romanos 8:28", "Salmo 23", "Éxodo 3:14") open when tapped.
+- Fix: about 3,600 places in the Reina-Valera showed raw marks like {díjole|strong="G2036"} in place of the word. They now read normally, and the words can be tapped for the word study. Those long marks had also made search results wider than the screen.
+- Search results can no longer be pushed wider than the screen by a long word.
+
 ## v1.47.0 — 2026-09-29
 - Rename a Verse List from inside it: tap its name at the top of the list and type, like a note's title. It saves as you type. Clearing it and tapping away puts the old name back, since a list needs a name.
 

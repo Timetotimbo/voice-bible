@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { t } from './i18n';
 
 export interface Note {
   id: string;
@@ -54,4 +55,4 @@ export function useNotes() {
 }
 
 /** A note's name in lists: its title, or its first line. */
-export const noteTitle = (n: Note) => n.title.trim() || n.text.trim().split('\n')[0].slice(0, 60) || 'Untitled note';
+export const noteTitle = (n: Note) => n.title.trim() || n.text.trim().split('\n')[0].slice(0, 60) || t('Untitled note');

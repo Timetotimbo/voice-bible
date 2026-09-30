@@ -20,12 +20,34 @@ const tagsByBible = new WeakMap<BibleText, BibleTags>();
 /** The Strong's tags for a Bible loaded from a tagged file, if it had them. */
 export const tagsOf = (bible: BibleText | null) => (bible ? tagsByBible.get(bible) : undefined);
 
+/**
+ * Some Reina-Valera tags join several words, a few with more than one number:
+ * {hay vida|strong="H5315,H2416", toda|H3605} → {hay vida|H5315}, {toda|H3605}. Each word keeps its first number,
+ * without leading zeros (H0637 → H637) to match the dictionary.
+ */
+export function splitJoinedTags(verse: string): string {
+  return verse.replace(/\{([^{}]*\|strong="[^{}]*)\}/g, (_, inner: string) => {
+    let out = '';
+    for (const m of inner.matchAll(/([^|]+?)\|(?:strong="([^"]*)"|([HG]\d+))/g)) {
+      const [, words, codes, code] = m;
+      const gap = words.match(/^[\s,;:.]*/)![0]; // punctuation and spaces between the words stay plain text
+      const first = (codes ?? code).split(',')[0].trim().replace(/^([HG])0+(?=\d)/, '$1');
+      out += `${gap}{${words.slice(gap.length)}|${first}}`;
+    }
+    return out;
+  })
+    // A few have no braces at all: comerás|strong="H0398,H0398" tags the word before it
+    .replace(/([\p{L}\p{N}’'-]+)\|strong="([^"]*)"/gu, (_, word: string, codes: string) =>
+      `{${word}|${codes.split(',')[0].trim().replace(/^([HG])0+(?=\d)/, '$1')}}`);
+}
+
 /** Turns verses written with {word|H430} marks into plain text plus where each tagged word sits. */
 export function untag(raw: BibleText): BibleText {
   const tags: BibleTags = [];
   const bible = raw.map((chapters, b) =>
     chapters.map((verses, c) =>
-      verses.map((verse, v) => {
+      verses.map((tagged, v) => {
+        const verse = tagged.includes('strong="') ? splitJoinedTags(tagged) : tagged;
         const found: Tag[] = [];
         let text = '';
         let last = 0;

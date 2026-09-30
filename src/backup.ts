@@ -1,3 +1,5 @@
+import { n, t } from './i18n';
+
 /**
  * Everything the app keeps on this device (lists, notes, chats, the ChatGPT key, settings) as one file, to
  * keep safe or to carry to another phone or a new web address, where the browser starts out empty.
@@ -19,9 +21,9 @@ export function restoreBackup(text: string, storage: Storage): number {
   try {
     backup = JSON.parse(text);
   } catch {
-    throw new Error('That file isn’t a Voice Bible backup.');
+    throw new Error(t('That file isn’t a Voice Bible backup.'));
   }
-  if (backup?.app !== APP || !backup.data || typeof backup.data !== 'object') throw new Error('That file isn’t a Voice Bible backup.');
+  if (backup?.app !== APP || !backup.data || typeof backup.data !== 'object') throw new Error(t('That file isn’t a Voice Bible backup.'));
   const entries = Object.entries(backup.data).filter((e): e is [string, string] => typeof e[1] === 'string');
   for (const [key, value] of entries) storage.setItem(key, value);
   return entries.length;
@@ -39,8 +41,7 @@ export function describeBackup(text: string): string {
         return 0;
       }
     };
-    const n = (k: number, one: string) => `${k} ${one}${k === 1 ? '' : 's'}`;
-    return [n(count('lists'), 'list'), n(count('notes'), 'note'), n(count('chats'), 'chat')].join(', ');
+    return [n('{n} list', '{n} lists', count('lists')), n('{n} note', '{n} notes', count('notes')), n('{n} chat', '{n} chats', count('chats'))].join(', ');
   } catch {
     return '';
   }

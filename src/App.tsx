@@ -22,6 +22,7 @@ import { describeBackup, makeBackup, restoreBackup } from './backup';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
+import { n, setUiLanguage, t, uiLanguage } from './i18n';
 
 type View =
   | { kind: 'home' }
@@ -99,6 +100,7 @@ export default function App() {
   };
   const language = TRANSLATIONS.find(t => t.id === translation)!.lang;
   setBookLanguage(language); // book names on screen follow the Bible's language
+  setUiLanguage(language); // and so do the app's words
   // Word study: the tapped word and its Strong's number
   const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
@@ -189,16 +191,16 @@ export default function App() {
   };
   const shareSelected = async (verses: VerseHit[]) => {
     const result = await shareVerses(verses, abbrev);
-    if (result === 'copied') setToast(`Copied ${verses.length === 1 ? 'the verse' : `${verses.length} verses`} to paste into a text or email`);
-    if (result === 'failed') setToast('Couldn’t share from this browser');
+    if (result === 'copied') setToast(n('Copied the verse to paste into a text or email', 'Copied {n} verses to paste into a text or email', verses.length));
+    if (result === 'failed') setToast(t('Couldn’t share from this browser'));
   };
   const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
   /** Sends the app's link to someone (the phone's share menu), or copies it where there's no share menu. */
   const shareApp = () => {
-    const text = 'Voice Bible: speak a word, phrase or verse and find it in the Bible, and listen to it read aloud.';
+    const text = t('Voice Bible: speak a word, phrase or verse and find it in the Bible, and listen to it read aloud.');
     if (navigator.share) navigator.share({ title: 'Voice Bible', text, url: APP_URL }).catch(() => {});
-    else navigator.clipboard?.writeText(APP_URL).then(() => setToast('Link copied: ' + APP_URL), () => setToast(APP_URL));
+    else navigator.clipboard?.writeText(APP_URL).then(() => setToast(t('Link copied: {url}', { url: APP_URL })), () => setToast(APP_URL));
   };
 
   const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
@@ -350,7 +352,7 @@ export default function App() {
         </h1>
         <button
           className="library-btn"
-          aria-label="Reading voice"
+          aria-label={t('Reading voice')}
           onClick={() => {
             // Pause the mic so voice samples aren't heard as searches
             if (speech.status === 'listening') {
@@ -365,25 +367,25 @@ export default function App() {
             <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
           </svg>
         </button>
-        <button className="library-btn" aria-label="Colours" onClick={() => setThemeOpen(true)}>
+        <button className="library-btn" aria-label={t('Colours')} onClick={() => setThemeOpen(true)}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.7-9-7.7Z" />
             <circle cx="7.5" cy="11.5" r="1.2" /><circle cx="10" cy="7.5" r="1.2" /><circle cx="14.5" cy="7.5" r="1.2" />
           </svg>
         </button>
-        <button className="library-btn" aria-label="History and saved lists" onClick={() => setSheet('browse')}>
+        <button className="library-btn" aria-label={t('History and saved lists')} onClick={() => setSheet('browse')}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
           </svg>
         </button>
-        <button className="library-btn" aria-label="Share Voice Bible" onClick={shareApp}>
+        <button className="library-btn" aria-label={t('Share Voice Bible')} onClick={shareApp}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
             <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
           </svg>
         </button>
         <select
-          aria-label="Translation"
+          aria-label={t('Translation')}
           value={translation}
           onChange={e => setTranslation(e.target.value as TranslationId)}
         >
@@ -402,19 +404,19 @@ export default function App() {
             <input
               type="search"
               inputMode="search"
-              placeholder="Word or John 3:16"
+              placeholder={t('Word or John 3:16')}
               value={typed}
               onChange={e => setTyped(e.target.value)}
             />
-            <button type="button" className="goto-btn" aria-label="Go to a book, chapter and verse" onClick={() => setGotoOpen(true)}>
+            <button type="button" className="goto-btn" aria-label={t('Go to a book, chapter and verse')} onClick={() => setGotoOpen(true)}>
               <svg viewBox="0 0 24 24" aria-hidden>
                 <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
               </svg>
             </button>
-            <button type="submit">Search</button>
+            <button type="submit">{t('Search')}</button>
           </form>
           {/* Always showing, so it's clear which way searches work */}
-          <div className="search-mode" role="radiogroup" aria-label="Search for">
+          <div className="search-mode" role="radiogroup" aria-label={t('Search for')}>
             {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
               <button
                 key={mode}
@@ -426,7 +428,7 @@ export default function App() {
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => setSearchMode(mode)}
               >
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
@@ -434,14 +436,14 @@ export default function App() {
       )}
 
       <main>
-        {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>← Back</button>}
-        {loadError && <p className="notice error">{loadError}. Check your connection and reload.</p>}
-        {!bible && !loadError && <p className="notice">Loading the {abbrev} Bible…</p>}
+        {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>{t('← Back')}</button>}
+        {loadError && <p className="notice error">{t('{error}. Check your connection and reload.', { error: loadError })}</p>}
+        {!bible && !loadError && <p className="notice">{t('Loading the {bible} Bible…', { bible: abbrev })}</p>}
 
         {view.kind === 'home' && bible && (
           <div className="home">
-            <p>Say a word or phrase like <em>“faith”</em> or <em>“love your enemies”</em> to find every verse that contains it.</p>
-            <p>Say a reference like <em>“John 3:16”</em> or <em>“Psalm 23”</em> to open it.</p>
+            <p>{t('Say a word or phrase like')} <em>{t('“faith”')}</em> {t('or')} <em>{t('“love your enemies”')}</em> {t('to find every verse that contains it.')}</p>
+            <p>{t('Say a reference like')} <em>{t('“John 3:16”')}</em> {t('or')} <em>{t('“Psalm 23”')}</em> {t('to open it.')}</p>
           </div>
         )}
 
@@ -452,9 +454,9 @@ export default function App() {
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={
               <>
-                {view.hits.length ? `${view.hits.length.toLocaleString()} verse${view.hits.length === 1 ? '' : 's'}` : 'No verses'} with “{view.query}”
-                {view.inBook !== undefined && ` in ${bookName(view.inBook)}`}
-                {view.asWord && <> as “{view.asWord}”</>}
+                {view.hits.length ? n('{n} verse with “{q}”', '{n} verses with “{q}”', view.hits.length, { q: view.query }) : t('No verses with “{q}”', { q: view.query })}
+                {view.inBook !== undefined && t(' in {book}', { book: bookName(view.inBook) })}
+                {view.asWord && t(' as “{word}”', { word: view.asWord })}
               </>
             }
             hits={view.hits}
@@ -478,13 +480,13 @@ export default function App() {
                     const list = library.lists.find(l => l.name.toLowerCase() === name.toLowerCase());
                     const id = library.addToList(picked.map(toRef), list ? { id: list.id } : { name });
                     setSelected(new Set());
-                    setToast(`Saved ${picked.length.toLocaleString()} to “${list?.name ?? name}”`, id);
+                    setToast(t('Saved {n} to “{list}”', { n: picked.length, list: list?.name ?? name }), id);
                   }}
                 >
-                  Save to “{view.query}”
+                  {t('Save to “{q}”', { q: view.query })}
                 </button>
-                <button onClick={() => setSheet(picked.map(toRef))}>Other list…</button>
-                <button onClick={() => setToNote({ verses: picked, title: view.query })}>To note…</button>
+                <button onClick={() => setSheet(picked.map(toRef))}>{t('Other list…')}</button>
+                <button onClick={() => setToNote({ verses: picked, title: view.query })}>{t('To note…')}</button>
               </>
             )}
             onClearSelection={() => setSelected(new Set())}
@@ -497,7 +499,7 @@ export default function App() {
             title={
               <span className="list-title">
                 <ListName name={savedList.name} onRename={name => library.renameList(savedList.id, name)} />
-                <small>{savedHits.length} verse{savedHits.length === 1 ? '' : 's'}</small>
+                <small>{n('{n} verse', '{n} verses', savedHits.length)}</small>
               </span>
             }
             hits={savedHits}
@@ -518,20 +520,20 @@ export default function App() {
             onSelectAll={() => setSelected(new Set(savedHits.map(hitKey)))}
             selectionActions={picked => (
               <>
-                <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>Copy to list…</button>
-                <button onClick={() => setToNote({ verses: picked, title: savedList.name })}>To note…</button>
+                <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>{t('Copy to list…')}</button>
+                <button onClick={() => setToNote({ verses: picked, title: savedList.name })}>{t('To note…')}</button>
                 <button
                   onClick={() => {
                     library.removeFromList(savedList.id, picked.map(toRef));
                     setSelected(new Set());
                   }}
                 >
-                  Remove
+                  {t('Remove')}
                 </button>
               </>
             )}
             onClearSelection={() => setSelected(new Set())}
-            empty="This list is empty. Search, check verses, then tap “Save to list”."
+            empty={t('This list is empty. Search, check verses, then tap “Save to list”.')}
           />
         )}
 
@@ -573,11 +575,11 @@ export default function App() {
               }}
               onShare={text => {
                 if (navigator.share) navigator.share({ text }).catch(() => {});
-                else navigator.clipboard?.writeText(text).then(() => setToast('Note copied'), () => setToast('Couldn’t share from this browser'));
+                else navigator.clipboard?.writeText(text).then(() => setToast(t('Note copied')), () => setToast(t('Couldn’t share from this browser')));
               }}
             />
           ) : (
-            <p className="notice">This note was deleted.</p>
+            <p className="notice">{t('This note was deleted.')}</p>
           );
         })()}
 
@@ -597,7 +599,7 @@ export default function App() {
               listen={listen}
             />
           ) : (
-            <p className="notice">This chat was deleted.</p>
+            <p className="notice">{t('This chat was deleted.')}</p>
           );
         })()}
 
@@ -617,7 +619,7 @@ export default function App() {
                   const added = library.addAround(from.id, anchor, picked.map(toRef));
                   setSelected(new Set());
                   setToast(
-                    added ? `Added ${added} around ${label} in “${from.name}”` : `Those are already in “${from.name}”`,
+                    added ? t('Added {n} around {ref} in “{list}”', { n: added, ref: label, list: from.name }) : t('Those are already in “{list}”', { list: from.name }),
                     from.id,
                   );
                 },
@@ -661,7 +663,7 @@ export default function App() {
           onSaved={(name, id, count) => {
             setSheet(null);
             setSelected(new Set());
-            setToast(`Saved ${count.toLocaleString()} to “${name}”`, id);
+            setToast(t('Saved {n} to “{list}”', { n: count, list: name }), id);
           }}
           chats={chats.chats}
           onOpenChat={id => {
@@ -693,9 +695,9 @@ export default function App() {
             const url = listLink(list.name, list.verses);
             // The phone's share menu (text, email…) where there is one; otherwise copy the link
             if (navigator.share) {
-              navigator.share({ title: list.name, text: `“${list.name}”: ${list.verses.length} verses from Voice Bible`, url }).catch(() => {});
+              navigator.share({ title: list.name, text: t('“{list}”: {n} verses from Voice Bible', { list: list.name, n: list.verses.length }), url }).catch(() => {});
             } else {
-              navigator.clipboard?.writeText(url).then(() => setToast('Link copied'), () => prompt('Copy this link', url));
+              navigator.clipboard?.writeText(url).then(() => setToast(t('Link copied')), () => prompt(t('Copy this link'), url));
             }
           }}
         />
@@ -710,7 +712,7 @@ export default function App() {
             closeIncoming();
             setSheet(null);
             openView({ kind: 'list', id });
-            setToast(existing ? `Added to “${existing.name}”` : `Added “${incoming.name}”`);
+            setToast(existing ? t('Added to “{list}”', { list: existing.name }) : t('Added “{list}”', { list: incoming.name }));
           }}
         />
       )}
@@ -742,43 +744,43 @@ export default function App() {
             });
             setToNote(null);
             setSelected(new Set());
-            setToast(`Added ${toNote.verses.length === 1 ? 'the verse' : `${toNote.verses.length} verses`} to “${title}”`, undefined, id);
+            setToast(n('Added the verse to “{note}”', 'Added {n} verses to “{note}”', toNote.verses.length, { note: title }), undefined, id);
           }}
         />
       )}
       {themeOpen && (
         <div className="sheet-backdrop" onClick={() => setThemeOpen(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label="Colours" onClick={e => e.stopPropagation()}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Colours')} onClick={e => e.stopPropagation()}>
             <div className="sheet-head">
-              <h2>Colours</h2>
-              <button className="sheet-close" aria-label="Close" onClick={() => setThemeOpen(false)}>✕</button>
+              <h2>{t('Colours')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setThemeOpen(false)}>✕</button>
             </div>
-            {[THEMES.filter(t => !('neon' in t)), THEMES.filter(t => 'neon' in t)].map((group, g) => (
+            {[THEMES.filter(th => !('neon' in th)), THEMES.filter(th => 'neon' in th)].map((group, g) => (
             <Fragment key={g}>
-            {g > 0 && <h3 className="sheet-sub">Neon</h3>}
-            <div className="themes" role="radiogroup" aria-label={g ? 'Neon colour theme' : 'Colour theme'}>
-              {group.map(t => (
+            {g > 0 && <h3 className="sheet-sub">{t('Neon')}</h3>}
+            <div className="themes" role="radiogroup" aria-label={t(g ? 'Neon colour theme' : 'Colour theme')}>
+              {group.map(th => (
                 <button
-                  key={t.id}
+                  key={th.id}
                   role="radio"
-                  aria-checked={theme === t.id}
-                  className={`theme-choice ${theme === t.id ? 'on' : ''}`}
+                  aria-checked={theme === th.id}
+                  className={`theme-choice ${theme === th.id ? 'on' : ''}`}
                   onClick={() => {
-                    setTheme(t.id);
-                    setThemeState(t.id);
+                    setTheme(th.id);
+                    setThemeState(th.id);
                   }}
                 >
                   <span
                     className="swatch"
                     style={{
                       background:
-                        'wheel' in t
-                          ? `conic-gradient(${t.wheel.join(', ')}, ${t.wheel[0]})`
-                          : `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)`,
+                        'wheel' in th
+                          ? `conic-gradient(${th.wheel.join(', ')}, ${th.wheel[0]})`
+                          : `linear-gradient(135deg, ${th.swatch[0]} 50%, ${th.swatch[1]} 50%)`,
                     }}
                     aria-hidden
                   />
-                  {t.name}
+                  {t(th.name)}
                 </button>
               ))}
             </div>
@@ -804,7 +806,7 @@ export default function App() {
               }
               setSheet('browse');
             }
-            setToast(`Imported ${list.length} chat${list.length === 1 ? '' : 's'}`);
+            setToast(n('Imported {n} chat', 'Imported {n} chats', list.length));
           }}
         />
       )}
@@ -818,11 +820,11 @@ export default function App() {
             const id = noteId ?? notes.newNote();
             const current = notes.notes.find(n => n.id === id);
             notes.updateNote(id, {
-              ...(noteId ? {} : { title: `Word study: ${word}` }),
+              ...(noteId ? {} : { title: t('Word study: {word}', { word }) }),
               text: [current?.text.trimEnd(), text].filter(Boolean).join('\n\n'),
             });
             setStudyWord(null);
-            setToast(`Added to “${current ? noteTitle(current) : `Word study: ${word}`}”`, undefined, id);
+            setToast(t('Added to “{list}”', { list: current ? noteTitle(current) : t('Word study: {word}', { word }) }), undefined, id);
           }}
           versesWith={studyVerses}
           renderingsOf={studyRenderings}
@@ -864,14 +866,14 @@ export default function App() {
           }}
         >
           <span className="toast-text">{toast.text}</span>
-          <span className="toast-open">Open ›</span>
+          <span className="toast-open">{t('Open ›')}</span>
         </button>
       ) : (
         <div className="toast" role="status">{toast.text}</div>
       ))}
       {newVersion && (
         <button className="toast update" onClick={() => location.reload()}>
-          New version {newVersion} — tap to update
+          {t('New version {v} — tap to update', { v: newVersion })}
         </button>
       )}
     </div>
@@ -899,12 +901,12 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
   const { status, interim, start, stop } = speech;
   const listening = status === 'listening';
   const message = {
-    listening: TAP_TO_TALK ? 'Listening… say a word or verse' : 'Listening… just speak',
-    idle: TAP_TO_TALK ? 'Tap the mic, then speak' : 'Tap the mic to start listening',
+    listening: TAP_TO_TALK ? t('Listening… say a word or verse') : t('Listening… just speak'),
+    idle: TAP_TO_TALK ? t('Tap the mic, then speak') : t('Tap the mic to start listening'),
     blocked: TAP_TO_TALK
-      ? 'Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.'
-      : 'Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.',
-    unsupported: 'Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.',
+      ? t('Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.')
+      : t('Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.'),
+    unsupported: t('Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.'),
   }[status];
 
   return (
@@ -913,7 +915,7 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
         className={`mic-button ${listening ? 'on' : ''}`}
         onClick={listening ? stop : start}
         disabled={status === 'unsupported'}
-        aria-label={listening ? 'Stop listening' : 'Start listening'}
+        aria-label={t(listening ? 'Stop listening' : 'Start listening')}
         aria-pressed={listening}
       >
         <svg viewBox="0 0 24 24" aria-hidden>
@@ -954,7 +956,7 @@ function SearchResults({
 }) {
   const pattern = useMemo(() => (query ? highlightPattern(query) : null), [query]);
   const loosePattern = useMemo(() => (query ? wordsPattern(query) : null), [query]);
-  const n = hits.length;
+  const count = hits.length;
   const picked = hits.filter(h => selected.has(hitKey(h)));
   const queue = picked.length ? picked : hits;
   const current = reader.current && hitKey(reader.current);
@@ -965,9 +967,9 @@ function SearchResults({
   }, [current]);
 
   return (
-    <section className={reader.supported && n ? `has-player ${picked.length || n > 1 ? 'selecting' : ''}` : ''}>
+    <section className={reader.supported && count ? `has-player ${picked.length || count > 1 ? 'selecting' : ''}` : ''}>
       <h2 className="result-title">{title}</h2>
-      {!n && empty && <p className="notice">{empty}</p>}
+      {!count && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
         {hits.slice(0, shown).map((hit, i) => {
           const key = hitKey(hit);
@@ -976,7 +978,7 @@ function SearchResults({
           return (
             <Fragment key={key}>
               {hit.loose && !hits[i - 1]?.loose && (
-                <li className="loose-divider">{i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words'}</li>
+                <li className="loose-divider">{t(i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words')}</li>
               )}
               <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
                 <button className="verse-body" onClick={() => onOpen(hit)}>
@@ -995,14 +997,14 @@ function SearchResults({
                   <div className="verse-actions">
                     <button
                       className="icon-btn"
-                      aria-label={isCurrent ? 'Stop' : `Play ${bookName(hit.book)} ${hit.chapter}:${hit.verse}`}
+                      aria-label={isCurrent ? t('Stop') : t('Play {ref}', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
                       onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
                     >
                       {isCurrent ? '■' : '▶'}
                     </button>
                     <button
                       className={`select-btn ${isSelected ? 'on' : ''}`}
-                      aria-label={isSelected ? 'Unselect verse' : 'Select verse'}
+                      aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
                       aria-pressed={isSelected}
                       onClick={() => onToggle(key)}
                     >
@@ -1015,35 +1017,35 @@ function SearchResults({
           );
         })}
       </ol>
-      {shown < n && (
+      {shown < count && (
         <button className="more" onClick={onMore}>
-          Show more ({(n - shown).toLocaleString()} left)
+          {t('Show more ({n} left)', { n: count - shown })}
         </button>
       )}
 
-      {reader.supported && n > 0 && (
+      {reader.supported && count > 0 && (
         <div className="player">
           {/* In the bar pinned to the bottom, so it's in reach however far down a long search you are */}
           {picked.length > 0 ? (
             <div className="selection-bar">
-              <span>{picked.length.toLocaleString()} selected</span>
+              <span>{t('{n} selected', { n: picked.length })}</span>
               {selectionActions(picked)}
-              <button onClick={() => onShare(picked)}>Share</button>
-              {picked.length < n && <button onClick={onSelectAll}>All</button>}
-              <button onClick={onClearSelection}>Clear</button>
+              <button onClick={() => onShare(picked)}>{t('Share')}</button>
+              {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
+              <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
-          ) : n > 1 && (
+          ) : count > 1 && (
             <div className="selection-bar">
-              <button onClick={onSelectAll}>Select all {n.toLocaleString()}</button>
+              <button onClick={onSelectAll}>{t('Select all {n}', { n: count })}</button>
             </div>
           )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
-              ■ Stop · <StopDetail reader={reader} full />
+              {t('■ Stop · ')}<StopDetail reader={reader} full />
             </button>
           ) : (
             <button className="player-main" onClick={() => readAloud(queue)}>
-              ▶ {picked.length ? `Play ${picked.length} selected` : n === 1 ? 'Play verse' : `Play all ${n.toLocaleString()}`}
+              ▶ {picked.length ? t('Play {n} selected', { n: picked.length }) : count === 1 ? t('Play verse') : t('Play all {n}', { n: count })}
             </button>
           )}
           <PlayerControls reader={reader} />
@@ -1162,15 +1164,15 @@ function Chapter({
     >
       <div key={shownAt} className={slide}>
         <h2 className="result-title">
-          <button className="title-pick" onClick={onPick} aria-label="Choose another book, chapter or verse">
+          <button className="title-pick" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
             {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
           </button>
         </h2>
         <p className="chapter-hint">
           {aroundList && onMain
-            ? `Tap verses around ${aroundList.label} to add them to “${aroundList.name}”. `
-            : tags ? 'Tap a word to study the Hebrew or Greek. ' : reader.supported ? 'Tap verses to choose which ones to play. ' : ''}
-          Swipe left or right for the next or previous chapter.
+            ? t('Tap verses around {ref} to add them to “{list}”. ', { ref: aroundList.label, list: aroundList.name })
+            : tags ? t('Tap a word to study the Hebrew or Greek. ') : reader.supported ? t('Tap verses to choose which ones to play. ') : ''}
+          {t('Swipe left or right for the next or previous chapter.')}
         </p>
         <ol className="chapter">
           {all.map(h => {
@@ -1223,29 +1225,29 @@ function Chapter({
         <div className="player">
           {picked.length > 0 && (
             <div className="selection-bar">
-              <span>{picked.length} selected</span>
-              {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>Add around {aroundList.label}</button>}
-              <button onClick={() => onSave(picked)}>{aroundList && onMain ? 'Other list…' : 'Save to list'}</button>
-              <button onClick={() => onToNote(picked)}>To note…</button>
-              <button onClick={() => onShare(picked)}>Share</button>
-              <button onClick={onClearSelection}>Clear</button>
+              <span>{t('{n} selected', { n: picked.length })}</span>
+              {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>{t('Add around {ref}', { ref: aroundList.label })}</button>}
+              <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
+              <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
+              <button onClick={() => onShare(picked)}>{t('Share')}</button>
+              <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
           )}
           {reader.playing ? (
             <button className="player-main" onClick={reader.stop}>
-              ■ Stop · <StopDetail reader={reader} />
+              {t('■ Stop · ')}<StopDetail reader={reader} />
             </button>
           ) : picked.length || askedLabel ? (
             <div className="play-choice">
               {picked.length ? (
-                <button className="player-main" onClick={() => readAloud(picked)}>▶ Play {picked.length}</button>
+                <button className="player-main" onClick={() => readAloud(picked)}>▶ {t('Play {n}', { n: picked.length })}</button>
               ) : (
-                <button className="player-main" onClick={() => readAloud(asked)}>▶ Play {askedLabel}</button>
+                <button className="player-main" onClick={() => readAloud(asked)}>▶ {t('Play {ref}', { ref: askedLabel })}</button>
               )}
-              <button className="player-alt" onClick={() => readAloud(onward(shownAt))}>▶ Whole chapter</button>
+              <button className="player-alt" onClick={() => readAloud(onward(shownAt))}>▶ {t('Whole chapter')}</button>
             </div>
           ) : (
-            <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ Play chapter</button>
+            <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
           )}
           <PlayerControls reader={reader} />
         </div>
@@ -1310,7 +1312,7 @@ function GotoSheet({ bible, start, onClose, onGo }: {
   const verseCount = bible[book][ch - 1].length;
   const v = Math.min(verse, verseCount);
   const chapterItems = useMemo(() => Array.from({ length: chapterCount }, (_, i) => String(i + 1)), [chapterCount]);
-  const verseItems = useMemo(() => ['All', ...Array.from({ length: verseCount }, (_, i) => String(i + 1))], [verseCount]);
+  const verseItems = useMemo(() => [t('All'), ...Array.from({ length: verseCount }, (_, i) => String(i + 1))], [verseCount]);
   const ref: Reference = { book, chapter: ch, ...(v ? { verseStart: v } : {}) };
 
   useEffect(() => {
@@ -1321,17 +1323,17 @@ function GotoSheet({ bible, start, onClose, onGo }: {
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Go to" onClick={e => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Go to')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Go to</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{t('Go to')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         <div className="wheels">
-          <Wheel label="Book" items={bookNames()} index={book} onChange={setBook} />
-          <Wheel label="Chapter" items={chapterItems} index={ch - 1} onChange={i => setChapter(i + 1)} />
-          <Wheel label="Verse" items={verseItems} index={v} onChange={setVerse} />
+          <Wheel label={t('Book')} items={bookNames()} index={book} onChange={setBook} />
+          <Wheel label={t('Chapter')} items={chapterItems} index={ch - 1} onChange={i => setChapter(i + 1)} />
+          <Wheel label={t('Verse')} items={verseItems} index={v} onChange={setVerse} />
         </div>
-        <button className="goto-open" onClick={() => onGo(ref)}>Open {formatReference(ref)}</button>
+        <button className="goto-open" onClick={() => onGo(ref)}>{t('Open {ref}', { ref: formatReference(ref) })}</button>
       </div>
     </div>
   );
@@ -1344,18 +1346,17 @@ function SharedListSheet({ incoming, existing, onClose, onAdd }: {
   onClose: () => void;
   onAdd: (existing: VerseList | undefined) => void;
 }) {
-  const n = incoming.verses.length;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Shared list" onClick={e => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Shared list')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Shared list</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{t('Shared list')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
-        <p className="shared-name">“{incoming.name}” <small>{n.toLocaleString()} verse{n === 1 ? '' : 's'}</small></p>
-        {existing && <p className="notice">You already have a list called “{existing.name}”. Its verses will be added to it.</p>}
-        <button className="goto-open" onClick={() => onAdd(existing)}>{existing ? 'Add to my list' : 'Add list'}</button>
-        <button className="sheet-link" onClick={onClose}>Not now</button>
+        <p className="shared-name">“{incoming.name}” <small>{n('{n} verse', '{n} verses', incoming.verses.length)}</small></p>
+        {existing && <p className="notice">{t('You already have a list called “{list}”. Its verses will be added to it.', { list: existing.name })}</p>}
+        <button className="goto-open" onClick={() => onAdd(existing)}>{t(existing ? 'Add to my list' : 'Add list')}</button>
+        <button className="sheet-link" onClick={onClose}>{t('Not now')}</button>
       </div>
     </div>
   );
@@ -1365,7 +1366,7 @@ type SectionKey = 'lists' | 'notes' | 'chats';
 const SECTIONS: SectionKey[] = ['lists', 'notes', 'chats'];
 // The buttons across the top of the bookmark sheet: the first three open and jump to their section
 const LIBRARY_TABS = [
-  { id: 'lists', name: 'Verse Lists' },
+  { id: 'lists', name: 'Verse Lists', es: 'Listas' }, // "Listas de versículos" is too long for a tab
   { id: 'notes', name: 'Notes' },
   { id: 'chats', name: 'ChatGPT' },
   { id: 'history', name: 'History' },
@@ -1503,24 +1504,24 @@ function LibrarySheet({
       {(saving || creating) && (
         <form className="new-list" onSubmit={createList}>
           <input
-            placeholder="New list name"
+            placeholder={t('New list name')}
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Escape' && !saving && (e.stopPropagation(), setCreating(false))}
-            aria-label="New list name"
+            aria-label={t('New list name')}
             autoFocus={creating}
           />
-          <button type="submit" disabled={!newName.trim()}>{saving ? 'Save' : 'Create'}</button>
+          <button type="submit" disabled={!newName.trim()}>{t(saving ? 'Save' : 'Create')}</button>
           {!saving && (
-            <button type="button" className="new-list-cancel" aria-label="Cancel" onClick={() => setCreating(false)}>✕</button>
+            <button type="button" className="new-list-cancel" aria-label={t('Cancel')} onClick={() => setCreating(false)}>✕</button>
           )}
         </form>
       )}
-      {!lists.length && !saving && !creating && <p className="notice">Tap + New, or check verses in your results and tap “Save to list”.</p>}
+      {!lists.length && !saving && !creating && <p className="notice">{t('Tap + New, or check verses in your results and tap “Save to list”.')}</p>}
       <ul className="sheet-list">
         {lists.map((l, i) => deleting === l.id ? (
-          <li key={l.id} className="confirm-row" role="alertdialog" aria-label={`Delete ${l.name}?`}>
-            <span>Delete “{l.name}”?</span>
+          <li key={l.id} className="confirm-row" role="alertdialog" aria-label={t('Delete {name}?', { name: l.name })}>
+            <span>{t('Delete “{name}”?', { name: l.name })}</span>
             <button
               className="danger"
               onClick={() => {
@@ -1528,9 +1529,9 @@ function LibrarySheet({
                 setDeleting(null);
               }}
             >
-              Delete
+              {t('Delete')}
             </button>
-            <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+            <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
           </li>
         ) : (
           <li key={l.id} {...listDrag.rowProps(l.id, i)}>
@@ -1547,7 +1548,7 @@ function LibrarySheet({
             </button>
             {!saving && (
               <>
-                <button className="sheet-x" aria-label={`Share ${l.name}`} disabled={!l.verses.length} onClick={() => onShare(l)}>
+                <button className="sheet-x" aria-label={t('Share {name}', { name: l.name })} disabled={!l.verses.length} onClick={() => onShare(l)}>
                   <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
                     <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
                     <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
@@ -1555,15 +1556,15 @@ function LibrarySheet({
                 </button>
                 <button
                   className="sheet-x"
-                  aria-label={`Rename ${l.name}`}
+                  aria-label={t('Rename {name}', { name: l.name })}
                   onClick={() => {
-                    const name = prompt('Rename list', l.name)?.trim();
+                    const name = prompt(t('Rename list'), l.name)?.trim();
                     if (name) library.renameList(l.id, name);
                   }}
                 >
                   ✎
                 </button>
-                <button className="sheet-x list-delete" aria-label={`Delete ${l.name}`} onClick={() => setDeleting(l.id)}>
+                <button className="sheet-x list-delete" aria-label={t('Delete {name}', { name: l.name })} onClick={() => setDeleting(l.id)}>
                   ✕
                 </button>
               </>
@@ -1576,14 +1577,14 @@ function LibrarySheet({
 
   // Section headers get a ⠿ handle to drag the whole section up or down
   const handle = (key: SectionKey, label: string) =>
-    <button {...sectionDrag.handleProps(key, sectionOrder.indexOf(key), `${label} section`)}>⠿</button>;
+    <button {...sectionDrag.handleProps(key, sectionOrder.indexOf(key), t('{name} section', { name: t(label) }))}>⠿</button>;
   const sections: Record<SectionKey, ReactNode> = {
     lists: (
       <>
         <div className="section-head">
           {handle('lists', 'Verse Lists')}
           <button className="section-toggle" aria-expanded={listsOpen} onClick={() => setListsOpen(!listsOpen)}>
-            <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> Verse Lists
+            <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> {t('Verse Lists')}
             {lists.length > 0 && <small>{lists.length}</small>}
           </button>
           <button
@@ -1593,7 +1594,7 @@ function LibrarySheet({
               setCreating(true);
             }}
           >
-            + New
+            {t('+ New')}
           </button>
         </div>
         {listsOpen && listsBody}
@@ -1604,17 +1605,17 @@ function LibrarySheet({
         <div className="section-head">
           {handle('notes', 'Notes')}
           <button className="section-toggle" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
-            <span className="chevron" aria-hidden>{notesOpen ? '▾' : '▸'}</span> Notes
+            <span className="chevron" aria-hidden>{notesOpen ? '▾' : '▸'}</span> {t('Notes')}
             {notes.length > 0 && <small>{notes.length}</small>}
           </button>
-          <button className="section-new" onClick={onNewNote}>+ New</button>
+          <button className="section-new" onClick={onNewNote}>{t('+ New')}</button>
         </div>
         {notesOpen && (
           <ul className="sheet-list">
-            {!notes.length && <li className="notice">Thoughts and sermons. Tap + New, then type or dictate.</li>}
+            {!notes.length && <li className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</li>}
             {notes.map((n, i) => deleting === `note:${n.id}` ? (
-              <li key={n.id} className="confirm-row" role="alertdialog" aria-label={`Delete note ${noteTitle(n)}?`}>
-                <span>Delete this note?</span>
+              <li key={n.id} className="confirm-row" role="alertdialog" aria-label={t('Delete note {name}?', { name: noteTitle(n) })}>
+                <span>{t('Delete this note?')}</span>
                 <button
                   className="danger"
                   onClick={() => {
@@ -1622,15 +1623,15 @@ function LibrarySheet({
                     setDeleting(null);
                   }}
                 >
-                  Delete
+                  {t('Delete')}
                 </button>
-                <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
               </li>
             ) : (
               <li key={n.id} {...noteDrag.rowProps(n.id, i)}>
                 {notes.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
                 <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{noteTitle(n)}</button>
-                <button className="sheet-x" aria-label={`Delete note ${noteTitle(n)}`} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
+                <button className="sheet-x" aria-label={t('Delete note {name}', { name: noteTitle(n) })} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
               </li>
             ))}
           </ul>
@@ -1645,16 +1646,16 @@ function LibrarySheet({
             <span className="chevron" aria-hidden>{chatsOpen ? '▾' : '▸'}</span> ChatGPT
             {chats.length > 0 && <small>{chats.length}</small>}
           </button>
-          <button className="section-new" onClick={onNewChat}>+ New</button>
+          <button className="section-new" onClick={onNewChat}>{uiLanguage() === 'es' ? '+ Nuevo' : t('+ New')}</button>
         </div>
         {chatsOpen && (
           <ul className="sheet-list">
             <li>
-              <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
+              <button className="sheet-item new-chat" onClick={onImportChats}>{t('⇩ Import from ChatGPT')}</button>
             </li>
             {chats.map((c, i) => deleting === `chat:${c.id}` ? (
-              <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
-                <span>Delete this chat?</span>
+              <li key={c.id} className="confirm-row" role="alertdialog" aria-label={t('Delete chat {name}?', { name: c.title })}>
+                <span>{t('Delete this chat?')}</span>
                 <button
                   className="danger"
                   onClick={() => {
@@ -1662,15 +1663,15 @@ function LibrarySheet({
                     setDeleting(null);
                   }}
                 >
-                  Delete
+                  {t('Delete')}
                 </button>
-                <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+                <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
               </li>
             ) : (
               <li key={c.id} {...chatDrag.rowProps(c.id, i)}>
                 {chats.length > 1 && <button {...chatDrag.handleProps(c.id, i, c.title)}>⠿</button>}
                 <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
-                <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
+                <button className="sheet-x" aria-label={t('Delete chat {name}', { name: c.title })} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
               </li>
             ))}
           </ul>
@@ -1680,36 +1681,36 @@ function LibrarySheet({
   };
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={saving ? 'Save to list' : 'History and lists'} onClick={e => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t(saving ? 'Save to list' : 'History and lists')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
           {saving ? (
-            <h2>Save {saving.length} verse{saving.length === 1 ? '' : 's'} to…</h2>
+            <h2>{n('Save {n} verse to…', 'Save {n} verses to…', saving.length)}</h2>
           ) : (
             <div className="tabs" role="tablist">
-              {LIBRARY_TABS.map(t => (
-                <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
-                  {t.name}
+              {LIBRARY_TABS.map(tb => (
+                <button key={tb.id} role="tab" aria-selected={tab === tb.id} className={tab === tb.id ? 'on' : ''} onClick={() => setTab(tb.id)}>
+                  {'es' in tb && uiLanguage() === 'es' ? tb.es : t(tb.name)}
                 </button>
               ))}
             </div>
           )}
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
 
         {!saving && tab === 'history' && (
           <>
-            {!history.length && <p className="notice">Your searches will show up here.</p>}
+            {!history.length && <p className="notice">{t('Your searches will show up here.')}</p>}
             <ul className="sheet-list">
               {history.map(q => (
                 <li key={q}>
                   <button className="sheet-item" onClick={() => onRun(q)}>{q}</button>
-                  <button className="sheet-x" aria-label={`Remove “${q}” from history`} onClick={() => library.forget(q)}>✕</button>
+                  <button className="sheet-x" aria-label={t('Remove “{q}” from history', { q })} onClick={() => library.forget(q)}>✕</button>
                 </li>
               ))}
             </ul>
             {history.length > 0 && (
-              <button className="sheet-link" onClick={() => confirm('Clear all search history?') && library.clearHistory()}>
-                Clear history
+              <button className="sheet-link" onClick={() => confirm(t('Clear all search history?')) && library.clearHistory()}>
+                {t('Clear history')}
               </button>
             )}
           </>
@@ -1745,7 +1746,7 @@ function ListName({ name, onRename }: { name: string; onRename: (name: string) =
     <input
       className="note-title"
       value={draft}
-      aria-label="List name"
+      aria-label={t('List name')}
       onChange={e => {
         setDraft(e.target.value);
         // Saved as typed (trimming now would swallow the space before the next word)
@@ -1769,14 +1770,14 @@ function NotePicker({ count, notes, onPick, onClose }: {
 }) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Add to a note" onClick={e => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Add to a note')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Add {count === 1 ? 'the verse' : `${count} verses`} to a note</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{n('Add the verse to a note', 'Add {n} verses to a note', count)}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         <ul className="sheet-list">
           <li>
-            <button className="sheet-item new-chat" onClick={() => onPick(null)}>+ New note</button>
+            <button className="sheet-item new-chat" onClick={() => onPick(null)}>{t('+ New note')}</button>
           </li>
           {notes.map(n => (
             <li key={n.id}>
@@ -1807,7 +1808,7 @@ function Backup() {
     const text = await picked.text();
     try {
       const what = describeBackup(text);
-      if (!confirm(`Restore this backup${what ? ` (${what})` : ''}? It replaces the lists, notes and chats on this device.`)) return;
+      if (!confirm(t('Restore this backup{what}? It replaces the lists, notes and chats on this device.', { what: what ? ` (${what})` : '' }))) return;
       restoreBackup(text, localStorage);
       location.reload();
     } catch (e) {
@@ -1818,11 +1819,11 @@ function Backup() {
   };
   return (
     <div className="backup">
-      <h3 className="sheet-sub">Backup</h3>
-      <p className="voice-help">Your lists, notes, chats and settings are kept only on this device. Save a backup file to keep them safe or move them to another phone. It includes your ChatGPT key, so keep the file private.</p>
+      <h3 className="sheet-sub">{t('Backup')}</h3>
+      <p className="voice-help">{t('Your lists, notes, chats and settings are kept only on this device. Save a backup file to keep them safe or move them to another phone. It includes your ChatGPT key, so keep the file private.')}</p>
       <div className="backup-actions">
-        <button className="sheet-item" onClick={save}>⇩ Save a backup</button>
-        <button className="sheet-item" onClick={() => file.current?.click()}>⇧ Restore from a backup</button>
+        <button className="sheet-item" onClick={save}>{t('⇩ Save a backup')}</button>
+        <button className="sheet-item" onClick={() => file.current?.click()}>{t('⇧ Restore from a backup')}</button>
       </div>
       <input ref={file} type="file" accept=".json,application/json" hidden onChange={e => restore(e.target.files?.[0])} />
     </div>
@@ -1855,15 +1856,15 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Reading voice" onClick={e => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Reading voice')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Reading voice{reader.language === 'es' && ' · Español'}</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{t(reader.language === 'es' ? 'Reading voice · Español' : 'Reading voice')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         {RECORDED_VOICES.length > 0 && reader.language === 'en' && (
           <>
-            <h3 className="sheet-sub">Natural voices</h3>
-            <ul className="sheet-list" role="radiogroup" aria-label="Natural voices">
+            <h3 className="sheet-sub">{t('Natural voices')}</h3>
+            <ul className="sheet-list" role="radiogroup" aria-label={t('Natural voices')}>
               {RECORDED_VOICES.map(v => {
                 const on = recordedVoice === v;
                 return (
@@ -1872,24 +1873,21 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
                       <span className="check" aria-hidden>{on ? '✓' : ''}</span>
                       {v.name} <small>{describeRecorded(v)}</small>
                     </button>
-                    <button className="sheet-x" aria-label={`Hear ${v.name}`} onClick={() => preview(v.id)}>▶</button>
+                    <button className="sheet-x" aria-label={t('Hear {name}', { name: v.name })} onClick={() => preview(v.id)}>▶</button>
                   </li>
                 );
               })}
             </ul>
-            <p className="voice-help">Recorded voices that sound human. They stream over the internet.</p>
+            <p className="voice-help">{t('Recorded voices that sound human. They stream over the internet.')}</p>
           </>
         )}
 
-        <h3 className="sheet-sub">Device voices</h3>
+        <h3 className="sheet-sub">{t('Device voices')}</h3>
         {!voices.length && (
           <p className="notice">
-            {checking ? 'Looking for voices…' : (
-              <>
-                This browser didn’t share its list of voices, so the app reads with your device’s default voice.
-                If you added Voice Bible to your home screen, try opening it in Safari or Chrome instead.
-              </>
-            )}
+            {checking
+              ? t('Looking for voices…')
+              : t('This browser didn’t share its list of voices, so the app reads with your device’s default voice. If you added Voice Bible to your home screen, try opening it in Safari or Chrome instead.')}
           </p>
         )}
         <ul className="sheet-list" role="radiogroup">
@@ -1899,20 +1897,20 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
               <li key={v.voiceURI} className={on ? 'on' : ''}>
                 <button className="sheet-item voice-item" role="radio" aria-checked={on} onClick={() => setVoice(v.voiceURI)}>
                   <span className="check" aria-hidden>{on ? '✓' : ''}</span>
-                  {voiceName(v)} <small>{describeVoice(v)}</small>
+                  {voiceName(v)} <small>{describeVoice(v).split(' · ').map(w => t(w)).join(' · ')}</small>
                 </button>
-                <button className="sheet-x" aria-label={`Hear ${voiceName(v)}`} onClick={() => preview(v)}>▶</button>
+                <button className="sheet-x" aria-label={t('Hear {name}', { name: voiceName(v) })} onClick={() => preview(v)}>▶</button>
               </li>
             );
           })}
         </ul>
         {voiceId && (
-          <button className="sheet-link" onClick={() => setVoice('')}>Use the default voice</button>
+          <button className="sheet-link" onClick={() => setVoice('')}>{t('Use the default voice')}</button>
         )}
         <p className="voice-help">
-          {hasMan ? 'Voices come from your device.' : 'No man’s voice was found on this device.'} To add more voices and accents:
-          <br />iPhone: Settings → Accessibility → Spoken Content → Voices → English
-          <br />Android: Settings → Text-to-speech → Google → Install voice data → English
+          {t(hasMan ? 'Voices come from your device.' : 'No man’s voice was found on this device.')} {t('To add more voices and accents:')}
+          <br />{t('iPhone: Settings → Accessibility → Spoken Content → Voices → English')}
+          <br />{t('Android: Settings → Text-to-speech → Google → Install voice data → English')}
         </p>
       </div>
     </div>
@@ -1933,8 +1931,8 @@ function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}
         aria-pressed={reader.repeat}
-        aria-label="Repeat"
-        title={reader.repeat ? 'Repeat is on' : 'Repeat is off'}
+        aria-label={t('Repeat')}
+        title={t(reader.repeat ? 'Repeat is on' : 'Repeat is off')}
         onClick={() => reader.setRepeat(r => !r)}
       >
         ⟳
@@ -1942,16 +1940,16 @@ function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
       <button
         className={`repeat ${reader.sayRefs ? 'on' : ''}`}
         aria-pressed={reader.sayRefs}
-        aria-label="Read chapter and verse before each verse"
-        title={reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only'}
+        aria-label={t('Read chapter and verse before each verse')}
+        title={t(reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only')}
         onClick={() => reader.setSayRefs(!reader.sayRefs)}
       >
-        Refs
+        {t('Refs')}
       </button>
       <button
         className="speed"
-        aria-label={`Reading speed ${reader.speed} times. Tap to change`}
-        title="Reading speed"
+        aria-label={t('Reading speed {n} times. Tap to change', { n: reader.speed })}
+        title={t('Reading speed')}
         onClick={() => reader.setSpeed(SPEEDS[(SPEEDS.indexOf(reader.speed) + 1) % SPEEDS.length])}
       >
         {reader.speed}×

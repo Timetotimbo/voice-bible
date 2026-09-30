@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appendDictation, insertDictation } from './dictation';
+import { setUiLanguage } from './i18n';
 
 describe('dictating into a note', () => {
   it('adds phrases with a space and a capital to start', () => {
@@ -40,5 +41,18 @@ describe('dictating where the cursor is', () => {
 
   it('adds at the end like before when the cursor is there', () => {
     expect(insertDictation('Intro.', 6, 'new paragraph first')).toEqual({ text: 'Intro.\n\nFirst', caret: 13 });
+  });
+});
+
+describe('dictating in Spanish', () => {
+  it('turns spoken Spanish punctuation into marks', () => {
+    setUiLanguage('es');
+    try {
+      expect(appendDictation('', 'la gracia es un don punto no se gana coma se recibe')).toBe('La gracia es un don. No se gana, se recibe');
+      expect(appendDictation('Uno', 'punto y coma dos dos puntos tres')).toBe('Uno; dos: tres');
+      expect(appendDictation('Intro.', 'nuevo párrafo primero la palabra')).toBe('Intro.\n\nPrimero la palabra');
+    } finally {
+      setUiLanguage('en');
+    }
   });
 });

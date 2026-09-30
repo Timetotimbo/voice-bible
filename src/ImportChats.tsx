@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { readExportFile, readPastedChat, type ImportedChat } from './chatImport';
 import type { Chat } from './useChats';
+import { n, t } from './i18n';
 
 // Browsers keep about 5 million characters per site; lists and history share it, so leave room
 const STORAGE_BUDGET = 4_500_000;
@@ -43,11 +44,11 @@ export function ImportChats({ existing, onImport, onClose }: {
     setReading(true);
     try {
       const chats = await readExportFile(file);
-      if (!chats.length) throw new Error('No conversations found in this file.');
+      if (!chats.length) throw new Error(t('No conversations found in this file.'));
       setFound(chats);
       setPicked(new Set());
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
     } finally {
       setReading(false);
     }
@@ -63,24 +64,24 @@ export function ImportChats({ existing, onImport, onClose }: {
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet import-sheet" role="dialog" aria-modal="true" aria-label="Import from ChatGPT" onClick={e => e.stopPropagation()}>
+      <div className="sheet import-sheet" role="dialog" aria-modal="true" aria-label={t('Import from ChatGPT')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>Import from ChatGPT</h2>
-          <button className="sheet-close" aria-label="Close" onClick={onClose}>✕</button>
+          <h2>{t('Import from ChatGPT')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
 
         {!found && !pasting && (
           <>
             <ol className="import-steps">
-              <li>In ChatGPT, open <b>Settings › Data controls › Export data</b> and confirm.</li>
-              <li>ChatGPT emails you a link. Download the <b>.zip</b> file (it can take a few minutes to arrive).</li>
-              <li>Choose that file here, then pick the chats to bring over.</li>
+              <li>{t('In ChatGPT, open')} <b>{t('Settings › Data controls › Export data')}</b> {t('and confirm.')}</li>
+              <li>{t('ChatGPT emails you a link. Download the')} <b>.zip</b> {t('file (it can take a few minutes to arrive).')}</li>
+              <li>{t('Choose that file here, then pick the chats to bring over.')}</li>
             </ol>
             <label className={`goto-open file-pick ${reading ? 'busy' : ''}`}>
-              {reading ? 'Reading…' : 'Choose ChatGPT export file'}
+              {t(reading ? 'Reading…' : 'Choose ChatGPT export file')}
               <input type="file" accept=".zip,.json,application/zip,application/json" onChange={e => openFile(e.target.files?.[0])} disabled={reading} />
             </label>
-            <button className="sheet-link" onClick={() => setPasting(true)}>Or paste one conversation</button>
+            <button className="sheet-link" onClick={() => setPasting(true)}>{t('Or paste one conversation')}</button>
           </>
         )}
 
@@ -94,22 +95,22 @@ export function ImportChats({ existing, onImport, onClose }: {
             }}
           >
             <p className="notice">
-              In ChatGPT, copy the conversation and paste it below. Turns marked “You said:” and “ChatGPT said:” are kept apart.
+              {t('In ChatGPT, copy the conversation and paste it below. Turns marked “You said:” and “ChatGPT said:” are kept apart.')}
             </p>
-            <input placeholder="Name (optional)" value={pasteTitle} onChange={e => setPasteTitle(e.target.value)} aria-label="Chat name" />
-            <textarea rows={8} placeholder="Paste the conversation here" value={pasted} onChange={e => setPasted(e.target.value)} aria-label="Conversation" />
-            <button type="submit" className="goto-open" disabled={!pasted.trim()}>Import</button>
-            <button type="button" className="sheet-link" onClick={() => setPasting(false)}>Back</button>
+            <input placeholder={t('Name (optional)')} value={pasteTitle} onChange={e => setPasteTitle(e.target.value)} aria-label={t('Chat name')} />
+            <textarea rows={8} placeholder={t('Paste the conversation here')} value={pasted} onChange={e => setPasted(e.target.value)} aria-label={t('Conversation')} />
+            <button type="submit" className="goto-open" disabled={!pasted.trim()}>{t('Import')}</button>
+            <button type="button" className="sheet-link" onClick={() => setPasting(false)}>{t('Back')}</button>
           </form>
         )}
 
         {found && (
           <>
-            <input className="import-filter" type="search" placeholder={`Search ${found.length} chats`} value={filter} onChange={e => setFilter(e.target.value)} aria-label="Search chats" />
+            <input className="import-filter" type="search" placeholder={t('Search {n} chats', { n: found.length })} value={filter} onChange={e => setFilter(e.target.value)} aria-label={t('Search chats')} />
             <div className="import-bar">
-              <span>{picked.size} chosen</span>
-              <button onClick={() => setPicked(new Set(shown.filter(c => !already.has(c.id)).map(c => c.id)))}>Choose all{filter && ' shown'}</button>
-              {picked.size > 0 && <button onClick={() => setPicked(new Set())}>Clear</button>}
+              <span>{t('{n} chosen', { n: picked.size })}</span>
+              <button onClick={() => setPicked(new Set(shown.filter(c => !already.has(c.id)).map(c => c.id)))}>{t(filter ? 'Choose all shown' : 'Choose all')}</button>
+              {picked.size > 0 && <button onClick={() => setPicked(new Set())}>{t('Clear')}</button>}
             </div>
             <ul className="sheet-list import-list">
               {shown.map(c => {
@@ -119,16 +120,16 @@ export function ImportChats({ existing, onImport, onClose }: {
                     <label className={`import-item ${have ? 'have' : ''}`}>
                       <input type="checkbox" checked={picked.has(c.id)} disabled={have} onChange={() => toggle(c.id)} />
                       <span className="import-title">{c.title}</span>
-                      <small>{have ? 'already here' : `${c.messages.length} msgs${c.updated ? ` · ${new Date(c.updated).toLocaleDateString()}` : ''}`}</small>
+                      <small>{have ? t('already here') : `${t('{n} msgs', { n: c.messages.length })}${c.updated ? ` · ${new Date(c.updated).toLocaleDateString()}` : ''}`}</small>
                     </label>
                   </li>
                 );
               })}
             </ul>
-            {tooBig && <p className="notice error">That’s more than this device can store. Choose fewer or shorter chats.</p>}
+            {tooBig && <p className="notice error">{t('That’s more than this device can store. Choose fewer or shorter chats.')}</p>}
             {error && <p className="notice error">{error}</p>}
             <button className="goto-open" disabled={!picked.size || tooBig} onClick={() => onImport(chosen)}>
-              Import {picked.size || ''} chat{picked.size === 1 ? '' : 's'}
+              {picked.size ? n('Import {n} chat', 'Import {n} chats', picked.size) : t('Import chats')}
             </button>
           </>
         )}

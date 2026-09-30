@@ -1,4 +1,5 @@
 import { SPEEDS, type useReader } from './useReader';
+import { t } from './i18n';
 
 export type Reader = ReturnType<typeof useReader>;
 /** Starts reading paragraphs aloud (pausing the mic first), from paragraph `from`. */
@@ -20,21 +21,21 @@ export function ListenBar({ reader, total }: { reader: Reader; total: number }) 
   return (
     <div className="player">
       <button className="player-main" onClick={reader.stop}>
-        ■ Stop{reader.textAt >= 0 && total > 1 ? ` · ${reader.textAt + 1} of ${total}` : ''}
+        {t('■ Stop')}{reader.textAt >= 0 && total > 1 ? t(' · {i} of {n}', { i: reader.textAt + 1, n: total }) : ''}
       </button>
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}
         aria-pressed={reader.repeat}
-        aria-label="Loop"
-        title={reader.repeat ? 'Looping: starts again at the end' : 'Loop is off'}
+        aria-label={t('Loop')}
+        title={t(reader.repeat ? 'Looping: starts again at the end' : 'Loop is off')}
         onClick={() => reader.setRepeat(r => !r)}
       >
-        ⟳ Loop
+        {t('⟳ Loop')}
       </button>
       <button
         className="speed"
-        aria-label={`Reading speed ${reader.speed} times. Tap to change`}
-        title="Reading speed"
+        aria-label={t('Reading speed {n} times. Tap to change', { n: reader.speed })}
+        title={t('Reading speed')}
         onClick={() => reader.setSpeed(SPEEDS[(SPEEDS.indexOf(reader.speed) + 1) % SPEEDS.length])}
       >
         {reader.speed}×

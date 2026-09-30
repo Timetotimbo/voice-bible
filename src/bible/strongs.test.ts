@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { renderingsOf, strongsCode, tagsOf, untag, versesWithCode } from './strongs';
+import { renderingsOf, splitJoinedTags, strongsCode, tagsOf, untag, versesWithCode } from './strongs';
 import type { BibleText } from './search';
 
 const raw: BibleText = JSON.parse(readFileSync(new URL('../../public/bibles/kjvs.json', import.meta.url), 'utf8'));
@@ -41,5 +41,19 @@ describe("Strong's numbers", () => {
     expect(strongsCode('h0430')).toBe('H430');
     expect(strongsCode(' G26 ')).toBe('G26');
     expect(strongsCode('God')).toBeNull();
+  });
+});
+
+describe('Reina-Valera tags that join words', () => {
+  it('splits them into one tag per word', () => {
+    expect(splitJoinedTags('y a todo {hay vida|strong="H5315,H2416", toda|H3605} hierba')).toBe('y a todo {hay vida|H5315}, {toda|H3605} hierba');
+    expect(splitJoinedTags('{Conque|strong="H0637,H3588" Dios|H430}')).toBe('{Conque|H637} {Dios|H430}');
+    expect(splitJoinedTags('del huerto comerás|strong="H0398,H0398";')).toBe('del huerto {comerás|H398};');
+  });
+
+  it('leaves no marks in the Spanish text', () => {
+    const es = untag(JSON.parse(readFileSync(new URL('../../public/bibles/rv1909.json', import.meta.url), 'utf8')));
+    const marked = es.flat(2).filter(v => /[{}|]|strong=/.test(v));
+    expect(marked).toEqual([]);
   });
 });

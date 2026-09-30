@@ -4,6 +4,7 @@ import type { VerseHit } from './bible/search';
 import { insertDictation } from './dictation';
 import { historyFor } from './editHistory';
 import { paragraphAt, paragraphsOf } from './words';
+import { n, t } from './i18n';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
@@ -154,16 +155,16 @@ export function NoteView({
   }, [reader.textAt]);
 
   const chatText = (c: Chat) =>
-    [`ChatGPT: ${c.title}`, ...c.messages.map(m => `${m.role === 'user' ? 'Me' : 'ChatGPT'}: ${m.content}`)].join('\n\n');
+    [`ChatGPT: ${c.title}`, ...c.messages.map(m => `${m.role === 'user' ? t('Me') : 'ChatGPT'}: ${m.content}`)].join('\n\n');
 
   return (
     <section className={`note ${reading ? 'has-player' : ''}`}>
-      <input className="note-title" placeholder="Title" value={note.title} onChange={e => onChange({ title: e.target.value })} aria-label="Title" />
+      <input className="note-title" placeholder={t('Title')} value={note.title} onChange={e => onChange({ title: e.target.value })} aria-label={t('Title')} />
       <div className="note-tools">
         <button
           className={`dictate ${listening ? 'on' : ''}`}
           aria-pressed={listening}
-          aria-label={listening ? 'Stop dictating' : 'Dictate'}
+          aria-label={t(listening ? 'Stop dictating' : 'Dictate')}
           onClick={() => {
             if (reading) reader.stop(); // the mic would hear the reading
             onDictate(!listening);
@@ -172,12 +173,12 @@ export function NoteView({
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
           </svg>
-          <span>{listening ? 'Listening' : 'Dictate'}</span>
+          <span>{t(listening ? 'Listening' : 'Dictate')}</span>
         </button>
         <button
           className={`undo listen ${reading ? 'on' : ''}`}
-          aria-label={reading ? 'Stop reading aloud' : 'Read aloud'}
-          title={reading ? 'Stop reading aloud' : 'Read aloud'}
+          aria-label={t(reading ? 'Stop reading aloud' : 'Read aloud')}
+          title={t(reading ? 'Stop reading aloud' : 'Read aloud')}
           // From the paragraph the cursor is in; from the top if it's at the end or hasn't been placed
           onClick={() => {
             if (reading) return reader.stop();
@@ -188,10 +189,10 @@ export function NoteView({
         >
           <SpeakerIcon />
         </button>
-        <button onClick={openInsert} disabled={reading}>Insert</button>
-        <button className="undo" aria-label="Undo" title="Undo" disabled={!history.canUndo} onClick={undo}>↶</button>
-        <button className="undo" aria-label="Redo" title="Redo" disabled={!history.canRedo} onClick={redo}>↷</button>
-        <button className="undo" aria-label="Share" title="Share" onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
+        <button onClick={openInsert} disabled={reading}>{t('Insert')}</button>
+        <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
+        <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
+        <button className="undo" aria-label={t('Share')} title={t('Share')} onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
           <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
             <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
             <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
@@ -210,7 +211,7 @@ export function NoteView({
         <textarea
           ref={box}
           className="note-text"
-          placeholder="Write, or tap Dictate and speak. Say “new paragraph”, “period”, “comma”…"
+          placeholder={t('Write, or tap Dictate and speak. Say “new paragraph”, “period”, “comma”…')}
           value={note.text}
           onChange={e => {
             setText(e.target.value, 'typing');
@@ -233,20 +234,20 @@ export function NoteView({
           onClick={rememberCaret}
           // Tapping Insert moves the focus away; the cursor's place is still known at that moment
           onBlur={rememberCaret}
-          aria-label="Note"
+          aria-label={t('Note')}
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
-      {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : 'Listening…'}</p>}
+      {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : t('Listening…')}</p>}
 
       {inserting && (
         <div className="sheet-backdrop" onClick={() => setInserting(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label="Insert into note" onClick={e => e.stopPropagation()}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Insert into note')} onClick={e => e.stopPropagation()}>
             <div className="sheet-head">
-              <h2>Insert into note</h2>
-              <button className="sheet-close" aria-label="Close" onClick={() => setInserting(false)}>✕</button>
+              <h2>{t('Insert into note')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setInserting(false)}>✕</button>
             </div>
-            <h3 className="sheet-sub">A verse</h3>
+            <h3 className="sheet-sub">{t('A verse')}</h3>
             <form
               className="new-list"
               onSubmit={e => {
@@ -256,15 +257,15 @@ export function NoteView({
             >
               <input
                 type="search"
-                placeholder="John 3:16, Psalm 23, or words"
+                placeholder={t('John 3:16, Psalm 23, or words')}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                aria-label="Find a verse"
+                aria-label={t('Find a verse')}
                 autoFocus
               />
-              <button type="submit" disabled={!query.trim()}>Find</button>
+              <button type="submit" disabled={!query.trim()}>{t('Find')}</button>
             </form>
-            {searched && !found.length && <p className="notice">No verses found.</p>}
+            {searched && !found.length && <p className="notice">{t('No verses found.')}</p>}
             {found.length > 0 && (
               <>
                 <ul className="pick-verses" ref={pickList}>
@@ -279,15 +280,15 @@ export function NoteView({
                     </li>
                   ))}
                 </ul>
-                {found.length > shown.length && <p className="notice">Showing the first {shown.length} of {found.length}. Add more words to narrow it.</p>}
+                {found.length > shown.length && <p className="notice">{t('Showing the first {shown} of {n}. Add more words to narrow it.', { shown: shown.length, n: found.length })}</p>}
                 <button className="goto-open" disabled={!chosen.length} onClick={() => insert(versesText(chosen))}>
-                  Insert {chosen.length || ''} verse{chosen.length === 1 ? '' : 's'}
+                  {chosen.length ? n('Insert {n} verse', 'Insert {n} verses', chosen.length) : t('Insert verses')}
                 </button>
               </>
             )}
 
-            <h3 className="sheet-sub">Verse Lists</h3>
-            {!lists.length && <p className="notice">No lists yet.</p>}
+            <h3 className="sheet-sub">{t('Verse Lists')}</h3>
+            {!lists.length && <p className="notice">{t('No lists yet.')}</p>}
             <ul className="sheet-list">
               {lists.map(l => (
                 <li key={l.id}>
@@ -297,8 +298,8 @@ export function NoteView({
                 </li>
               ))}
             </ul>
-            <h3 className="sheet-sub">ChatGPT chats</h3>
-            {!chats.length && <p className="notice">No chats yet.</p>}
+            <h3 className="sheet-sub">{t('ChatGPT chats')}</h3>
+            {!chats.length && <p className="notice">{t('No chats yet.')}</p>}
             <ul className="sheet-list">
               {chats.map(c => (
                 <li key={c.id}>

@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent, type MutableRefObject, type ReactNode } from 'react';
-import { BOOKS } from './bible/books';
+import { BOOKS, BOOKS_ES } from './bible/books';
 import { parseReference, type BibleText, type Reference } from './bible/search';
 import { ChatError, askChatGPT } from './openai';
 import type { Chat as ChatData, ChatMessage, ChatSettings } from './useChats';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
+import { t } from './i18n';
 
-// "Romans 8:28", "1 John 4:7-8", "Psalm 23" in an answer, to make them tappable
-const NAMES = [...new Set([...BOOKS.map(b => b.replace(/^[123] /, '')), 'Psalm'])].sort((a, b) => b.length - a.length);
-const REF = new RegExp(`\\b((?:[123] )?(?:${NAMES.join('|')}) \\d+(?::\\d+(?:[-–]\\d+)?)?)`, 'g');
+// "Romans 8:28", "1 John 4:7-8", "Psalm 23" (or "Romanos 8:28", "Salmo 23") in an answer, to make them tappable
+const NAMES = [...new Set([...BOOKS, ...BOOKS_ES].map(b => b.replace(/^[123] /, '')).concat('Psalm', 'Salmo'))].sort((a, b) => b.length - a.length);
+// Not \b: it doesn't see accented letters ("Éxodo") as part of a word
+const REF = new RegExp(`(?<![\\p{L}\\d])((?:[123] )?(?:${NAMES.join('|')}) \\d+(?::\\d+(?:[-–]\\d+)?)?)`, 'gu');
 
 function Linked({ text, bible, onOpenRef }: { text: string; bible: BibleText; onOpenRef: (ref: Reference) => void }) {
   const parts: ReactNode[] = [];
@@ -40,25 +42,25 @@ function KeySetup({ settings, onSave, onCancel }: {
   };
   return (
     <form className="key-setup" onSubmit={save}>
-      <h3>Connect ChatGPT</h3>
+      <h3>{t('Connect ChatGPT')}</h3>
       <p>
-        Paste your OpenAI API key. It’s saved only on this device and sent only to OpenAI. Make one at{' '}
+        {t('Paste your OpenAI API key. It’s saved only on this device and sent only to OpenAI. Make one at')}{' '}
         <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">platform.openai.com/api-keys</a>.
       </p>
       <label>
-        API key
+        {t('API key')}
         <input type="password" autoComplete="off" placeholder="sk-…" value={apiKey} onChange={e => setApiKey(e.target.value)} />
       </label>
       <label>
-        Model
+        {t('Model')}
         <input value={model} onChange={e => setModel(e.target.value)} />
       </label>
       <div className="key-actions">
-        <button type="submit" className="goto-open" disabled={!apiKey.trim()}>Save</button>
+        <button type="submit" className="goto-open" disabled={!apiKey.trim()}>{t('Save')}</button>
         {settings.apiKey && (
-          <button type="button" className="sheet-link" onClick={() => onSave({ ...settings, apiKey: '' })}>Remove key from this device</button>
+          <button type="button" className="sheet-link" onClick={() => onSave({ ...settings, apiKey: '' })}>{t('Remove key from this device')}</button>
         )}
-        {onCancel && <button type="button" className="sheet-link" onClick={onCancel}>Cancel</button>}
+        {onCancel && <button type="button" className="sheet-link" onClick={onCancel}>{t('Cancel')}</button>}
       </div>
     </form>
   );
@@ -120,7 +122,7 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
         setMessages(chat.id, [...asked, { role: 'assistant', content: soFar }]);
       }, abort.current.signal);
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') setError(err instanceof ChatError ? err.message : 'Something went wrong. Try again.');
+      if ((err as Error).name !== 'AbortError') setError(err instanceof ChatError ? t(err.message) : t('Something went wrong. Try again.'));
       // Nothing came back: take the question out of the chat and put it back in the box to send again
       if (!answered) {
         setMessages(chat.id, chat.messages);
@@ -153,17 +155,17 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
         <h2 className="result-title">{chat.title}</h2>
         <button
           className={`listen ${reading ? 'on' : ''}`}
-          aria-label={reading ? 'Stop reading aloud' : 'Read aloud'}
-          title={reading ? 'Stop reading aloud' : 'Read aloud'}
+          aria-label={t(reading ? 'Stop reading aloud' : 'Read aloud')}
+          title={t(reading ? 'Stop reading aloud' : 'Read aloud')}
           onClick={() => (reading ? reader.stop() : readFrom(0))}
           disabled={!reader.canReadText || empty || busy}
         >
           <SpeakerIcon />
         </button>
-        <button className="sheet-link" onClick={() => setEditingKey(true)}>API key</button>
+        <button className="sheet-link" onClick={() => setEditingKey(true)}>{t('API key')}</button>
       </div>
       {empty && (
-        <p className="notice">Ask anything about the Bible, like “What does the Bible say about fear?” or “Explain Romans 8:28”. Verse references in answers open when tapped.</p>
+        <p className="notice">{t('Ask anything about the Bible, like “What does the Bible say about fear?” or “Explain Romans 8:28”. Verse references in answers open when tapped.')}</p>
       )}
       <ol className="messages">
         {chat.messages.map((m, i) => {
@@ -193,7 +195,7 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
         <form className="composer" onSubmit={send}>
           <textarea
             rows={1}
-            placeholder="Ask ChatGPT, or speak…"
+            placeholder={t('Ask ChatGPT, or speak…')}
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => {
@@ -201,9 +203,9 @@ export function ChatView({ chat, bible, settings, setSettings, setMessages, onOp
             }}
           />
           {busy ? (
-            <button type="button" onClick={() => abort.current?.abort()}>Stop</button>
+            <button type="button" onClick={() => abort.current?.abort()}>{t('Stop')}</button>
           ) : (
-            <button type="submit" disabled={!draft.trim()}>Send</button>
+            <button type="submit" disabled={!draft.trim()}>{t('Send')}</button>
           )}
         </form>
       )}

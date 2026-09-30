@@ -244,7 +244,7 @@ button { cursor: pointer; }
 .quick-save { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }
 
-.verses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.verses { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; } /* a long word can't widen the column past the screen */
 .verse-card {
   display: block;
   width: 100%;

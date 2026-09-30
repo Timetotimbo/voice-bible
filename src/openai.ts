@@ -1,3 +1,4 @@
+import { uiLanguage } from './i18n';
 import type { ChatMessage } from './useChats';
 
 const SYSTEM = [
@@ -5,6 +6,14 @@ const SYSTEM = [
   'Quote the King James Version, and always give references as Book Chapter:Verse (for example "Romans 8:28" or "1 John 4:7-8") so they can be tapped to open.',
   'Answer in plain text without Markdown formatting such as ** or #. Keep answers clear and reasonably short unless asked for more.',
   'Where Christians hold different views, say so fairly.',
+].join(' ');
+
+// With the Reina-Valera open: answer in Spanish from it, with Spanish references ("Romanos 8:28") that open when tapped
+const SYSTEM_ES = [
+  'Eres un ayudante de estudio bíblico cálido y cuidadoso dentro de una app de la Biblia Reina-Valera.',
+  'Responde siempre en español. Cita la Reina-Valera 1909 y da siempre las citas como Libro Capítulo:Versículo (por ejemplo "Romanos 8:28" o "1 Juan 4:7-8") para que se puedan tocar y abrir.',
+  'Responde en texto sencillo sin formato Markdown como ** o #. Mantén las respuestas claras y bastante breves salvo que se pida más.',
+  'Donde los cristianos tienen opiniones distintas, dilo con justicia.',
 ].join(' ');
 
 export class ChatError extends Error {}
@@ -26,7 +35,7 @@ export async function askChatGPT(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       // Long chats (imported ones especially) send only their recent part, to stay quick and cheap
-      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: SYSTEM }, ...messages.slice(-40)] }),
+      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: uiLanguage() === 'es' ? SYSTEM_ES : SYSTEM }, ...messages.slice(-40)] }),
       signal,
     });
   } catch (e) {

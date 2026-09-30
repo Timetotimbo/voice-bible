@@ -1,3 +1,5 @@
+import { uiLanguage } from './i18n';
+
 // Spoken punctuation and layout, as people dictate it
 const COMMANDS: [RegExp, string][] = [
   [/\bnew paragraph\b/gi, '\n\n'],
@@ -9,6 +11,19 @@ const COMMANDS: [RegExp, string][] = [
   [/\bcolon\b/gi, ':'],
   [/\bsemicolon\b/gi, ';'],
 ];
+// The same in Spanish, for the Reina-Valera (longer phrases first: "punto y coma" before "punto")
+const COMMANDS_ES: [RegExp, string][] = [
+  [/\bpunto y aparte\b/gi, '.\n\n'],
+  [/\b(nuevo|otro) p[aá]rrafo\b/gi, '\n\n'],
+  [/\b(nueva|otra|siguiente) l[ií]nea\b/gi, '\n'],
+  [/\bpunto y coma\b/gi, ';'],
+  [/\bdos puntos\b/gi, ':'],
+  [/\bpunto y seguido\b/gi, '.'],
+  [/\bpunto\b/gi, '.'],
+  [/\bcoma\b/gi, ','],
+  [/\b(signo de )?interrogaci[oó]n\b/gi, '?'],
+  [/\b(signo de )?exclamaci[oó]n\b/gi, '!'],
+];
 
 /**
  * Adds a dictated phrase to the end of `before`: spoken commands become punctuation or new lines, spacing is
@@ -17,7 +32,7 @@ const COMMANDS: [RegExp, string][] = [
 export function appendDictation(before: string, phrase: string): string {
   let text = phrase.trim();
   if (!text) return before;
-  for (const [said, mark] of COMMANDS) text = text.replace(said, mark);
+  for (const [said, mark] of uiLanguage() === 'es' ? COMMANDS_ES : COMMANDS) text = text.replace(said, mark);
   text = text
     .replace(/[ \t]+([.,?!:;])/g, '$1') // "word ." → "word."
     .replace(/[ \t]*\n[ \t]*/g, '\n') // no spaces around line breaks
