@@ -60,6 +60,8 @@ const ES: Record<string, string> = {
 
   // The redesign: tabs, settings, the Search page
   'Test version': 'Versión de prueba',
+  'Classic layout': 'Diseño clásico',
+  'The look before version 2: no tabs, the big mic, and the bookmark menu': 'El aspecto anterior a la versión 2: sin pestañas, con el micrófono grande y el menú del marcador',
   'Settings': 'Ajustes',
   'Search the Bible': 'Buscar en la Biblia',
   'Speak a search': 'Buscar por voz',

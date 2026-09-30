@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { bookName, bookNames, setBookLanguage } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
@@ -61,6 +61,15 @@ const TABS: { id: Tab; name: string; es?: string }[] = [
   { id: 'notes', name: 'Notes' },
   { id: 'chat', name: 'Chat' },
 ];
+// The layout before v2 (v1.49), which ⚙ Settings › Classic layout brings back; shared with the parts that differ
+const ClassicContext = createContext(false);
+const savedClassic = () => {
+  try {
+    return localStorage.getItem('layout') === 'classic';
+  } catch {
+    return false;
+  }
+};
 // This copy is the one being tried out at /preview/
 const PREVIEW = import.meta.env.BASE_URL.includes('preview');
 
@@ -147,7 +156,8 @@ export default function App() {
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
   // The app opens on the chapter last read, like an open book
-  const [view, setView] = useState<View>(() => ({ kind: 'chapter', ref: lastRead() }));
+  const [classic, setClassicState] = useState(savedClassic);
+  const [view, setView] = useState<View>(() => (savedClassic() ? { kind: 'home' } : { kind: 'chapter', ref: lastRead() }));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
   const [typed, setTyped] = useState('');
@@ -331,6 +341,17 @@ export default function App() {
     [reader.stop],
   );
 
+  const setClassic = (on: boolean) => {
+    setClassicState(on);
+    try {
+      localStorage.setItem('layout', on ? 'classic' : 'new');
+    } catch {
+      // storage unavailable; lasts for this visit
+    }
+    // The classic layout has no pages for the tabs; start it on its search page
+    if (on && (view.kind === 'lists' || view.kind === 'notes' || view.kind === 'chats')) setView({ kind: 'home' });
+  };
+
   // Each tab comes back to where it was left; tapping the tab you're on goes to its first page
   const tabViews = useRef<Partial<Record<Tab, View>>>({});
   tabViews.current[tabOf(view)] = view;
@@ -437,62 +458,172 @@ export default function App() {
   );
 
   return (
-    <div className="app">
-      <header className="top">
-        <div className="head">
+    <ClassicContext.Provider value={classic}>
+    <div className={`app ${classic ? 'classic' : 'v2'}`}>
+      {classic ? (
+        <>
+        <header className="top">
           <h1>
-            <span className="cross" aria-hidden>✝</span> <span className="title-text">Voice Bible</span>
-            {PREVIEW && <small className="test-badge">{t('Test version')}</small>}
+            <span className="cross" aria-hidden>✝</span> Voice Bible
           </h1>
-          <select className="tr-chip" aria-label={t('Translation')} value={translation} onChange={e => setTranslation(e.target.value as TranslationId)}>
-            {TRANSLATIONS.map(tr => (
-              <option key={tr.id} value={tr.id}>{tr.abbrev}</option>
-            ))}
-          </select>
-          <button className="round-btn" aria-label={t('Settings')} onClick={() => setSettingsOpen(true)}>
+          <button
+            className="library-btn"
+            aria-label={t('Reading voice')}
+            onClick={() => {
+              // Pause the mic so voice samples aren't heard as searches
+              if (speech.status === 'listening') {
+                micWasOn.current = !TAP_TO_TALK;
+                speech.stop();
+              }
+              setVoiceOpen(true);
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M4 9h4l5-4v14l-5-4H4Z" />
+              <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
+            </svg>
+          </button>
+          <button className="library-btn" aria-label={t('Colours')} onClick={() => setThemeOpen(true)}>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.7-9-7.7Z" />
+              <circle cx="7.5" cy="11.5" r="1.2" /><circle cx="10" cy="7.5" r="1.2" /><circle cx="14.5" cy="7.5" r="1.2" />
+            </svg>
+          </button>
+          <button className="library-btn" aria-label={t('History and saved lists')} onClick={() => setSheet('browse')}>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+            </svg>
+          </button>
+          <button className="library-btn" aria-label={t('Settings')} onClick={() => setSettingsOpen(true)}>
             <svg viewBox="0 0 24 24" aria-hidden>
               <circle cx="12" cy="12" r="3" />
               <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
             </svg>
           </button>
-        </div>
-        {/* A note is for writing: keep the page to the note (it has its own Dictate) */}
+          <select
+            aria-label={t('Translation')}
+            value={translation}
+            onChange={e => setTranslation(e.target.value as TranslationId)}
+          >
+            {TRANSLATIONS.map(tr => (
+              <option key={tr.id} value={tr.id}>{tr.abbrev}</option>
+            ))}
+          </select>
+        </header>
+
+        <label className="hints-switch">
+          <input type="checkbox" role="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
+          <span className="slider" aria-hidden />
+          {t('Hints')}
+        </label>
+
+        <ClassicMicPanel speech={speech} hints={hints} />
+
+        {/* A note is for writing: keep the page to the note (the mic above still shows dictation) */}
         {view.kind !== 'note' && (
-          <form className="search" onSubmit={onSubmit} role="search">
-            <input
-              type="search"
-              inputMode="search"
-              enterKeyHint="search"
-              placeholder={speech.status === 'listening' ? t('Listening…') : t('Word or John 3:16')}
-              value={typed}
-              onChange={e => setTyped(e.target.value)}
-              aria-label={t('Search the Bible')}
-            />
-            <button
-              type="button"
-              className={`mic-btn ${speech.status === 'listening' ? 'on' : ''}`}
-              onClick={speech.status === 'listening' ? speech.stop : speech.start}
-              disabled={speech.status === 'unsupported'}
-              aria-label={t(speech.status === 'listening' ? 'Stop listening' : 'Speak a search')}
-              aria-pressed={speech.status === 'listening'}
-            >
+          <>
+            <form className="search" onSubmit={onSubmit}>
+              <input
+                type="search"
+                inputMode="search"
+                placeholder={t('Word or John 3:16')}
+                value={typed}
+                onChange={e => setTyped(e.target.value)}
+              />
+              <button type="button" className="goto-btn" aria-label={t('Go to a book, chapter and verse')} onClick={() => setGotoOpen(true)}>
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
+                </svg>
+              </button>
+              <button type="submit">{t('Search')}</button>
+            </form>
+            {/* Always showing, so it's clear which way searches work */}
+            <div className="search-mode" role="radiogroup" aria-label={t('Search for')}>
+              {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={searchMode === mode}
+                  className={searchMode === mode ? 'on' : ''}
+                  // If the keyboard is up, keep it up: choosing shouldn't take focus from the search box
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => setSearchMode(mode)}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        </>
+      ) : (
+        <>
+        <header className="top">
+          <div className="head">
+            <h1>
+              <span className="cross" aria-hidden>✝</span> <span className="title-text">Voice Bible</span>
+              {PREVIEW && <small className="test-badge">{t('Test version')}</small>}
+            </h1>
+            <select className="tr-chip" aria-label={t('Translation')} value={translation} onChange={e => setTranslation(e.target.value as TranslationId)}>
+              {TRANSLATIONS.map(tr => (
+                <option key={tr.id} value={tr.id}>{tr.abbrev}</option>
+              ))}
+            </select>
+            <button className="round-btn" aria-label={t('Settings')} onClick={() => setSettingsOpen(true)}>
               <svg viewBox="0 0 24 24" aria-hidden>
-                <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
               </svg>
             </button>
-          </form>
-        )}
-        <MicStatus speech={speech} hints={hints} />
-      </header>
+          </div>
+          {/* A note is for writing: keep the page to the note (it has its own Dictate) */}
+          {view.kind !== 'note' && (
+            <form className="search" onSubmit={onSubmit} role="search">
+              <input
+                type="search"
+                inputMode="search"
+                enterKeyHint="search"
+                placeholder={speech.status === 'listening' ? t('Listening…') : t('Word or John 3:16')}
+                value={typed}
+                onChange={e => setTyped(e.target.value)}
+                aria-label={t('Search the Bible')}
+              />
+              <button
+                type="button"
+                className={`mic-btn ${speech.status === 'listening' ? 'on' : ''}`}
+                onClick={speech.status === 'listening' ? speech.stop : speech.start}
+                disabled={speech.status === 'unsupported'}
+                aria-label={t(speech.status === 'listening' ? 'Stop listening' : 'Speak a search')}
+                aria-pressed={speech.status === 'listening'}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
+                </svg>
+              </button>
+            </form>
+          )}
+          <MicStatus speech={speech} hints={hints} />
+        </header>
+        </>
+      )}
 
       <main>
-        {canGoBack && (view.kind === 'list' || view.kind === 'note' || view.kind === 'chat' || (view.kind === 'chapter' && !!view.fromList)) && (
+        {canGoBack && (classic
+          ? view.kind !== 'home'
+          : view.kind === 'list' || view.kind === 'note' || view.kind === 'chat' || (view.kind === 'chapter' && !!view.fromList)) && (
           <button className="back" onClick={() => history.back()}>{t('← Back')}</button>
         )}
         {loadError && <p className="notice error">{t('{error}. Check your connection and reload.', { error: loadError })}</p>}
         {!bible && !loadError && <p className="notice">{t('Loading the {bible} Bible…', { bible: abbrev })}</p>}
 
-        {view.kind === 'home' && (
+        {view.kind === 'home' && classic && bible && hints && (
+          <div className="home">
+            <p>{t('Say a word or phrase like')} <em>{t('“faith”')}</em> {t('or')} <em>{t('“love your enemies”')}</em> {t('to find every verse that contains it.')}</p>
+            <p>{t('Say a reference like')} <em>{t('“John 3:16”')}</em> {t('or')} <em>{t('“Psalm 23”')}</em> {t('to open it.')}</p>
+          </div>
+        )}
+        {view.kind === 'home' && !classic && (
           <section className="search-home">
             <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />
             {hints && <p className="hint">{t('Say a word, a phrase or a verse like “John 3:16”. Tap the mic, or type above.')}</p>}
@@ -513,7 +644,7 @@ export default function App() {
           </section>
         )}
 
-        {view.kind === 'search' && !view.strongs && <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />}
+        {view.kind === 'search' && !view.strongs && !classic && <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />}
         {view.kind === 'search' && (
           <SearchResults
             onShare={shareSelected}
@@ -738,14 +869,15 @@ export default function App() {
         )}
       </main>
 
-      <nav className="tabbar" aria-label={t('Sections')}>
+      {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
+      {!classic && <nav className="tabbar" aria-label={t('Sections')}>
         {TABS.map(tb => (
           <button key={tb.id} className={tabOf(view) === tb.id ? 'on' : ''} aria-current={tabOf(view) === tb.id ? 'page' : undefined} onClick={() => goTab(tb.id)}>
             <svg viewBox="0 0 24 24" aria-hidden>{TAB_ICONS[tb.id]}</svg>
             <span>{tb.es && uiLanguage() === 'es' ? tb.es : t(tb.name)}</span>
           </button>
         ))}
-      </nav>
+      </nav>}
 
       {settingsOpen && (
         <div className="sheet-backdrop" onClick={() => setSettingsOpen(false)}>
@@ -775,6 +907,10 @@ export default function App() {
             <label className="set-row">
               <span>{t('Hints')}<small className="set-sub">{t('Short instructions on each screen')}</small></span>
               <input type="checkbox" role="switch" className="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
+            </label>
+            <label className="set-row">
+              <span>{t('Classic layout')}<small className="set-sub">{t('The look before version 2: no tabs, the big mic, and the bookmark menu')}</small></span>
+              <input type="checkbox" role="switch" className="switch" checked={classic} onChange={e => setClassic(e.target.checked)} />
             </label>
             <button className="set-row" onClick={shareApp}>
               <span>{t('Share Voice Bible')}</span>
@@ -1002,6 +1138,7 @@ export default function App() {
         </button>
       )}
     </div>
+    </ClassicContext.Provider>
   );
 }
 
@@ -1020,6 +1157,39 @@ function useNewVersion() {
     return () => document.removeEventListener('visibilitychange', check);
   }, []);
   return latest;
+}
+
+/** Classic layout: the big mic. Without hints, only what it hears and problems (blocked, unsupported) show beneath it. */
+function ClassicMicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
+  const { status, interim, start, stop } = speech;
+  const listening = status === 'listening';
+  const message = {
+    listening: TAP_TO_TALK ? t('Listening… say a word or verse') : t('Listening… just speak'),
+    idle: TAP_TO_TALK ? t('Tap the mic, then speak') : t('Tap the mic to start listening'),
+    blocked: TAP_TO_TALK
+      ? t('Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.')
+      : t('Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.'),
+    unsupported: t('Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.'),
+  }[status];
+
+  return (
+    <section className="mic">
+      <button
+        className={`mic-button ${listening ? 'on' : ''}`}
+        onClick={listening ? stop : start}
+        disabled={status === 'unsupported'}
+        aria-label={t(listening ? 'Stop listening' : 'Start listening')}
+        aria-pressed={listening}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden>
+          <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
+        </svg>
+      </button>
+      <p className="mic-status" aria-live="polite">
+        {interim ? `“${interim}”` : hints || status === 'blocked' || status === 'unsupported' ? message : ''}
+      </p>
+    </section>
+  );
 }
 
 /** Under the search bar: what the mic is hearing, and problems. "Listening…" is a hint, so it hides with them. */
@@ -1239,6 +1409,7 @@ function SearchResults({
 }) {
   const pattern = useMemo(() => (query ? highlightPattern(query) : null), [query]);
   const loosePattern = useMemo(() => (query ? wordsPattern(query) : null), [query]);
+  const classic = useContext(ClassicContext);
   const count = hits.length;
   const picked = hits.filter(h => selected.has(hitKey(h)));
   const queue = picked.length ? picked : hits;
@@ -1263,48 +1434,84 @@ function SearchResults({
               {hit.loose && !hits[i - 1]?.loose && (
                 <li className="loose-divider">{t(i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words')}</li>
               )}
-              <li
-                ref={isCurrent ? currentEl : undefined}
-                className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
-                // Tapping a verse opens its chapter; while choosing verses, it chooses instead
-                onClick={() => (picked.length ? onToggle(key) : onOpen(hit))}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (picked.length) onToggle(key);
-                    else onOpen(hit);
-                  }
-                }}
-              >
-                <button
-                  className="tick"
-                  aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
-                  aria-pressed={isSelected}
-                  onClick={e => {
-                    e.stopPropagation(); // choosing, not opening
-                    onToggle(key);
+              {classic ? (
+                <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
+                  <button className="verse-body" onClick={() => onOpen(hit)}>
+                    <span className="ref">{bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
+                    <span className="text">
+                      {isCurrent && reader.word ? (
+                        <ReadingText text={hit.text} word={reader.word} />
+                      ) : strongs && tagsFor?.(hit) ? (
+                        <TaggedText text={hit.text} tags={tagsFor(hit)!} mark={strongs} />
+                      ) : (
+                        <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
+                      )}
+                    </span>
+                  </button>
+                  {reader.supported && (
+                    <div className="verse-actions">
+                      <button
+                        className="icon-btn"
+                        aria-label={isCurrent ? t('Stop') : t('Play {ref}', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
+                        onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
+                      >
+                        {isCurrent ? '■' : '▶'}
+                      </button>
+                      <button
+                        className={`select-btn ${isSelected ? 'on' : ''}`}
+                        aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
+                        aria-pressed={isSelected}
+                        onClick={() => onToggle(key)}
+                      >
+                        {isSelected ? '✓' : ''}
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ) : (
+                <li
+                  ref={isCurrent ? currentEl : undefined}
+                  className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
+                  // Tapping a verse opens its chapter; while choosing verses, it chooses instead
+                  onClick={() => (picked.length ? onToggle(key) : onOpen(hit))}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (picked.length) onToggle(key);
+                      else onOpen(hit);
+                    }
                   }}
                 >
-                  {isSelected ? '✓' : ''}
-                </button>
-                <div className="verse-body">
-                  <span className="ref">
-                    {bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev} ›</small>
-                  </span>
-                  <span className="text">
-                    {isCurrent && reader.word ? (
-                      <ReadingText text={hit.text} word={reader.word} />
-                    ) : strongs && tagsFor?.(hit) ? (
-                      <TaggedText text={hit.text} tags={tagsFor(hit)!} mark={strongs} />
-                    ) : (
-                      <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
-                    )}
-                  </span>
-                </div>
-              </li>
+                  <button
+                    className="tick"
+                    aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
+                    aria-pressed={isSelected}
+                    onClick={e => {
+                      e.stopPropagation(); // choosing, not opening
+                      onToggle(key);
+                    }}
+                  >
+                    {isSelected ? '✓' : ''}
+                  </button>
+                  <div className="verse-body">
+                    <span className="ref">
+                      {bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev} ›</small>
+                    </span>
+                    <span className="text">
+                      {isCurrent && reader.word ? (
+                        <ReadingText text={hit.text} word={reader.word} />
+                      ) : strongs && tagsFor?.(hit) ? (
+                        <TaggedText text={hit.text} tags={tagsFor(hit)!} mark={strongs} />
+                      ) : (
+                        <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
+                      )}
+                    </span>
+                  </div>
+                </li>
+              )}
             </Fragment>
           );
         })}
@@ -1368,6 +1575,7 @@ function Chapter({
   // Opened from a list: add the chosen verses beside the verse opened (verses already in the list are marked)
   aroundList?: { name: string; label: string; inList: Set<number>; onAdd: (picked: VerseHit[]) => void };
 }) {
+  const classic = useContext(ClassicContext);
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
   const chapters = useMemo(() => bible.flatMap((chs, b) => chs.map((_, c) => ({ book: b, chapter: c + 1 }))), [bible]);
@@ -1456,14 +1664,22 @@ function Chapter({
       className={`swipe-area ${reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}`}
     >
       <div key={shownAt} className={slide}>
-        <div className="book-head">
-          <div className="book-name">{bookName(chapters[shownAt].book)}</div>
-          <div className="book-num">{chapters[shownAt].chapter}</div>
-          {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}
-          <button className="goto-chip" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
-            {abbrev} · {t('Go to ▾')}
-          </button>
-        </div>
+        {classic ? (
+          <h2 className="result-title">
+            <button className="title-pick" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
+              {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
+            </button>
+          </h2>
+        ) : (
+          <div className="book-head">
+            <div className="book-name">{bookName(chapters[shownAt].book)}</div>
+            <div className="book-num">{chapters[shownAt].chapter}</div>
+            {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}
+            <button className="goto-chip" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
+              {abbrev} · {t('Go to ▾')}
+            </button>
+          </div>
+        )}
         {hints && <p className="chapter-hint">
           {aroundList && onMain
             ? t('Tap verses around {ref} to add them to “{list}”. ', { ref: aroundList.label, list: aroundList.name })
@@ -2223,6 +2439,7 @@ function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; fu
 /** Repeat and speed on every play bar; ⋯ holds reading the reference first, and the voice. */
 function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
   const [more, setMore] = useState(false);
+  const classic = useContext(ClassicContext);
   return (
     <>
       <button
@@ -2242,7 +2459,19 @@ function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
       >
         {reader.speed}×
       </button>
-      <button className="speed" aria-label={t('More playback options')} onClick={() => setMore(true)}>⋯</button>
+      {classic ? (
+        <button
+          className={`repeat ${reader.sayRefs ? 'on' : ''}`}
+          aria-pressed={reader.sayRefs}
+          aria-label={t('Read chapter and verse before each verse')}
+          title={t(reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only')}
+          onClick={() => reader.setSayRefs(!reader.sayRefs)}
+        >
+          {t('Refs')}
+        </button>
+      ) : (
+        <button className="speed" aria-label={t('More playback options')} onClick={() => setMore(true)}>⋯</button>
+      )}
       {/* The play bar is see-through (backdrop-filter), which would trap a fixed sheet inside it */}
       {more && createPortal(
         <div className="sheet-backdrop" onClick={() => setMore(false)}>
