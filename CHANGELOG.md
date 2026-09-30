@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.44.0 — 2026-09-29
+- Five neon themes in the palette: Neon Pink, Neon Green, Electric Blue, Neon Orange and Synthwave (hot pink and cyan). Near-black backgrounds with a glowing line along the top, glowing titles, icons and verse numbers, a glowing ring for the mic, and glowing Play and Search buttons.
+
 ## v1.43.0 — 2026-09-29
 - Send verses to a note: tick verses in a Verse List, in search results or on a chapter page, then tap "To note…" and pick a note or "+ New note". They're added to the end of the note, written out with references, the same as Insert does from inside a note. A new note is named after the list, the search or the chapter. The message that follows opens the note.
 - "Lists" is now called "Verse Lists" (the bookmark sheet's tab and section, and Insert in a note).

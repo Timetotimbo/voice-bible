@@ -46,6 +46,33 @@
   --purple: #1e88e5; --purple-bright: #fdd835; --purple-deep: #3949ab; --mark: rgba(251, 140, 0, 0.35);
   --bar: rgba(11, 10, 18, 0.92);
 }
+/* Neon: near-black with one glowing colour (--glow; Synthwave adds a second, --glow-2). Glow touches are further down. */
+[data-theme='neon-pink'] {
+  --bg: #0a0410; --surface: #140a1c; --surface-2: #1d0f28; --border: #3a1a4a; --text: #fbe9ff; --muted: #b98fc6;
+  --purple: #ff2bd6; --purple-bright: #ff6be4; --purple-deep: #a3108a; --mark: rgba(255, 43, 214, 0.35);
+  --bar: rgba(10, 4, 16, 0.92);
+}
+[data-theme='neon-green'] {
+  --bg: #040a05; --surface: #0a140c; --surface-2: #0f1e12; --border: #1d3d22; --text: #e6ffe9; --muted: #8fbf96;
+  --purple: #39ff14; --purple-bright: #7dff5c; --purple-deep: #1f8f0b; --mark: rgba(57, 255, 20, 0.3);
+  --bar: rgba(4, 10, 5, 0.92);
+}
+[data-theme='neon-blue'] {
+  --bg: #030a10; --surface: #08141d; --surface-2: #0c1d2a; --border: #163a4f; --text: #e4fbff; --muted: #8db8c6;
+  --purple: #00e5ff; --purple-bright: #6ef2ff; --purple-deep: #007a99; --mark: rgba(0, 229, 255, 0.3);
+  --bar: rgba(3, 10, 16, 0.92);
+}
+[data-theme='neon-orange'] {
+  --bg: #0f0703; --surface: #1a0d06; --surface-2: #26130a; --border: #4a2512; --text: #fff0e6; --muted: #c79d85;
+  --purple: #ff7a18; --purple-bright: #ffa45c; --purple-deep: #b34700; --mark: rgba(255, 122, 24, 0.33);
+  --bar: rgba(15, 7, 3, 0.92);
+}
+[data-theme='neon-synth'] {
+  --bg: #0d0520; --surface: #170a33; --surface-2: #221045; --border: #3d1f6e; --text: #f7eaff; --muted: #b09ad0;
+  --purple: #ff2bd6; --purple-bright: #00e5ff; --purple-deep: #9c1ab8; --mark: rgba(0, 229, 255, 0.3);
+  --bar: rgba(13, 5, 32, 0.92); --glow-2: #00e5ff;
+}
+[data-theme^='neon'] { --glow: var(--purple); }
 [data-theme='parchment'] {
   --bg: #f4ecdd; --surface: #fffaf0; --surface-2: #ece0c9; --border: #d8c7a6; --text: #2b2118; --muted: #756451;
   --purple: #a0703a; --purple-bright: #7a4a1c; --purple-deep: #8a5a2b; --mark: rgba(214, 160, 60, 0.38);
@@ -513,6 +540,46 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 [data-theme='rainbow'] .chapter li:nth-child(7n) sup, [data-theme='rainbow'] .verse-card:nth-child(7n) { --c: var(--v); }
 [data-theme='rainbow'] .chapter sup { color: var(--c); }
 [data-theme='rainbow'] .verse-card { border-left: 4px solid var(--c); }
+
+/* Neon theme touches: a glowing line along the top, glowing titles, icons, buttons and mic */
+[data-theme^='neon'] .app::before {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50;
+  background: linear-gradient(90deg, var(--glow), var(--glow-2, var(--glow))); box-shadow: 0 0 10px var(--glow), 0 0 22px var(--glow-2, var(--glow));
+}
+[data-theme^='neon'] .top h1,
+[data-theme^='neon'] .result-title,
+[data-theme^='neon'] .sheet-head h2 {
+  color: var(--purple-bright); text-shadow: 0 0 6px color-mix(in srgb, var(--purple-bright) 70%, transparent), 0 0 18px var(--glow);
+}
+[data-theme^='neon'] .result-title small { text-shadow: none; }
+[data-theme^='neon'] .cross { color: var(--purple-bright); }
+[data-theme^='neon'] .library-btn svg, [data-theme^='neon'] .listen-icon { filter: drop-shadow(0 0 4px var(--glow)); }
+[data-theme^='neon'] .mic-button {
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--purple-deep) 70%, black), #000 75%);
+  border: 2px solid var(--glow); box-shadow: 0 0 12px var(--glow), inset 0 0 16px color-mix(in srgb, var(--glow) 60%, transparent);
+}
+[data-theme^='neon'] .mic-button svg { fill: var(--purple-bright); filter: drop-shadow(0 0 6px var(--glow)); }
+[data-theme^='neon'] .player-main,
+[data-theme^='neon'] .search button[type='submit'],
+[data-theme^='neon'] .goto-open {
+  background: color-mix(in srgb, var(--purple-deep) 35%, var(--bg)) !important; border: 1px solid var(--glow) !important;
+  color: #fff; box-shadow: 0 0 8px color-mix(in srgb, var(--glow) 70%, transparent), inset 0 0 8px color-mix(in srgb, var(--glow) 35%, transparent);
+  text-shadow: 0 0 6px var(--glow);
+}
+/* Switched-on buttons: the deep colour (white text is hard to read on the bright neon), glowing */
+[data-theme^='neon'] .repeat.on, [data-theme^='neon'] .select-btn.on, [data-theme^='neon'] .listen.on, [data-theme^='neon'] .note-tools .dictate.on {
+  background: var(--purple-deep) !important; border-color: var(--glow) !important; box-shadow: 0 0 10px var(--glow);
+}
+[data-theme^='neon'] .verse-card.reading { box-shadow: 0 0 0 1px var(--glow), 0 0 18px color-mix(in srgb, var(--glow) 55%, transparent); }
+[data-theme^='neon'] mark.word-now { box-shadow: 0 0 8px var(--glow); }
+[data-theme^='neon'] .chapter sup { color: var(--purple-bright); text-shadow: 0 0 6px var(--glow); }
+/* Synthwave: pink to cyan */
+[data-theme='neon-synth'] .top h1, [data-theme='neon-synth'] .result-title, [data-theme='neon-synth'] .sheet-head h2 {
+  background: linear-gradient(90deg, var(--glow), var(--glow-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--glow) 70%, transparent));
+}
+[data-theme='neon-synth'] .result-title small { -webkit-text-fill-color: var(--muted); }
+[data-theme='neon-synth'] .mic-button { border-color: var(--glow-2); box-shadow: 0 0 12px var(--glow), 0 0 24px var(--glow-2), inset 0 0 16px color-mix(in srgb, var(--glow) 60%, transparent); }
 
 /* Narrow phones: slimmer control buttons so the main Play button keeps its words */
 @media (max-width: 420px) {
