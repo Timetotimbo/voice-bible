@@ -12,6 +12,7 @@ export const THEMES = [
   { id: 'parchment', name: 'Parchment', swatch: ['#f4ecdd', '#8a5a2b'] },
   { id: 'light', name: 'Light', swatch: ['#f6f6fa', '#6d3fe0'] },
   // Neon themes, shown together under their own heading
+  { id: 'neon-book', name: 'Neon Book', swatch: ['#09050f', '#ff3fd8'], neon: true },
   { id: 'neon-pink', name: 'Neon Pink', swatch: ['#0a0410', '#ff2bd6'], neon: true },
   { id: 'neon-purple', name: 'Neon Purple', swatch: ['#08030f', '#b026ff'], neon: true },
   { id: 'neon-royal', name: 'Neon Blue', swatch: ['#03050f', '#1f51ff'], neon: true },
@@ -28,9 +29,9 @@ const lightQuery = typeof matchMedia === 'undefined' ? null : matchMedia('(prefe
 export function savedTheme(): ThemeId {
   try {
     const id = localStorage.getItem('theme');
-    return THEMES.some(t => t.id === id) ? (id as ThemeId) : 'purple';
+    return THEMES.some(t => t.id === id) ? (id as ThemeId) : 'neon-book';
   } catch {
-    return 'purple';
+    return 'neon-book';
   }
 }
 

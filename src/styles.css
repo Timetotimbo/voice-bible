@@ -82,6 +82,12 @@
   --purple: #ff2bd6; --purple-bright: #00e5ff; --purple-deep: #9c1ab8; --mark: rgba(0, 229, 255, 0.3);
   --bar: rgba(13, 5, 32, 0.92); --glow-2: #00e5ff;
 }
+/* Neon Book (the redesign's look): magenta and cyan glowing on violet-black */
+[data-theme='neon-book'] {
+  --bg: #09050f; --surface: #130b1f; --surface-2: #1c1130; --border: #2d1d48; --text: #f2eaff; --muted: #b3a3cf;
+  --purple: #ff3fd8; --purple-bright: #ff7ae6; --purple-deep: #b0189a; --mark: rgba(255, 63, 216, 0.24);
+  --bar: rgba(9, 5, 15, 0.94); --glow-2: #22e3ff;
+}
 [data-theme^='neon'] { --glow: var(--purple); }
 [data-theme='parchment'] {
   --bg: #f4ecdd; --surface: #fffaf0; --surface-2: #ece0c9; --border: #d8c7a6; --text: #2b2118; --muted: #756451;
@@ -658,3 +664,102 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .hints-switch input:checked + .slider::after { transform: translateX(16px); background: var(--on-accent); }
 .hints-switch input:focus-visible + .slider { outline: 2px solid var(--purple); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .hints-switch .slider, .hints-switch .slider::after { transition: none; } }
+
+/* ===== The redesign (v2): title row, search bar with the mic, open-book chapters, bottom tabs ===== */
+:root { --read: 'Spectral', Georgia, 'Times New Roman', serif; --tabbar-h: 62px; }
+[data-theme^='neon'] body { font-family: 'Exo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.app { padding-bottom: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + 24px); }
+
+/* Title row */
+.top { display: block; margin-bottom: 16px; }
+.top .head { display: flex; align-items: center; gap: 8px; }
+.top h1 { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.test-badge { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright));
+  border: 1px solid currentColor; border-radius: 999px; padding: 1px 7px; -webkit-text-fill-color: currentColor; flex: none; }
+.top .tr-chip { border-radius: 999px; flex: none; }
+.round-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: none; color: var(--muted); display: grid; place-items: center; flex: none; }
+.round-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+[data-theme='neon-book'] .top h1 { text-shadow: none; }
+[data-theme='neon-book'] .top .title-text {
+  background: linear-gradient(90deg, var(--purple), var(--glow-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--purple) 35%, transparent));
+}
+
+/* The search bar, with the mic inside it */
+.search { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 5px 5px 5px 14px;
+  background: var(--surface); border: 1px solid var(--purple); border-radius: 16px; box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 22%, transparent); }
+.search:focus-within { box-shadow: 0 0 0 2px var(--purple), 0 0 18px color-mix(in srgb, var(--purple) 35%, transparent); }
+.search input { flex: 1; min-width: 0; background: none; border: 0; border-radius: 0; padding: 9px 0; }
+.search input:focus { outline: none; }
+.search .mic-btn { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; display: grid; place-items: center; flex: none;
+  background: linear-gradient(135deg, var(--purple), var(--purple-deep)); color: var(--on-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 45%, transparent); }
+.search .mic-btn svg { width: 22px; height: 22px; fill: currentColor; }
+.search .mic-btn.on { animation: pulse 1.8s ease-out infinite; }
+.search .mic-btn:disabled { opacity: 0.35; }
+.top .mic-status { margin: 8px 2px 0; text-align: left; font-size: 0.86rem; min-height: 0; }
+@media (prefers-reduced-motion: reduce) { .search .mic-btn.on { animation: none; } }
+
+/* The Search tab */
+.search-mode { margin: 0 0 14px; }
+.search-home .hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 8px; }
+.recent { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.recent button { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-size: 0.92rem; }
+
+/* Search results and list verses: tap a card to choose it; its reference opens the chapter */
+.verse-card { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 12px 12px 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.verse-card .tick { width: 20px; height: 20px; margin-top: 3px; border-radius: 50%; border: 1.5px solid var(--border); display: grid; place-items: center; font-size: 0.7rem; color: var(--on-accent); }
+.verse-card.selected .tick { background: var(--purple); border-color: var(--purple); }
+.verse-card .verse-body { padding: 0; }
+.ref-open { background: none; border: 0; padding: 2px 0; text-align: left; cursor: pointer; }
+.verse-card .text { font-family: var(--read); font-size: 1.08rem; line-height: 1.6; }
+[data-theme^='neon'] .verse-card.selected { border-color: var(--glow-2, var(--purple)); box-shadow: 0 0 10px color-mix(in srgb, var(--glow-2, var(--purple)) 30%, transparent); }
+
+/* The Read tab: a chapter set like an open book */
+.book-head { text-align: center; margin: 4px 0 14px; }
+.book-name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright)); }
+.book-num { font-family: var(--read); font-size: 3.2rem; line-height: 1.05; font-weight: 600; text-shadow: 0 0 18px color-mix(in srgb, var(--purple) 40%, transparent); }
+.book-sub { font-family: var(--read); font-style: italic; color: var(--muted); }
+.goto-chip { margin-top: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: none; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+.chapter-hint { margin: 0 0 12px; text-align: center; }
+.chapter { font-family: var(--read); font-size: 1.16rem; line-height: 1.85; }
+.chapter li { display: inline; padding: 2px 3px; margin-right: 0.2em; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.chapter sup { font-family: system-ui, sans-serif; font-size: 0.62rem; font-weight: 800; margin-right: 3px; }
+.chapter li.selected { box-shadow: none; background: color-mix(in srgb, var(--glow-2, var(--purple)) 14%, transparent);
+  text-decoration: underline; text-decoration-color: var(--glow-2, var(--purple-bright)); text-underline-offset: 5px; text-decoration-thickness: 2px; }
+.chapter li.reading, .chapter li.reading.selected { background: color-mix(in srgb, var(--purple) 26%, transparent); color: inherit; box-shadow: none; }
+.chapter li.in-list { border-left: 0; padding-left: 3px; text-decoration: underline dotted var(--purple); text-underline-offset: 5px; }
+
+/* The Verse Lists, Notes and Chat tabs */
+.page-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.page-head h2 { flex: 1; margin: 0; font-size: 1.2rem; font-weight: 800; }
+.text-btn { background: none; border: 0; padding: 6px 4px; color: var(--purple-bright); font-weight: 700; }
+.new-row { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 13px 2px; color: var(--purple-bright); font-weight: 700; }
+.new-row.quiet { color: var(--muted); font-weight: 600; }
+.tab-page .new-list { margin: 10px 0; }
+.note-row { display: grid; gap: 1px; }
+.note-row small { color: var(--muted); font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Play bar, reading-aloud bar and chat box sit just above the tabs */
+.player, .composer { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: 12px; z-index: 12; }
+.toast.update { bottom: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + 150px); }
+
+/* The tabs */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 14; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-height: var(--tabbar-h); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
+.tabbar button { display: grid; justify-items: center; align-content: center; gap: 2px; background: none; border: 0; padding: 4px 0; color: var(--muted); font-size: 0.7rem; font-weight: 700; white-space: nowrap; min-width: 0; }
+.tabbar button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tabbar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar button.on { color: var(--text); }
+.tabbar button.on svg { color: var(--purple-bright); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--purple) 60%, transparent)); }
+
+/* Settings rows and switches */
+.set-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border);
+  padding: 14px 2px; color: inherit; font-weight: 600; cursor: pointer; }
+.set-row > span { flex: 1; min-width: 0; }
+.set-row > small { color: var(--muted); font-weight: 500; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-sub { display: block; color: var(--muted); font-weight: 400; font-size: 0.82rem; }
+input.switch { appearance: none; -webkit-appearance: none; width: 44px; height: 26px; margin: 0; border-radius: 999px; border: 1px solid var(--border); flex: none; cursor: pointer;
+  background: radial-gradient(circle, var(--muted) 8px, transparent 9px) no-repeat 3px center / 20px 20px, var(--surface-2); transition: background-position 0.2s; }
+input.switch:checked { border-color: var(--purple); background: radial-gradient(circle, var(--on-accent) 8px, transparent 9px) no-repeat 20px center / 20px 20px, var(--purple-deep); }
+input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { input.switch { transition: none; } }

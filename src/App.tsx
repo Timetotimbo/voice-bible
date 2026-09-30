@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { bookName, bookNames, setBookLanguage } from './bible/books';
 import {
@@ -32,7 +33,47 @@ type View =
   // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
   | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
   | { kind: 'chat'; id: string }
-  | { kind: 'note'; id: string };
+  | { kind: 'note'; id: string }
+  // The Verse Lists, Notes and Chat tabs' own pages
+  | { kind: 'lists' }
+  | { kind: 'notes' }
+  | { kind: 'chats' };
+
+/** The tabs along the bottom, and which one each screen belongs to. */
+type Tab = 'read' | 'search' | 'lists' | 'notes' | 'chat';
+const tabOf = (v: View): Tab =>
+  v.kind === 'chapter' ? 'read'
+  : v.kind === 'search' || v.kind === 'home' ? 'search'
+  : v.kind === 'list' || v.kind === 'lists' ? 'lists'
+  : v.kind === 'note' || v.kind === 'notes' ? 'notes'
+  : 'chat';
+const TAB_ICONS: Record<Tab, ReactNode> = {
+  read: <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0v13" />,
+  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
+  lists: <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />,
+  notes: <><path d="M5 4h10l4 4v12H5Z" /><path d="M15 4v4h4M8 12h8M8 16h6" /></>,
+  chat: <path d="M4 5h16v11H9l-5 4Z" />,
+};
+const TABS: { id: Tab; name: string; es?: string }[] = [
+  { id: 'read', name: 'Read' },
+  { id: 'search', name: 'Search' },
+  { id: 'lists', name: 'Verse Lists', es: 'Listas' },
+  { id: 'notes', name: 'Notes' },
+  { id: 'chat', name: 'Chat' },
+];
+// This copy is the one being tried out at /preview/
+const PREVIEW = import.meta.env.BASE_URL.includes('preview');
+
+/** The chapter last read, to open the app on (Psalm 23 the first time). */
+function lastRead(): Reference {
+  try {
+    const saved = JSON.parse(localStorage.getItem('lastRead') ?? 'null');
+    if (saved && Number.isInteger(saved.book) && Number.isInteger(saved.chapter)) return { book: saved.book, chapter: saved.chapter };
+  } catch {
+    // nothing saved
+  }
+  return { book: 18, chapter: 23 };
+}
 
 const PAGE = 50;
 const FILLER = /^(search( for)?|find|look up|show( me)?|go to|read|open|busca(r)?|encuentra|abre|abrir|lee(r)?|ir a|ve a)\s+/i;
@@ -105,7 +146,9 @@ export default function App() {
   const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [view, setView] = useState<View>({ kind: 'home' });
+  // The app opens on the chapter last read, like an open book
+  const [view, setView] = useState<View>(() => ({ kind: 'chapter', ref: lastRead() }));
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
   const [typed, setTyped] = useState('');
   const pending = useRef<string | null>(null);
@@ -210,6 +253,15 @@ export default function App() {
     if (result === 'copied') setToast(n('Copied the verse to paste into a text or email', 'Copied {n} verses to paste into a text or email', verses.length));
     if (result === 'failed') setToast(t('Couldn’t share from this browser'));
   };
+  /** Sends a list's link by the phone's share menu, or copies it. */
+  const shareList = (list: VerseList) => {
+    const url = listLink(list.name, list.verses);
+    if (navigator.share) {
+      navigator.share({ title: list.name, text: t('“{list}”: {n} verses from Voice Bible', { list: list.name, n: list.verses.length }), url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url).then(() => setToast(t('Link copied')), () => prompt(t('Copy this link'), url));
+    }
+  };
   const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
   /** Sends the app's link to someone (the phone's share menu), or copies it where there's no share menu. */
@@ -220,6 +272,14 @@ export default function App() {
   };
 
   const shownChapter = useRef<{ book: number; chapter: number } | null>(null); // where the chapter page is, for the picker to start at
+  const onChapterShown = (place: { book: number; chapter: number }) => {
+    shownChapter.current = place;
+    try {
+      localStorage.setItem('lastRead', JSON.stringify(place));
+    } catch {
+      // storage unavailable; opens on Psalm 23 next time
+    }
+  };
   // Screens to go back to, newest last. Each also sits in the browser history, so the phone's own
   // back gesture steps back through them instead of leaving the app.
   const viewRef = useRef(view);
@@ -270,6 +330,22 @@ export default function App() {
     },
     [reader.stop],
   );
+
+  // Each tab comes back to where it was left; tapping the tab you're on goes to its first page
+  const tabViews = useRef<Partial<Record<Tab, View>>>({});
+  tabViews.current[tabOf(view)] = view;
+  const goTab = (tab: Tab) => {
+    const here = tabOf(view);
+    const root: View =
+      tab === 'read' ? { kind: 'chapter', ref: shownChapter.current ?? lastRead() }
+      : tab === 'search' ? { kind: 'home' }
+      : tab === 'lists' ? { kind: 'lists' }
+      : tab === 'notes' ? { kind: 'notes' }
+      : { kind: 'chats' };
+    const next = here === tab || tab === 'read' ? root : tabViews.current[tab] ?? root;
+    if (here === tab && tab === 'read') return;
+    openView(next);
+  };
 
   const run = useCallback(
     (raw: string) => {
@@ -363,112 +439,81 @@ export default function App() {
   return (
     <div className="app">
       <header className="top">
-        <h1>
-          <span className="cross" aria-hidden>✝</span> Voice Bible
-        </h1>
-        <button
-          className="library-btn"
-          aria-label={t('Reading voice')}
-          onClick={() => {
-            // Pause the mic so voice samples aren't heard as searches
-            if (speech.status === 'listening') {
-              micWasOn.current = !TAP_TO_TALK;
-              speech.stop();
-            }
-            setVoiceOpen(true);
-          }}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M4 9h4l5-4v14l-5-4H4Z" />
-            <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
-          </svg>
-        </button>
-        <button className="library-btn" aria-label={t('Colours')} onClick={() => setThemeOpen(true)}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.7-9-7.7Z" />
-            <circle cx="7.5" cy="11.5" r="1.2" /><circle cx="10" cy="7.5" r="1.2" /><circle cx="14.5" cy="7.5" r="1.2" />
-          </svg>
-        </button>
-        <button className="library-btn" aria-label={t('History and saved lists')} onClick={() => setSheet('browse')}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
-          </svg>
-        </button>
-        <button className="library-btn" aria-label={t('Share Voice Bible')} onClick={shareApp}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
-            <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
-          </svg>
-        </button>
-        <select
-          aria-label={t('Translation')}
-          value={translation}
-          onChange={e => setTranslation(e.target.value as TranslationId)}
-        >
-          {TRANSLATIONS.map(t => (
-            <option key={t.id} value={t.id}>{t.abbrev}</option>
-          ))}
-        </select>
-      </header>
-
-      <label className="hints-switch">
-        <input type="checkbox" role="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
-        <span className="slider" aria-hidden />
-        {t('Hints')}
-      </label>
-
-      <MicPanel speech={speech} hints={hints} />
-
-      {/* A note is for writing: keep the page to the note (the mic above still shows dictation) */}
-      {view.kind !== 'note' && (
-        <>
-          <form className="search" onSubmit={onSubmit}>
+        <div className="head">
+          <h1>
+            <span className="cross" aria-hidden>✝</span> <span className="title-text">Voice Bible</span>
+            {PREVIEW && <small className="test-badge">{t('Test version')}</small>}
+          </h1>
+          <select className="tr-chip" aria-label={t('Translation')} value={translation} onChange={e => setTranslation(e.target.value as TranslationId)}>
+            {TRANSLATIONS.map(tr => (
+              <option key={tr.id} value={tr.id}>{tr.abbrev}</option>
+            ))}
+          </select>
+          <button className="round-btn" aria-label={t('Settings')} onClick={() => setSettingsOpen(true)}>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
+            </svg>
+          </button>
+        </div>
+        {/* A note is for writing: keep the page to the note (it has its own Dictate) */}
+        {view.kind !== 'note' && (
+          <form className="search" onSubmit={onSubmit} role="search">
             <input
               type="search"
               inputMode="search"
-              placeholder={t('Word or John 3:16')}
+              enterKeyHint="search"
+              placeholder={speech.status === 'listening' ? t('Listening…') : t('Word or John 3:16')}
               value={typed}
               onChange={e => setTyped(e.target.value)}
+              aria-label={t('Search the Bible')}
             />
-            <button type="button" className="goto-btn" aria-label={t('Go to a book, chapter and verse')} onClick={() => setGotoOpen(true)}>
+            <button
+              type="button"
+              className={`mic-btn ${speech.status === 'listening' ? 'on' : ''}`}
+              onClick={speech.status === 'listening' ? speech.stop : speech.start}
+              disabled={speech.status === 'unsupported'}
+              aria-label={t(speech.status === 'listening' ? 'Stop listening' : 'Speak a search')}
+              aria-pressed={speech.status === 'listening'}
+            >
               <svg viewBox="0 0 24 24" aria-hidden>
-                <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0V19.5" />
+                <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
               </svg>
             </button>
-            <button type="submit">{t('Search')}</button>
           </form>
-          {/* Always showing, so it's clear which way searches work */}
-          <div className="search-mode" role="radiogroup" aria-label={t('Search for')}>
-            {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([mode, label]) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={searchMode === mode}
-                className={searchMode === mode ? 'on' : ''}
-                // If the keyboard is up, keep it up: choosing shouldn't take focus from the search box
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => setSearchMode(mode)}
-              >
-                {t(label)}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+        )}
+        <MicStatus speech={speech} hints={hints} />
+      </header>
 
       <main>
-        {canGoBack && view.kind !== 'home' && <button className="back" onClick={() => history.back()}>{t('← Back')}</button>}
+        {canGoBack && (view.kind === 'list' || view.kind === 'note' || view.kind === 'chat' || (view.kind === 'chapter' && !!view.fromList)) && (
+          <button className="back" onClick={() => history.back()}>{t('← Back')}</button>
+        )}
         {loadError && <p className="notice error">{t('{error}. Check your connection and reload.', { error: loadError })}</p>}
         {!bible && !loadError && <p className="notice">{t('Loading the {bible} Bible…', { bible: abbrev })}</p>}
 
-        {view.kind === 'home' && bible && hints && (
-          <div className="home">
-            <p>{t('Say a word or phrase like')} <em>{t('“faith”')}</em> {t('or')} <em>{t('“love your enemies”')}</em> {t('to find every verse that contains it.')}</p>
-            <p>{t('Say a reference like')} <em>{t('“John 3:16”')}</em> {t('or')} <em>{t('“Psalm 23”')}</em> {t('to open it.')}</p>
-          </div>
+        {view.kind === 'home' && (
+          <section className="search-home">
+            <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />
+            {hints && <p className="hint">{t('Say a word, a phrase or a verse like “John 3:16”. Tap the mic, or type above.')}</p>}
+            {library.history.length > 0 && (
+              <>
+                <h3 className="sheet-sub">{t('Recent')}</h3>
+                <div className="recent">
+                  {library.history.map(q => (
+                    <button key={q} onClick={() => {
+                      setTyped(q);
+                      run(q);
+                    }}>{q}</button>
+                  ))}
+                </div>
+                <button className="sheet-link" onClick={() => confirm(t('Clear all search history?')) && library.clearHistory()}>{t('Clear history')}</button>
+              </>
+            )}
+          </section>
         )}
 
+        {view.kind === 'search' && !view.strongs && <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />}
         {view.kind === 'search' && (
           <SearchResults
             onShare={shareSelected}
@@ -625,6 +670,33 @@ export default function App() {
           );
         })()}
 
+        {view.kind === 'lists' && (
+          <ListsPage
+            library={library}
+            onOpen={id => openView({ kind: 'list', id })}
+            onShare={shareList}
+          />
+        )}
+        {view.kind === 'notes' && (
+          <NotesPage
+            notes={notes.notes}
+            onOpen={id => openView({ kind: 'note', id })}
+            onNew={() => openView({ kind: 'note', id: notes.newNote() })}
+            onDelete={notes.deleteNote}
+            onMove={notes.moveNote}
+          />
+        )}
+        {view.kind === 'chats' && (
+          <ChatsPage
+            chats={chats.chats}
+            onOpen={id => openView({ kind: 'chat', id })}
+            onNew={() => openView({ kind: 'chat', id: chats.newChat() })}
+            onImport={() => setImporting(true)}
+            onDelete={chats.deleteChat}
+            onMove={chats.moveChat}
+          />
+        )}
+
         {view.kind === 'chapter' && bible && (
           <Chapter
             onShare={shareSelected}
@@ -658,7 +730,7 @@ export default function App() {
             onSave={picked => setSheet(picked.map(toRef))}
             onToNote={picked => setToNote({ verses: picked, title: `${bookName(view.ref.book)} ${view.ref.chapter}` })}
             onClearSelection={() => setSelected(new Set())}
-            onShown={place => (shownChapter.current = place)}
+            onShown={onChapterShown}
             onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
             onPick={() => setGotoOpen(true)}
             hints={hints}
@@ -666,7 +738,53 @@ export default function App() {
         )}
       </main>
 
-      {hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
+      <nav className="tabbar" aria-label={t('Sections')}>
+        {TABS.map(tb => (
+          <button key={tb.id} className={tabOf(view) === tb.id ? 'on' : ''} aria-current={tabOf(view) === tb.id ? 'page' : undefined} onClick={() => goTab(tb.id)}>
+            <svg viewBox="0 0 24 24" aria-hidden>{TAB_ICONS[tb.id]}</svg>
+            <span>{tb.es && uiLanguage() === 'es' ? tb.es : t(tb.name)}</span>
+          </button>
+        ))}
+      </nav>
+
+      {settingsOpen && (
+        <div className="sheet-backdrop" onClick={() => setSettingsOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Settings')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Settings')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setSettingsOpen(false)}>✕</button>
+            </div>
+            <button className="set-row" onClick={() => {
+              setSettingsOpen(false);
+              if (speech.status === 'listening') {
+                micWasOn.current = !TAP_TO_TALK;
+                speech.stop();
+              }
+              setVoiceOpen(true);
+            }}>
+              <span>{t('Reading voice')}</span>
+              <small>{reader.recordedVoice ? reader.recordedVoice.name : reader.voice ? voiceName(reader.voice) : ''} ›</small>
+            </button>
+            <button className="set-row" onClick={() => {
+              setSettingsOpen(false);
+              setThemeOpen(true);
+            }}>
+              <span>{t('Colours')}</span>
+              <small>{t(THEMES.find(th => th.id === theme)?.name ?? '')} ›</small>
+            </button>
+            <label className="set-row">
+              <span>{t('Hints')}<small className="set-sub">{t('Short instructions on each screen')}</small></span>
+              <input type="checkbox" role="switch" className="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
+            </label>
+            <button className="set-row" onClick={shareApp}>
+              <span>{t('Share Voice Bible')}</span>
+              <small>voicebible.eefavorbooks.com ›</small>
+            </button>
+            <Backup />
+            <p className="voice-help">Voice Bible v{__APP_VERSION__}{PREVIEW && ` · ${t('Test version')}`}</p>
+          </div>
+        </div>
+      )}
 
       {sheet && (
         <LibrarySheet
@@ -714,15 +832,7 @@ export default function App() {
             setSheet(null);
             setImporting(true);
           }}
-          onShare={list => {
-            const url = listLink(list.name, list.verses);
-            // The phone's share menu (text, email…) where there is one; otherwise copy the link
-            if (navigator.share) {
-              navigator.share({ title: list.name, text: t('“{list}”: {n} verses from Voice Bible', { list: list.name, n: list.verses.length }), url }).catch(() => {});
-            } else {
-              navigator.clipboard?.writeText(url).then(() => setToast(t('Link copied')), () => prompt(t('Copy this link'), url));
-            }
-          }}
+          onShare={shareList}
         />
       )}
       {incoming && (
@@ -820,15 +930,7 @@ export default function App() {
             chats.importChats(list);
             setImporting(false);
             if (list.length === 1) openView({ kind: 'chat', id: list[0].id });
-            else {
-              // Open the bookmark sheet at the ChatGPT section, to show them
-              try {
-                localStorage.setItem('libraryTab', 'chats');
-              } catch {
-                // storage unavailable; opens where it was last
-              }
-              setSheet('browse');
-            }
+            else openView({ kind: 'chats' });
             setToast(n('Imported {n} chat', 'Imported {n} chats', list.length));
           }}
         />
@@ -920,35 +1022,190 @@ function useNewVersion() {
   return latest;
 }
 
-/** The big mic. Without hints, only what it hears and problems (blocked, unsupported) show beneath it. */
-function MicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
-  const { status, interim, start, stop } = speech;
-  const listening = status === 'listening';
-  const message = {
-    listening: TAP_TO_TALK ? t('Listening… say a word or verse') : t('Listening… just speak'),
-    idle: TAP_TO_TALK ? t('Tap the mic, then speak') : t('Tap the mic to start listening'),
-    blocked: TAP_TO_TALK
+/** Under the search bar: what the mic is hearing, and problems. "Listening…" is a hint, so it hides with them. */
+function MicStatus({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
+  const { status, interim } = speech;
+  const message =
+    interim ? `“${interim}”`
+    : status === 'listening' && hints ? (TAP_TO_TALK ? t('Listening… say a word or verse') : t('Listening… just speak'))
+    : status === 'blocked' ? (TAP_TO_TALK
       ? t('Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.')
-      : t('Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.'),
-    unsupported: t('Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.'),
-  }[status];
+      : t('Microphone is blocked. Allow it in your browser’s site settings, then tap the mic.'))
+    : status === 'unsupported' && hints ? t('Voice search isn’t available in this browser. Use Chrome on Android or Safari on iPhone, or type below.')
+    : '';
+  return message ? <p className="mic-status" aria-live="polite">{message}</p> : null;
+}
 
+/** All words (any order) or the exact phrase. */
+function SearchModeSwitch({ mode, onChange }: { mode: SearchMode; onChange: (mode: SearchMode) => void }) {
   return (
-    <section className="mic">
-      <button
-        className={`mic-button ${listening ? 'on' : ''}`}
-        onClick={listening ? stop : start}
-        disabled={status === 'unsupported'}
-        aria-label={t(listening ? 'Stop listening' : 'Start listening')}
-        aria-pressed={listening}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden>
-          <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
-        </svg>
-      </button>
-      <p className="mic-status" aria-live="polite">
-        {interim ? `“${interim}”` : hints || status === 'blocked' || status === 'unsupported' ? message : ''}
-      </p>
+    <div className="search-mode" role="radiogroup" aria-label={t('Search for')}>
+      {([['words', 'All words'], ['exact', 'Exact phrase']] as const).map(([m, label]) => (
+        <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'on' : ''} onMouseDown={e => e.preventDefault()} onClick={() => onChange(m)}>
+          {t(label)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A tab's page title, with Edit / Done when its rows can be reordered or deleted. */
+function PageHead({ title, editing, onEdit }: { title: string; editing?: boolean; onEdit?: () => void }) {
+  return (
+    <div className="page-head">
+      <h2>{title}</h2>
+      {onEdit && <button className="text-btn" onClick={onEdit}>{t(editing ? 'Done' : 'Edit')}</button>}
+    </div>
+  );
+}
+
+/** The Verse Lists tab. Edit shows the drag handles, rename, share and delete. */
+function ListsPage({ library, onOpen, onShare }: {
+  library: ReturnType<typeof useLibrary>;
+  onOpen: (id: string) => void;
+  onShare: (list: VerseList) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const drag = useDragOrder(library.lists.map(l => l.id), library.moveList);
+  const create = (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    library.addToList([], { name: name.trim() });
+    setName('');
+    setCreating(false);
+  };
+  return (
+    <section className="tab-page">
+      <PageHead title={t('Verse Lists')} editing={editing} onEdit={library.lists.length ? () => setEditing(!editing) : undefined} />
+      {creating ? (
+        <form className="new-list" onSubmit={create}>
+          <input placeholder={t('New list name')} aria-label={t('New list name')} value={name} onChange={e => setName(e.target.value)} autoFocus />
+          <button type="submit" disabled={!name.trim()}>{t('Create')}</button>
+          <button type="button" className="new-list-cancel" aria-label={t('Cancel')} onClick={() => setCreating(false)}>✕</button>
+        </form>
+      ) : (
+        <button className="new-row" onClick={() => setCreating(true)}>{t('+ New list')}</button>
+      )}
+      {!library.lists.length && <p className="notice">{t('Tap + New, or check verses in your results and tap “Save to list”.')}</p>}
+      <ul className="sheet-list">
+        {library.lists.map((l, i) => deleting === l.id ? (
+          <li key={l.id} className="confirm-row" role="alertdialog" aria-label={t('Delete {name}?', { name: l.name })}>
+            <span>{t('Delete “{name}”?', { name: l.name })}</span>
+            <button className="danger" onClick={() => {
+              library.deleteList(l.id);
+              setDeleting(null);
+            }}>{t('Delete')}</button>
+            <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
+          </li>
+        ) : (
+          <li key={l.id} {...(editing ? drag.rowProps(l.id, i) : {})}>
+            {editing && library.lists.length > 1 && <button {...drag.handleProps(l.id, i, l.name)}>⠿</button>}
+            <button className="sheet-item" onClick={() => onOpen(l.id)}>
+              {l.name} <small>{l.verses.length}</small>
+            </button>
+            {editing ? (
+              <>
+                <button className="sheet-x" aria-label={t('Rename {name}', { name: l.name })} onClick={() => {
+                  const next = prompt(t('Rename list'), l.name)?.trim();
+                  if (next) library.renameList(l.id, next);
+                }}>✎</button>
+                <button className="sheet-x list-delete" aria-label={t('Delete {name}', { name: l.name })} onClick={() => setDeleting(l.id)}>✕</button>
+              </>
+            ) : (
+              <button className="sheet-x" aria-label={t('Share {name}', { name: l.name })} disabled={!l.verses.length} onClick={() => onShare(l)}>
+                <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
+                  <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
+                  <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
+                </svg>
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The Notes tab. */
+function NotesPage({ notes, onOpen, onNew, onDelete, onMove }: {
+  notes: Note[];
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onDelete: (id: string) => void;
+  onMove: (id: string, to: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const drag = useDragOrder(notes.map(n => n.id), onMove);
+  return (
+    <section className="tab-page">
+      <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined} />
+      <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
+      {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
+      <ul className="sheet-list">
+        {notes.map((n, i) => deleting === n.id ? (
+          <li key={n.id} className="confirm-row" role="alertdialog" aria-label={t('Delete note {name}?', { name: noteTitle(n) })}>
+            <span>{t('Delete this note?')}</span>
+            <button className="danger" onClick={() => {
+              onDelete(n.id);
+              setDeleting(null);
+            }}>{t('Delete')}</button>
+            <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
+          </li>
+        ) : (
+          <li key={n.id} {...(editing ? drag.rowProps(n.id, i) : {})}>
+            {editing && notes.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+            <button className="sheet-item note-row" onClick={() => onOpen(n.id)}>
+              <span>{noteTitle(n)}</span>
+              {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
+            </button>
+            {editing && <button className="sheet-x" aria-label={t('Delete note {name}', { name: noteTitle(n) })} onClick={() => setDeleting(n.id)}>✕</button>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The Chat tab: ChatGPT conversations. */
+function ChatsPage({ chats, onOpen, onNew, onImport, onDelete, onMove }: {
+  chats: Chat[];
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onImport: () => void;
+  onDelete: (id: string) => void;
+  onMove: (id: string, to: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const drag = useDragOrder(chats.map(c => c.id), onMove);
+  return (
+    <section className="tab-page">
+      <PageHead title="ChatGPT" editing={editing} onEdit={chats.length ? () => setEditing(!editing) : undefined} />
+      <button className="new-row" onClick={onNew}>{t('+ New chat')}</button>
+      <button className="new-row quiet" onClick={onImport}>{t('⇩ Import from ChatGPT')}</button>
+      {!chats.length && <p className="notice">{t('No chats yet.')}</p>}
+      <ul className="sheet-list">
+        {chats.map((c, i) => deleting === c.id ? (
+          <li key={c.id} className="confirm-row" role="alertdialog" aria-label={t('Delete chat {name}?', { name: c.title })}>
+            <span>{t('Delete this chat?')}</span>
+            <button className="danger" onClick={() => {
+              onDelete(c.id);
+              setDeleting(null);
+            }}>{t('Delete')}</button>
+            <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
+          </li>
+        ) : (
+          <li key={c.id} {...(editing ? drag.rowProps(c.id, i) : {})}>
+            {editing && chats.length > 1 && <button {...drag.handleProps(c.id, i, c.title)}>⠿</button>}
+            <button className="sheet-item" onClick={() => onOpen(c.id)}>{c.title}</button>
+            {editing && <button className="sheet-x" aria-label={t('Delete chat {name}', { name: c.title })} onClick={() => setDeleting(c.id)}>✕</button>}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -1006,9 +1263,32 @@ function SearchResults({
               {hit.loose && !hits[i - 1]?.loose && (
                 <li className="loose-divider">{t(i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words')}</li>
               )}
-              <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
-                <button className="verse-body" onClick={() => onOpen(hit)}>
-                  <span className="ref">{bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
+              <li
+                ref={isCurrent ? currentEl : undefined}
+                className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={() => onToggle(key)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(key);
+                  }
+                }}
+              >
+                <span className="tick" aria-hidden>{isSelected ? '✓' : ''}</span>
+                <div className="verse-body">
+                  <button
+                    className="ref ref-open"
+                    aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
+                    onClick={e => {
+                      e.stopPropagation(); // opening, not choosing
+                      onOpen(hit);
+                    }}
+                  >
+                    {bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev} ›</small>
+                  </button>
                   <span className="text">
                     {isCurrent && reader.word ? (
                       <ReadingText text={hit.text} word={reader.word} />
@@ -1018,26 +1298,7 @@ function SearchResults({
                       <Highlight text={hit.text} pattern={hit.loose ? loosePattern : pattern} />
                     )}
                   </span>
-                </button>
-                {reader.supported && (
-                  <div className="verse-actions">
-                    <button
-                      className="icon-btn"
-                      aria-label={isCurrent ? t('Stop') : t('Play {ref}', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
-                      onClick={() => (isCurrent ? reader.stop() : readAloud([hit]))}
-                    >
-                      {isCurrent ? '■' : '▶'}
-                    </button>
-                    <button
-                      className={`select-btn ${isSelected ? 'on' : ''}`}
-                      aria-label={t(isSelected ? 'Unselect verse' : 'Select verse')}
-                      aria-pressed={isSelected}
-                      onClick={() => onToggle(key)}
-                    >
-                      {isSelected ? '✓' : ''}
-                    </button>
-                  </div>
-                )}
+                </div>
               </li>
             </Fragment>
           );
@@ -1190,11 +1451,14 @@ function Chapter({
       className={`swipe-area ${reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}`}
     >
       <div key={shownAt} className={slide}>
-        <h2 className="result-title">
-          <button className="title-pick" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
-            {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
+        <div className="book-head">
+          <div className="book-name">{bookName(chapters[shownAt].book)}</div>
+          <div className="book-num">{chapters[shownAt].chapter}</div>
+          {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}
+          <button className="goto-chip" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
+            {abbrev} · {t('Go to ▾')}
           </button>
-        </h2>
+        </div>
         {hints && <p className="chapter-hint">
           {aroundList && onMain
             ? t('Tap verses around {ref} to add them to “{list}”. ', { ref: aroundList.label, list: aroundList.name })
@@ -1951,8 +2215,9 @@ function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; fu
   return <>{full ? `${bookName(c.book)} ` : ''}{c.chapter}:{c.verse}</>;
 }
 
-/** Repeat, Refs and speed buttons shared by every play bar. */
+/** Repeat and speed on every play bar; ⋯ holds reading the reference first, and the voice. */
 function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
+  const [more, setMore] = useState(false);
   return (
     <>
       <button
@@ -1965,15 +2230,6 @@ function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
         ⟳
       </button>
       <button
-        className={`repeat ${reader.sayRefs ? 'on' : ''}`}
-        aria-pressed={reader.sayRefs}
-        aria-label={t('Read chapter and verse before each verse')}
-        title={t(reader.sayRefs ? 'Reading chapter and verse' : 'Reading words only')}
-        onClick={() => reader.setSayRefs(!reader.sayRefs)}
-      >
-        {t('Refs')}
-      </button>
-      <button
         className="speed"
         aria-label={t('Reading speed {n} times. Tap to change', { n: reader.speed })}
         title={t('Reading speed')}
@@ -1981,6 +2237,23 @@ function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
       >
         {reader.speed}×
       </button>
+      <button className="speed" aria-label={t('More playback options')} onClick={() => setMore(true)}>⋯</button>
+      {/* The play bar is see-through (backdrop-filter), which would trap a fixed sheet inside it */}
+      {more && createPortal(
+        <div className="sheet-backdrop" onClick={() => setMore(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Playback')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Playback')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setMore(false)}>✕</button>
+            </div>
+            <label className="set-row">
+              <span>{t('Say the reference first')}<small className="set-sub">{t('“Psalm 23, verse 1” before each verse')}</small></span>
+              <input type="checkbox" role="switch" className="switch" checked={reader.sayRefs} onChange={e => reader.setSayRefs(e.target.checked)} />
+            </label>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

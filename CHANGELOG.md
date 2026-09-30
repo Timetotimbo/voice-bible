@@ -2,6 +2,17 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.0.0 (test version at /preview/)
+A new look, built from the Neon Book design (mockup Option E):
+- The app opens on the chapter you last read, set like an open book: the book's name, a big chapter number, and the verses running together in a reading font (Spectral). "Go to ▾" picks another place.
+- Tabs along the bottom: Read · Search · Verse Lists · Notes · Chat. Each tab comes back to where you left it; tapping the tab you're on goes to its first page.
+- The search bar, with the mic inside it, is at the top of every screen. The Search tab has All words / Exact phrase and your recent searches.
+- Tap verses to choose them, in chapters and in results. In results, tap a verse's reference to open its chapter.
+- Verse Lists, Notes and ChatGPT each have their own page. Edit shows the drag handles, rename and delete.
+- ⚙ Settings holds Reading voice, Colours, Hints, Share Voice Bible, Backup and the version.
+- The play bar has ⟳ repeat, speed, and ⋯ for "Say the reference first".
+- New Neon Book colours (magenta and cyan) are the default for new phones. All the other themes still work, and Spanish still works with the Reina-Valera.
+
 ## v1.49.1 — 2026-09-29
 - Turning Hints off also hides the "Voice Bible v…" version line at the bottom of the page.
 
