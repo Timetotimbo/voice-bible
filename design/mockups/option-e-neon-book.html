@@ -127,7 +127,7 @@
 
   /* Tabs (from Option A) */
   .tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--bg); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
-  .tabs button { display: grid; justify-items: center; gap: 2px; padding: 4px 0; font-size: 0.7rem; font-weight: 700; color: var(--faint); }
+  .tabs button { display: grid; justify-items: center; gap: 2px; padding: 4px 0; font-size: 0.7rem; font-weight: 700; color: var(--faint); white-space: nowrap; }
   .tabs .ico { width: 22px; height: 22px; }
   .tabs button.on { color: var(--text); }
   .tabs button.on .ico { color: var(--pink); filter: drop-shadow(0 0 6px var(--glow-p)); }
@@ -333,7 +333,7 @@ function renderDock() {
 }
 
 function renderTabs() {
-  const t = [['read', 'Read'], ['search', 'Search'], ['lists', 'Lists'], ['notes', 'Notes'], ['chat', 'Chat']];
+  const t = [['read', 'Read'], ['search', 'Search'], ['lists', 'Verse Lists'], ['notes', 'Notes'], ['chat', 'Chat']];
   $('#tabs').innerHTML = t.map(([id, name]) => `<button class="${S.tab === id ? 'on' : ''}" data-tab="${id}" aria-current="${S.tab === id ? 'page' : 'false'}">${ico(I[id])}${name}</button>`).join('');
 }
 function render() { document.body.classList.toggle('nohints', !S.hints); $('#mic').classList.toggle('on', S.listening); renderMain(); renderDock(); renderTabs(); }
