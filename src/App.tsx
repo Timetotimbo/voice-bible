@@ -748,8 +748,11 @@ export default function App() {
               <h2>Colours</h2>
               <button className="sheet-close" aria-label="Close" onClick={() => setThemeOpen(false)}>✕</button>
             </div>
-            <div className="themes" role="radiogroup" aria-label="Colour theme">
-              {THEMES.map(t => (
+            {[THEMES.filter(t => !('neon' in t)), THEMES.filter(t => 'neon' in t)].map((group, g) => (
+            <Fragment key={g}>
+            {g > 0 && <h3 className="sheet-sub">Neon</h3>}
+            <div className="themes" role="radiogroup" aria-label={g ? 'Neon colour theme' : 'Colour theme'}>
+              {group.map(t => (
                 <button
                   key={t.id}
                   role="radio"
@@ -774,6 +777,8 @@ export default function App() {
                 </button>
               ))}
             </div>
+            </Fragment>
+            ))}
           </div>
         </div>
       )}

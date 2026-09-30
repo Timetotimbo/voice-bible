@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.46.0 — 2026-09-29
+- Two more neon themes: Neon Purple and Neon Blue (a deep, true blue; Electric Blue is the bright cyan one).
+- The colour picker puts all seven neon themes together under a "Neon" heading, below the others.
+
 ## v1.45.1 — 2026-09-29
 - Folding sections are back: Verse Lists, Notes and ChatGPT show together again, each folds with ▾/▸, and whole sections drag into order by their ⠿ handle, as before v1.45.0.
 - The four buttons along the top stay: tap Verse Lists, Notes or ChatGPT to open that section and jump to it; History shows your searches. The row stays in view as you scroll, and the sheet opens where you left it.

@@ -9,13 +9,16 @@ export const THEMES = [
   { id: 'forest', name: 'Forest', swatch: ['#07100b', '#3fbf7f'] },
   { id: 'rose', name: 'Rose', swatch: ['#120a0c', '#e0667f'] },
   { id: 'rainbow', name: 'Rainbow', swatch: ['#0b0a12', '#fdd835'], wheel: ROYGBIV },
-  { id: 'neon-pink', name: 'Neon Pink', swatch: ['#0a0410', '#ff2bd6'] },
-  { id: 'neon-green', name: 'Neon Green', swatch: ['#040a05', '#39ff14'] },
-  { id: 'neon-blue', name: 'Electric Blue', swatch: ['#030a10', '#00e5ff'] },
-  { id: 'neon-orange', name: 'Neon Orange', swatch: ['#0f0703', '#ff7a18'] },
-  { id: 'neon-synth', name: 'Synthwave', swatch: ['#ff2bd6', '#00e5ff'] },
   { id: 'parchment', name: 'Parchment', swatch: ['#f4ecdd', '#8a5a2b'] },
   { id: 'light', name: 'Light', swatch: ['#f6f6fa', '#6d3fe0'] },
+  // Neon themes, shown together under their own heading
+  { id: 'neon-pink', name: 'Neon Pink', swatch: ['#0a0410', '#ff2bd6'], neon: true },
+  { id: 'neon-purple', name: 'Neon Purple', swatch: ['#08030f', '#b026ff'], neon: true },
+  { id: 'neon-royal', name: 'Neon Blue', swatch: ['#03050f', '#1f51ff'], neon: true },
+  { id: 'neon-blue', name: 'Electric Blue', swatch: ['#030a10', '#00e5ff'], neon: true },
+  { id: 'neon-green', name: 'Neon Green', swatch: ['#040a05', '#39ff14'], neon: true },
+  { id: 'neon-orange', name: 'Neon Orange', swatch: ['#0f0703', '#ff7a18'], neon: true },
+  { id: 'neon-synth', name: 'Synthwave', swatch: ['#ff2bd6', '#00e5ff'], neon: true },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
