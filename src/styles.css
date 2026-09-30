@@ -630,7 +630,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .messages:has(.reading) .bubble { cursor: pointer; }
 .backup { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
 .backup-actions { display: flex; flex-direction: column; gap: 6px; }
-/* Bookmark sheet tabs: Verse Lists, Notes, ChatGPT, History */
-.tab-head { margin-top: 6px; }
-.tab-count { flex: 1; color: var(--muted); font-size: 0.85rem; }
 @media (max-width: 350px) { .tabs button { padding: 4px 4px; font-size: 0.76rem; } }
+/* The bookmark sheet's tab row stays in view as the sections scroll under it */
+.sheet-head:has(.tabs) { position: sticky; top: -14px; z-index: 3; background: var(--surface); margin: -14px -16px 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--border); border-radius: 18px 18px 0 0; }
+.section[data-section] { scroll-margin-top: 64px; }

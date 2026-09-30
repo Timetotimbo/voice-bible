@@ -786,11 +786,11 @@ export default function App() {
             setImporting(false);
             if (list.length === 1) openView({ kind: 'chat', id: list[0].id });
             else {
-              // Open the bookmark sheet on the ChatGPT tab, to show them
+              // Open the bookmark sheet at the ChatGPT section, to show them
               try {
                 localStorage.setItem('libraryTab', 'chats');
               } catch {
-                // storage unavailable; opens on the last tab
+                // storage unavailable; opens where it was last
               }
               setSheet('browse');
             }
@@ -1351,7 +1351,9 @@ function SharedListSheet({ incoming, existing, onClose, onAdd }: {
   );
 }
 
-// The tabs across the top of the bookmark sheet
+type SectionKey = 'lists' | 'notes' | 'chats';
+const SECTIONS: SectionKey[] = ['lists', 'notes', 'chats'];
+// The buttons across the top of the bookmark sheet: the first three open and jump to their section
 const LIBRARY_TABS = [
   { id: 'lists', name: 'Verse Lists' },
   { id: 'notes', name: 'Notes' },
@@ -1359,6 +1361,27 @@ const LIBRARY_TABS = [
   { id: 'history', name: 'History' },
 ] as const;
 type LibraryTab = (typeof LIBRARY_TABS)[number]['id'];
+
+/** An open/closed section, remembered on this device. */
+function useFolded(key: string, openByDefault: boolean) {
+  const [open, setOpenState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved === null ? openByDefault : saved === '1';
+    } catch {
+      return openByDefault;
+    }
+  });
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    try {
+      localStorage.setItem(key, next ? '1' : '0');
+    } catch {
+      // storage unavailable; lasts while the panel is open
+    }
+  };
+  return [open, setOpen] as const;
+}
 
 function LibrarySheet({
   library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare, chats, onOpenChat, onNewChat, onDeleteChat,
@@ -1384,7 +1407,7 @@ function LibrarySheet({
   onDeleteNote: (id: string) => void;
   onMoveNote: (id: string, to: number) => void;
 }) {
-  // Which tab is showing; the sheet opens on the one used last, remembered per device
+  // The tab last used, remembered per device; the sheet opens there
   const [tab, setTabState] = useState<LibraryTab>(() => {
     try {
       const saved = localStorage.getItem('libraryTab');
@@ -1393,6 +1416,9 @@ function LibrarySheet({
       return 'lists';
     }
   });
+  // A section to bring into view once it has opened
+  const [jumpTo, setJumpTo] = useState<SectionKey | null>(tab === 'history' ? null : tab);
+  const sectionsEl = useRef<HTMLDivElement>(null);
   const setTab = (next: LibraryTab) => {
     setTabState(next);
     try {
@@ -1400,12 +1426,45 @@ function LibrarySheet({
     } catch {
       // storage unavailable; lasts while the sheet is open
     }
+    if (next === 'history') return;
+    // Notes and ChatGPT tabs open their section (Verse Lists too) and scroll to it
+    ({ lists: setListsOpen, notes: setNotesOpen, chats: setChatsOpen })[next](true);
+    setJumpTo(next);
   };
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false); // the new-list box, shown by + New
   const [deleting, setDeleting] = useState<string | null>(null); // list waiting for "Sure?"
+  // The ChatGPT and Lists sections fold away to save space; each is remembered per device
+  const [chatsOpen, setChatsOpen] = useFolded('chatsOpen', false);
+  const [notesOpen, setNotesOpen] = useFolded('notesOpen', false);
+  // The order of the Lists, Notes and ChatGPT sections, remembered per device
+  const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sectionOrder') ?? '[]');
+      return SECTIONS.every(k => saved.includes(k)) && saved.length === SECTIONS.length ? saved : SECTIONS;
+    } catch {
+      return SECTIONS;
+    }
+  });
+  const moveSection = (key: string, to: number) => {
+    const next = sectionOrder.filter(k => k !== key);
+    next.splice(to, 0, key as SectionKey);
+    setSectionOrder(next);
+    try {
+      localStorage.setItem('sectionOrder', JSON.stringify(next));
+    } catch {
+      // storage unavailable; lasts while the panel is open
+    }
+  };
+  const sectionDrag = useDragOrder(sectionOrder, moveSection);
+  const [listsOpen, setListsOpen] = useFolded('listsOpen', true);
   const { history } = library;
   const lists = library.lists.filter(l => l.id !== hideList);
+  useEffect(() => {
+    if (!jumpTo) return;
+    sectionsEl.current?.querySelector(`[data-section="${jumpTo}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    setJumpTo(null);
+  }, [jumpTo, tab]);
 
   // Lists and chats can be dragged into order by their ⠿ handles
   const listDrag = useDragOrder(lists.map(l => l.id), library.moveList);
@@ -1505,67 +1564,110 @@ function LibrarySheet({
     </>
   );
 
-  // Each tab's heading row: how many there are, and + New
-  const tabHead = (count: number, what: string, onNew: () => void) => (
-    <div className="section-head tab-head">
-      <span className="tab-count">{count ? `${count} ${what}${count === 1 ? '' : 's'}` : ''}</span>
-      <button className="section-new" onClick={onNew}>+ New</button>
-    </div>
-  );
-  const notesBody = (
-      <ul className="sheet-list">
-        {!notes.length && <li className="notice">Thoughts and sermons. Tap + New, then type or dictate.</li>}
-        {notes.map((n, i) => deleting === `note:${n.id}` ? (
-          <li key={n.id} className="confirm-row" role="alertdialog" aria-label={`Delete note ${noteTitle(n)}?`}>
-            <span>Delete this note?</span>
-            <button
-              className="danger"
-              onClick={() => {
-                onDeleteNote(n.id);
-                setDeleting(null);
-              }}
-            >
-              Delete
-            </button>
-            <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
-          </li>
-        ) : (
-          <li key={n.id} {...noteDrag.rowProps(n.id, i)}>
-            {notes.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
-            <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{noteTitle(n)}</button>
-            <button className="sheet-x" aria-label={`Delete note ${noteTitle(n)}`} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
-          </li>
-        ))}
-      </ul>
-  );
-  const chatsBody = (
-      <ul className="sheet-list">
-        <li>
-          <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
-        </li>
-        {chats.map((c, i) => deleting === `chat:${c.id}` ? (
-          <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
-            <span>Delete this chat?</span>
-            <button
-              className="danger"
-              onClick={() => {
-                onDeleteChat(c.id);
-                setDeleting(null);
-              }}
-            >
-              Delete
-            </button>
-            <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
-          </li>
-        ) : (
-          <li key={c.id} {...chatDrag.rowProps(c.id, i)}>
-            {chats.length > 1 && <button {...chatDrag.handleProps(c.id, i, c.title)}>⠿</button>}
-            <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
-            <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
-          </li>
-        ))}
-      </ul>
-  );
+  // Section headers get a ⠿ handle to drag the whole section up or down
+  const handle = (key: SectionKey, label: string) =>
+    <button {...sectionDrag.handleProps(key, sectionOrder.indexOf(key), `${label} section`)}>⠿</button>;
+  const sections: Record<SectionKey, ReactNode> = {
+    lists: (
+      <>
+        <div className="section-head">
+          {handle('lists', 'Verse Lists')}
+          <button className="section-toggle" aria-expanded={listsOpen} onClick={() => setListsOpen(!listsOpen)}>
+            <span className="chevron" aria-hidden>{listsOpen ? '▾' : '▸'}</span> Verse Lists
+            {lists.length > 0 && <small>{lists.length}</small>}
+          </button>
+          <button
+            className="section-new"
+            onClick={() => {
+              setListsOpen(true);
+              setCreating(true);
+            }}
+          >
+            + New
+          </button>
+        </div>
+        {listsOpen && listsBody}
+      </>
+    ),
+    notes: (
+      <>
+        <div className="section-head">
+          {handle('notes', 'Notes')}
+          <button className="section-toggle" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+            <span className="chevron" aria-hidden>{notesOpen ? '▾' : '▸'}</span> Notes
+            {notes.length > 0 && <small>{notes.length}</small>}
+          </button>
+          <button className="section-new" onClick={onNewNote}>+ New</button>
+        </div>
+        {notesOpen && (
+          <ul className="sheet-list">
+            {!notes.length && <li className="notice">Thoughts and sermons. Tap + New, then type or dictate.</li>}
+            {notes.map((n, i) => deleting === `note:${n.id}` ? (
+              <li key={n.id} className="confirm-row" role="alertdialog" aria-label={`Delete note ${noteTitle(n)}?`}>
+                <span>Delete this note?</span>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    onDeleteNote(n.id);
+                    setDeleting(null);
+                  }}
+                >
+                  Delete
+                </button>
+                <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+              </li>
+            ) : (
+              <li key={n.id} {...noteDrag.rowProps(n.id, i)}>
+                {notes.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+                <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{noteTitle(n)}</button>
+                <button className="sheet-x" aria-label={`Delete note ${noteTitle(n)}`} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    ),
+    chats: (
+      <>
+        <div className="section-head">
+          {handle('chats', 'ChatGPT')}
+          <button className="section-toggle" aria-expanded={chatsOpen} onClick={() => setChatsOpen(!chatsOpen)}>
+            <span className="chevron" aria-hidden>{chatsOpen ? '▾' : '▸'}</span> ChatGPT
+            {chats.length > 0 && <small>{chats.length}</small>}
+          </button>
+          <button className="section-new" onClick={onNewChat}>+ New</button>
+        </div>
+        {chatsOpen && (
+          <ul className="sheet-list">
+            <li>
+              <button className="sheet-item new-chat" onClick={onImportChats}>⇩ Import from ChatGPT</button>
+            </li>
+            {chats.map((c, i) => deleting === `chat:${c.id}` ? (
+              <li key={c.id} className="confirm-row" role="alertdialog" aria-label={`Delete chat ${c.title}?`}>
+                <span>Delete this chat?</span>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    onDeleteChat(c.id);
+                    setDeleting(null);
+                  }}
+                >
+                  Delete
+                </button>
+                <button onClick={() => setDeleting(null)} autoFocus>Cancel</button>
+              </li>
+            ) : (
+              <li key={c.id} {...chatDrag.rowProps(c.id, i)}>
+                {chats.length > 1 && <button {...chatDrag.handleProps(c.id, i, c.title)}>⠿</button>}
+                <button className="sheet-item" onClick={() => onOpenChat(c.id)}>{c.title}</button>
+                <button className="sheet-x" aria-label={`Delete chat ${c.title}`} onClick={() => setDeleting(`chat:${c.id}`)}>✕</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    ),
+  };
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={saving ? 'Save to list' : 'History and lists'} onClick={e => e.stopPropagation()}>
@@ -1606,25 +1708,20 @@ function LibrarySheet({
         {/* Saving verses always shows the lists, to pick one */}
         {saving && listsBody}
 
-        {!saving && tab === 'lists' && (
-          <>
-            {tabHead(lists.length, 'list', () => setCreating(true))}
-            {listsBody}
-          </>
+        {/* Lists, Notes and ChatGPT, in the order they've been dragged into */}
+        {!saving && tab !== 'history' && (
+          <div ref={sectionsEl}>
+          {sectionOrder.map((key, i) => {
+            const row = sectionDrag.rowProps(key, i);
+            return (
+              <div key={key} {...row} data-section={key} className={`section ${row.className}`}>
+                {sections[key]}
+              </div>
+            );
+          })}
+          <Backup />
+          </div>
         )}
-        {!saving && tab === 'notes' && (
-          <>
-            {tabHead(notes.length, 'note', onNewNote)}
-            {notesBody}
-          </>
-        )}
-        {!saving && tab === 'chats' && (
-          <>
-            {tabHead(chats.length, 'chat', onNewChat)}
-            {chatsBody}
-          </>
-        )}
-        {!saving && tab === 'lists' && <Backup />}
       </div>
     </div>
   );

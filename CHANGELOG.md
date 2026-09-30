@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.45.1 — 2026-09-29
+- Folding sections are back: Verse Lists, Notes and ChatGPT show together again, each folds with ▾/▸, and whole sections drag into order by their ⠿ handle, as before v1.45.0.
+- The four buttons along the top stay: tap Verse Lists, Notes or ChatGPT to open that section and jump to it; History shows your searches. The row stays in view as you scroll, and the sheet opens where you left it.
+
 ## v1.45.0 — 2026-09-29
 - The bookmark sheet has four tabs across the top: Verse Lists, Notes, ChatGPT and History. Each shows just its own items, with how many there are and "+ New". It opens on the tab you used last. Import from ChatGPT is on the ChatGPT tab, and Backup is at the bottom of Verse Lists.
 - With tabs, the folding sections and dragging whole sections into order are gone. Lists, notes and chats can still be dragged into order within their tab.
