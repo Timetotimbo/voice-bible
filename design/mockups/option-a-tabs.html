@@ -1,0 +1,512 @@
+<title>Voice Bible Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  /* One deliberate dark look, like the app's Purple Night theme */
+  :root {
+    --ink: #0d0b13;
+    --surface: #17141f;
+    --raised: #211d2c;
+    --line: #2e2940;
+    --text: #ece8f5;
+    --muted: #9a93ae;
+    --faint: #6d6682;
+    --accent: #a78bfa;
+    --accent-deep: #5b35c9;
+    --accent-wash: rgba(167, 139, 250, 0.14);
+    --on-accent: #ffffff;
+    --mark: rgba(167, 139, 250, 0.28);
+    --ui: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --read: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--ink); color: var(--text); font: 16px/1.5 var(--ui); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; }
+
+  .app { height: 100%; max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; background: var(--ink); position: relative; overflow: hidden; }
+  @media (min-width: 520px) { .app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+
+  /* Title bar */
+  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px 8px; min-height: 52px; }
+  .bar h1 { flex: 1; min-width: 0; margin: 0; font-size: 1.12rem; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-wrap: balance; }
+  .bar h1 small { font-weight: 500; color: var(--muted); font-size: 0.8rem; margin-left: 4px; }
+  .bar h1 button.pick { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; }
+  .icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: var(--muted); flex: none; }
+  .icon:hover { background: var(--raised); color: var(--text); }
+  .icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .chip-select { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; color: var(--text); flex: none; }
+
+  /* Search field with the mic inside */
+  .searchrow { padding: 0 16px 10px; }
+  .field { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 4px 4px 12px; }
+  .field svg.lens { width: 18px; height: 18px; fill: none; stroke: var(--faint); stroke-width: 2; flex: none; }
+  .field input { flex: 1; min-width: 0; background: none; border: 0; color: var(--text); font: inherit; padding: 8px 2px; outline: none; }
+  .field input::placeholder { color: var(--faint); }
+  .mic-mini { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-deep); color: var(--on-accent); flex: none; }
+  .mic-mini svg { width: 18px; height: 18px; fill: currentColor; }
+  .mic-mini.on { animation: glow 1.4s ease-out infinite; }
+
+  main { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px; }
+  .hint { color: var(--faint); font-size: 0.82rem; margin: 2px 0 12px; }
+  body.nohints .hint { display: none; }
+  .meta { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
+  .meta h2 { flex: 1; margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--muted); }
+  .meta h2 b { color: var(--text); font-weight: 700; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+  .seg button { padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; color: var(--muted); }
+  .seg button.on { background: var(--raised); color: var(--text); font-weight: 600; }
+
+  /* Home: the one big mic */
+  .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px 0 8px; gap: 14px; }
+  .mic-big { width: 116px; height: 116px; border-radius: 50%; display: grid; place-items: center; color: var(--on-accent);
+    background: radial-gradient(circle at 35% 30%, #b99cff, var(--accent-deep) 70%); box-shadow: 0 10px 40px rgba(91, 53, 201, 0.45); }
+  .mic-big svg { width: 48px; height: 48px; fill: currentColor; }
+  .mic-big.on { animation: glow 1.4s ease-out infinite; }
+  @keyframes glow { 0% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.55); } 100% { box-shadow: 0 0 0 26px rgba(167, 139, 250, 0); } }
+  .hero p { margin: 0; color: var(--muted); max-width: 30ch; }
+  .hero .status { color: var(--text); font-weight: 600; min-height: 1.5em; }
+  .try { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+  .try button { border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 0.9rem; color: var(--text); background: var(--surface); }
+  .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin: 26px 0 8px; }
+  .recent { display: grid; gap: 2px; }
+  .recent button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 4px; border-bottom: 1px solid var(--line); color: var(--text); }
+  .recent svg { width: 16px; height: 16px; fill: none; stroke: var(--faint); stroke-width: 2; flex: none; }
+
+  /* Verses: tap to select, no per-card buttons */
+  .verses { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .verse { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 8px 12px 6px; border-radius: 12px; cursor: pointer; transition: background 0.15s; }
+  .verse:hover { background: var(--surface); }
+  .verse .tick { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); margin-top: 3px; display: grid; place-items: center; font-size: 0.7rem; color: transparent; }
+  .verse.sel { background: var(--accent-wash); }
+  .verse.sel .tick { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+  .verse.now { background: var(--surface); box-shadow: inset 3px 0 0 var(--accent); }
+  .verse .ref { font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
+  .verse .ref small { color: var(--faint); font-weight: 500; margin-left: 4px; }
+  .verse p { margin: 2px 0 0; font-family: var(--read); font-size: 1.06rem; line-height: 1.55; }
+  mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+
+  /* Chapter reading: verses flow like a page */
+  .chapter { font-family: var(--read); font-size: 1.14rem; line-height: 1.75; margin: 0; padding: 0; list-style: none; }
+  .chapter li { padding: 2px 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; }
+  .chapter li.sel { background: var(--accent-wash); }
+  .chapter li.now { background: var(--surface); box-shadow: inset 3px 0 0 var(--accent); }
+  .chapter sup { font-family: var(--ui); font-size: 0.66rem; font-weight: 700; color: var(--accent); margin-right: 4px; }
+  .pager { display: flex; justify-content: space-between; margin: 22px 0 6px; gap: 10px; }
+  .pager button { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
+
+  /* Lists, notes */
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+  .row > button.main { flex: 1; min-width: 0; text-align: left; padding: 14px 2px; display: grid; gap: 1px; }
+  .row .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .s { font-size: 0.84rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .handle, .row .del { display: none; color: var(--faint); width: 32px; height: 32px; place-items: center; border-radius: 8px; }
+  .editing .row .handle, .editing .row .del { display: grid; }
+  .row .del { color: #f08aa0; }
+  .count { font-variant-numeric: tabular-nums; color: var(--faint); font-size: 0.84rem; flex: none; }
+  .editing .count { display: none; }
+  .text-btn { color: var(--accent); font-weight: 600; font-size: 0.92rem; padding: 6px 4px; }
+  .new-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px 2px; color: var(--accent); font-weight: 600; border-bottom: 1px solid var(--line); }
+
+  .tools { display: flex; gap: 6px; margin: 2px 0 10px; }
+  .tools button { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 0.86rem; display: inline-flex; align-items: center; gap: 6px; }
+  .tools button.primary { background: var(--accent-deep); border-color: var(--accent-deep); color: var(--on-accent); font-weight: 600; }
+  .tools svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .note-title { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: 700 1.2rem var(--ui); padding: 6px 0 10px; margin-bottom: 10px; outline: none; }
+  textarea.note { width: 100%; min-height: 52vh; resize: none; background: none; border: 0; color: var(--text); font: 1.06rem/1.7 var(--read); outline: none; padding: 0; }
+
+  /* Chat */
+  .msgs { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 16px; line-height: 1.5; white-space: pre-wrap; }
+  .msg.me { align-self: flex-end; background: var(--accent-deep); color: var(--on-accent); border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg .r { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .composer { display: flex; gap: 8px; padding: 8px 16px 10px; border-top: 1px solid var(--line); background: var(--ink); }
+  .composer .field { flex: 1; }
+  .send { background: var(--accent-deep); color: var(--on-accent); border-radius: 12px; padding: 0 16px; font-weight: 600; }
+
+  /* Play bar and selection bar, above the tabs */
+  .dock { border-top: 1px solid var(--line); background: rgba(13, 11, 19, 0.96); padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .dock .play { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: var(--accent-deep); color: var(--on-accent); border-radius: 12px; padding: 10px 14px; font-weight: 700; }
+  .dock .play svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+  .dock .play span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dock .play small { font-weight: 500; opacity: 0.8; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .dock .ctl { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--muted); border: 1px solid var(--line); font-weight: 700; font-size: 0.85rem; flex: none; }
+  .dock .ctl.on { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .dock .ctl svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dock.selecting { flex-wrap: wrap; }
+  .selcount { font-weight: 700; margin-right: auto; font-variant-numeric: tabular-nums; }
+  .act { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 0.86rem; font-weight: 600; }
+  .act.primary { background: var(--accent-deep); border-color: var(--accent-deep); color: var(--on-accent); }
+
+  /* Tab bar */
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--ink); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .tabs button { display: grid; justify-items: center; gap: 2px; padding: 4px 0; font-size: 0.7rem; font-weight: 600; color: var(--faint); }
+  .tabs svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tabs button.on { color: var(--text); }
+  .tabs button.on svg { stroke: var(--accent); }
+
+  /* Sheets */
+  .scrim { position: absolute; inset: 0; background: rgba(5, 4, 9, 0.6); display: flex; align-items: flex-end; z-index: 20; }
+  .sheet { width: 100%; max-height: 82%; overflow-y: auto; background: var(--surface); border-top: 1px solid var(--line); border-radius: 20px 20px 0 0; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .grab { width: 38px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 10px; }
+  .sheet h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .set { display: flex; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+  .set .l { flex: 1; min-width: 0; }
+  .set .l div { font-weight: 600; }
+  .set .l small { color: var(--muted); }
+  .set .v { color: var(--muted); font-size: 0.9rem; }
+  .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--raised); border: 1px solid var(--line); position: relative; flex: none; transition: background 0.2s; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform 0.2s, background 0.2s; }
+  .switch.on { background: var(--accent-deep); border-color: var(--accent); }
+  .switch.on::after { transform: translateX(18px); background: #fff; }
+  .picklist { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0 4px; }
+  .picklist button { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.9rem; }
+
+  .toast { position: absolute; left: 16px; right: 16px; bottom: 132px; z-index: 30; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+  .proto { font-size: 0.72rem; color: var(--faint); text-align: center; margin: 18px 0 0; }
+
+  @media (prefers-reduced-motion: reduce) { .mic-big.on, .mic-mini.on { animation: none; } .verse, .switch, .switch::after { transition: none; } }
+</style>
+
+<div class="app" id="app">
+  <header class="bar" id="bar"></header>
+  <div class="searchrow" id="searchrow" hidden>
+    <form class="field" id="searchform">
+      <svg class="lens" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Word or John 3:16" aria-label="Search the Bible" autocomplete="off">
+      <button type="button" class="mic-mini" id="micmini" aria-label="Speak a search"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg></button>
+    </form>
+  </div>
+  <main id="main"></main>
+  <div id="dock"></div>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  <div id="overlay"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ICON = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  read: '<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0v13"/>',
+  lists: '<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/>',
+  notes: '<path d="M5 4h10l4 4v12H5Z"/><path d="M15 4v4h4M8 12h8M8 16h6"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4Z"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
+  back: '<path d="m15 18-6-6 6-6"/>',
+  repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+  more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+  mic: '<path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/>',
+  speaker: '<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>',
+  share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6"/>',
+  clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+};
+const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
+const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7Z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+
+// Sample content (KJV, public domain)
+const FAITH = [
+  ['Hebrews 11:1', 'Now faith is the substance of things hoped for, the evidence of things not seen.'],
+  ['Romans 10:17', 'So then faith cometh by hearing, and hearing by the word of God.'],
+  ['2 Corinthians 5:7', '(For we walk by faith, not by sight:)'],
+  ['Ephesians 2:8', 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:'],
+  ['Hebrews 11:6', 'But without faith it is impossible to please him: for he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him.'],
+  ['Mark 11:22', 'And Jesus answering saith unto them, Have faith in God.'],
+  ['James 2:17', 'Even so faith, if it hath not works, is dead, being alone.'],
+  ['1 Corinthians 13:13', 'And now abideth faith, hope, charity, these three; but the greatest of these is charity.'],
+];
+const PSALM23 = [
+  'The LORD is my shepherd; I shall not want.',
+  'He maketh me to lie down in green pastures: he leadeth me beside the still waters.',
+  'He restoreth my soul: he leadeth me in the paths of righteousness for his name’s sake.',
+  'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.',
+  'Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.',
+  'Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.',
+];
+const LISTS = [
+  { name: 'Faith', verses: FAITH.slice(0, 4) },
+  { name: 'Peace', verses: [['John 14:27', 'Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.'], ['Philippians 4:7', 'And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.'], ['Isaiah 26:3', 'Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee.']] },
+  { name: 'Sunday readings', verses: PSALM23.slice(0, 3).map((t, i) => [`Psalm 23:${i + 1}`, t]) },
+];
+const NOTES = [
+  { title: 'Walking by faith', text: 'Sunday sermon.\n\nFaith is trusting what God has said before we can see it.\n\n2 Corinthians 5:7 (KJV)\n(For we walk by faith, not by sight:)\n\nThree things faith does: it hears, it trusts, it walks.' },
+  { title: 'Prayer list', text: 'Mom’s surgery on Thursday.\nThe youth retreat.\nWisdom for the new job.' },
+];
+const CHAT = [
+  ['me', 'What does the Bible say about fear?'],
+  ['ai', 'Scripture speaks to fear many times, usually with a promise that God is present.\n\nIsaiah 41:10 says, “Fear thou not; for I am with thee: be not dismayed; for I am thy God.”\n\n2 Timothy 1:7 reminds us that “God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.”\n\nPsalm 23:4 pictures walking through the darkest valley without fear, because the Lord is with us.'],
+];
+
+let S = { tab: 'search', view: 'home', query: '', mode: 'words', sel: new Set(), playing: false, now: -1, repeat: false, speed: 1, list: null, note: null, editing: false, hints: true, listening: false };
+let timer = 0, toastTimer = 0;
+
+function toast(msg) {
+  clearTimeout(toastTimer);
+  const old = $('.toast'); if (old) old.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+  $('#app').append(t);
+  toastTimer = setTimeout(() => t.remove(), 2600);
+}
+
+function stopPlay() { clearInterval(timer); S.playing = false; S.now = -1; }
+function currentItems() {
+  if (S.tab === 'read') return PSALM23.map((t, i) => [`Psalm 23:${i + 1}`, t]);
+  if (S.tab === 'lists' && S.list !== null) return LISTS[S.list].verses;
+  if (S.tab === 'search' && S.view === 'results') return FAITH;
+  return [];
+}
+function play() {
+  const items = currentItems(); if (!items.length) return;
+  const picked = [...S.sel].sort((a, b) => a - b);
+  const order = picked.length ? picked : items.map((_, i) => i);
+  let k = 0; S.playing = true; S.now = order[0]; S.sel.clear(); render();
+  clearInterval(timer);
+  timer = setInterval(() => {
+    k++;
+    if (k >= order.length) { if (S.repeat) k = 0; else { stopPlay(); render(); return; } }
+    S.now = order[k]; render();
+  }, 2400 / S.speed);
+}
+
+function setTab(tab) { stopPlay(); S.tab = tab; S.sel.clear(); S.editing = false; if (tab === 'lists') S.list = null; if (tab === 'notes') S.note = null; render(); $('#main').scrollTop = 0; }
+
+function runSearch(q) {
+  S.query = q || 'faith'; S.view = 'results'; S.sel.clear(); stopPlay(); render(); $('#main').scrollTop = 0;
+}
+
+function listen(big) {
+  if (S.listening) return;
+  S.listening = true; render();
+  const input = $('#q'); const word = 'faith';
+  let i = 0;
+  const type = setInterval(() => {
+    i++;
+    if (big) { const st = $('.hero .status'); if (st) st.textContent = `“${word.slice(0, i)}”`; }
+    else if (input) input.value = word.slice(0, i);
+    if (i >= word.length) { clearInterval(type); setTimeout(() => { S.listening = false; runSearch(word); }, 450); }
+  }, 180);
+}
+
+function highlight(text, q) {
+  if (!q) return esc(text);
+  return esc(text).replace(new RegExp(`\\b(${q.replace(/[^\w]/g, '')})\\b`, 'gi'), '<mark>$1</mark>');
+}
+
+function verseList(items, q) {
+  return `<ol class="verses">${items.map(([ref, text], i) => `
+    <li class="verse ${S.sel.has(i) ? 'sel' : ''} ${S.now === i ? 'now' : ''}" data-i="${i}" role="button" tabindex="0" aria-pressed="${S.sel.has(i)}">
+      <span class="tick" aria-hidden="true">✓</span>
+      <div><div class="ref">${esc(ref)}<small>KJV</small></div><p>${highlight(text, q)}</p></div>
+    </li>`).join('')}</ol>`;
+}
+
+function renderBar() {
+  const bar = $('#bar');
+  const gear = `<button class="icon" id="gear" aria-label="Settings">${svg('gear')}</button>`;
+  const kjv = `<button class="chip-select" id="tr" aria-label="Translation">KJV ▾</button>`;
+  const back = id => `<button class="icon" id="${id}" aria-label="Back">${svg('back')}</button>`;
+  let html = '';
+  if (S.tab === 'search') html = S.view === 'results' ? `${back('back-home')}<h1>Search</h1>${kjv}${gear}` : `<h1>Voice Bible</h1>${kjv}${gear}`;
+  if (S.tab === 'read') html = `<h1><button class="pick" id="pick">Psalms 23 <small>▾</small></button></h1>${kjv}${gear}`;
+  if (S.tab === 'lists') html = S.list === null
+    ? `<h1>Verse Lists</h1><button class="text-btn" id="edit">${S.editing ? 'Done' : 'Edit'}</button>${gear}`
+    : `${back('back-lists')}<h1>${esc(LISTS[S.list].name)} <small>${LISTS[S.list].verses.length} verses</small></h1>${gear}`;
+  if (S.tab === 'notes') html = S.note === null
+    ? `<h1>Notes</h1><button class="text-btn" id="edit">${S.editing ? 'Done' : 'Edit'}</button>${gear}`
+    : `${back('back-notes')}<h1>Note</h1><button class="icon" aria-label="Share note" id="note-share">${svg('share')}</button>`;
+  if (S.tab === 'chat') html = `<h1>Fear <small>ChatGPT</small></h1><button class="icon" id="chat-listen" aria-label="Read aloud">${svg('speaker')}</button>${gear}`;
+  bar.innerHTML = html;
+  $('#searchrow').hidden = !(S.tab === 'search' && S.view === 'results');
+  $('#micmini').classList.toggle('on', S.listening && S.view === 'results');
+}
+
+function renderMain() {
+  const m = $('#main');
+  if (S.tab === 'search' && S.view === 'home') {
+    m.innerHTML = `
+      <div class="hero">
+        <button class="mic-big ${S.listening ? 'on' : ''}" id="micbig" aria-label="Speak a search"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg></button>
+        <p class="status">${S.listening ? 'Listening…' : ''}</p>
+        <p class="hint">Say a word, a phrase or a reference. Or type below.</p>
+        <form class="field" id="homeform" style="width:100%">
+          <svg class="lens" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="hq" type="search" placeholder="Word or John 3:16" aria-label="Search the Bible" autocomplete="off">
+        </form>
+        <div class="try"><button data-q="faith">faith</button><button data-q="love your enemies">love your enemies</button><button data-read="1">Psalm 23</button></div>
+      </div>
+      <div class="section-label">Recent</div>
+      <div class="recent">
+        <button data-q="faith">${svg('clock')}faith</button>
+        <button data-read="1">${svg('clock')}Psalm 23</button>
+        <button data-q="peace">${svg('clock')}peace</button>
+      </div>
+      <p class="proto">Clickable prototype · sample verses</p>`;
+    return;
+  }
+  if (S.tab === 'search') {
+    $('#q').value = S.query;
+    m.innerHTML = `
+      <div class="meta"><h2><b>${FAITH.length}</b> verses with “${esc(S.query)}”</h2>
+        <div class="seg" role="radiogroup" aria-label="Match"><button class="${S.mode === 'words' ? 'on' : ''}" data-mode="words">All words</button><button class="${S.mode === 'exact' ? 'on' : ''}" data-mode="exact">Exact</button></div></div>
+      <p class="hint">Tap verses to choose them, then play, save or share.</p>
+      ${verseList(FAITH, S.query)}`;
+    return;
+  }
+  if (S.tab === 'read') {
+    m.innerHTML = `
+      <p class="hint">Tap verses to choose them. Swipe for the next chapter.</p>
+      <ol class="chapter">${PSALM23.map((t, i) => `<li class="${S.sel.has(i) ? 'sel' : ''} ${S.now === i ? 'now' : ''}" data-i="${i}" role="button" tabindex="0"><sup>${i + 1}</sup>${esc(t)}</li>`).join('')}</ol>
+      <div class="pager"><button id="prevch">‹ Psalms 22</button><button id="nextch">Psalms 24 ›</button></div>`;
+    return;
+  }
+  if (S.tab === 'lists') {
+    if (S.list !== null) { m.innerHTML = `<p class="hint">Tap verses to choose them.</p>${verseList(LISTS[S.list].verses)}`; return; }
+    m.innerHTML = `<div class="${S.editing ? 'editing' : ''}"><button class="new-btn" id="newlist">＋ New list</button><ul class="rows">${LISTS.map((l, i) => `
+      <li class="row"><span class="handle" aria-hidden="true">⠿</span>
+        <button class="main" data-list="${i}"><span class="t">${esc(l.name)}</span><span class="s">${esc(l.verses.map(v => v[0]).join(' · '))}</span></button>
+        <span class="count">${l.verses.length}</span><button class="del" aria-label="Delete ${esc(l.name)}">✕</button></li>`).join('')}</ul></div>
+      <p class="hint" style="margin-top:14px">Choose verses anywhere, then “Save to list”. Edit to reorder or delete.</p>`;
+    return;
+  }
+  if (S.tab === 'notes') {
+    if (S.note !== null) {
+      const n = NOTES[S.note];
+      m.innerHTML = `
+        <input class="note-title" id="nt" value="${esc(n.title)}" aria-label="Title">
+        <div class="tools"><button class="primary" id="dictate">${svg('mic')}Dictate</button><button id="nlisten">${svg('speaker')}Listen</button><button id="ninsert">＋ Insert</button><button aria-label="Undo">↶</button><button aria-label="Redo">↷</button></div>
+        <textarea class="note" id="nbody" aria-label="Note">${esc(n.text)}</textarea>`;
+      return;
+    }
+    m.innerHTML = `<div class="${S.editing ? 'editing' : ''}"><button class="new-btn" id="newnote">＋ New note</button><ul class="rows">${NOTES.map((n, i) => `
+      <li class="row"><span class="handle" aria-hidden="true">⠿</span>
+        <button class="main" data-note="${i}"><span class="t">${esc(n.title)}</span><span class="s">${esc(n.text.replace(/\n+/g, ' '))}</span></button>
+        <button class="del" aria-label="Delete ${esc(n.title)}">✕</button></li>`).join('')}</ul></div>`;
+    return;
+  }
+  if (S.tab === 'chat') {
+    m.innerHTML = `<div class="msgs">${CHAT.map(([who, text]) => `<div class="msg ${who}">${who === 'ai'
+      ? esc(text).replace(/(Isaiah 41:10|2 Timothy 1:7|Psalm 23:4)/g, '<span class="r" data-read="1">$1</span>') : esc(text)}</div>`).join('')}</div>`;
+  }
+}
+
+function renderDock() {
+  const d = $('#dock');
+  const hasVerses = currentItems().length > 0;
+  if (S.tab === 'chat') {
+    d.innerHTML = `<form class="composer" id="chatform"><div class="field"><input id="cq" placeholder="Ask ChatGPT, or speak…" aria-label="Message" autocomplete="off"><button type="button" class="mic-mini" aria-label="Speak">${'<svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>'}</button></div><button class="send">Send</button></form>`;
+    return;
+  }
+  if (!hasVerses) { d.innerHTML = ''; return; }
+  if (S.sel.size) {
+    const inList = S.tab === 'lists';
+    d.innerHTML = `<div class="dock selecting"><span class="selcount">${S.sel.size} chosen</span>
+      <button class="act primary" id="playsel">▶ Play ${S.sel.size}</button>
+      <button class="act" id="savesel">${inList ? 'Copy to list' : 'Save to list'}</button>
+      <button class="act" id="notesel">To note</button>
+      <button class="act" id="sharesel">Share</button>
+      <button class="act" id="clearsel" aria-label="Clear">✕</button></div>`;
+    return;
+  }
+  const items = currentItems();
+  const label = S.playing ? items[S.now][0] : S.tab === 'read' ? 'Play chapter' : `Play all ${items.length}`;
+  d.innerHTML = `<div class="dock">
+    <button class="play" id="play">${S.playing ? PAUSE : PLAY}<span>${esc(label)}</span>${S.playing ? `<small>${S.now + 1}/${items.length}</small>` : ''}</button>
+    <button class="ctl ${S.repeat ? 'on' : ''}" id="repeat" aria-label="Repeat" aria-pressed="${S.repeat}">${svg('repeat')}</button>
+    <button class="ctl" id="speed" aria-label="Speed">${S.speed}×</button>
+    <button class="ctl" id="more" aria-label="More playback options">${svg('more')}</button></div>`;
+}
+
+function renderTabs() {
+  const t = [['search', 'Search'], ['read', 'Read'], ['lists', 'Lists'], ['notes', 'Notes'], ['chat', 'Chat']];
+  $('#tabs').innerHTML = t.map(([id, name]) => `<button class="${S.tab === id ? 'on' : ''}" data-tab="${id}" aria-current="${S.tab === id ? 'page' : 'false'}">${svg(id)}${name}</button>`).join('');
+}
+
+function render() { document.body.classList.toggle('nohints', !S.hints); renderBar(); renderMain(); renderDock(); renderTabs(); }
+
+function sheet(html) {
+  $('#overlay').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+}
+function closeSheet() { $('#overlay').innerHTML = ''; }
+function settingsSheet() {
+  sheet(`<h3>Settings</h3>
+    <button class="set" data-soon="Voice picker"><span class="l"><div>Reading voice</div><small>Recorded or device voices</small></span><span class="v">Heart ›</span></button>
+    <button class="set" data-soon="Colour picker"><span class="l"><div>Colours</div><small>13 themes, 7 of them neon</small></span><span class="v">Purple Night ›</span></button>
+    <button class="set" id="hintset"><span class="l"><div>Hints</div><small>Short instructions on each screen</small></span><span class="switch ${S.hints ? 'on' : ''}" role="switch" aria-checked="${S.hints}"></span></button>
+    <button class="set" data-soon="Share menu"><span class="l"><div>Share Voice Bible</div><small>voicebible.eefavorbooks.com</small></span><span class="v">›</span></button>
+    <button class="set" data-soon="Backup"><span class="l"><div>Backup</div><small>Save or restore your lists, notes and chats</small></span><span class="v">›</span></button>
+    <p class="proto">Voice Bible v2 prototype</p>`);
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, [data-i], .r, #scrim');
+  if (!el) return;
+  if (el.id === 'scrim' && e.target === el) return closeSheet();
+  const d = el.dataset;
+  if (d.tab) return setTab(d.tab);
+  if (d.q) { S.tab = 'search'; return runSearch(d.q); }
+  if (d.read) { setTab('read'); return; }
+  if (d.mode) { S.mode = d.mode; return render(); }
+  if (d.list) { S.list = +d.list; S.sel.clear(); return render(); }
+  if (d.note) { S.note = +d.note; return render(); }
+  if (d.soon) { closeSheet(); return toast(`${d.soon} opens here, as in the app today.`); }
+  if (d.i !== undefined && !el.matches('button')) {
+    if (S.playing) stopPlay();
+    const i = +d.i; S.sel.has(i) ? S.sel.delete(i) : S.sel.add(i); return render();
+  }
+  switch (el.id) {
+    case 'gear': return settingsSheet();
+    case 'hintset': S.hints = !S.hints; render(); return settingsSheet();
+    case 'micbig': return listen(true);
+    case 'micmini': return listen(false);
+    case 'back-home': stopPlay(); S.view = 'home'; S.sel.clear(); return render();
+    case 'back-lists': stopPlay(); S.list = null; S.sel.clear(); return render();
+    case 'back-notes': S.note = null; return render();
+    case 'edit': S.editing = !S.editing; return render();
+    case 'play': if (S.playing) { stopPlay(); return render(); } return play();
+    case 'playsel': return play();
+    case 'repeat': S.repeat = !S.repeat; return render();
+    case 'speed': { const sp = [0.75, 1, 1.25, 1.5, 2]; S.speed = sp[(sp.indexOf(S.speed) + 1) % sp.length]; if (S.playing) { const k = S.now; play(); S.now = k; } return render(); }
+    case 'more': return sheet(`<h3>Playback</h3>
+      <button class="set" id="refs"><span class="l"><div>Say the reference first</div><small>“Hebrews 11, verse 1” before each verse</small></span><span class="switch on" role="switch" aria-checked="true"></span></button>
+      <button class="set" data-soon="Voice picker"><span class="l"><div>Reading voice</div></span><span class="v">Heart ›</span></button>`);
+    case 'refs': el.querySelector('.switch').classList.toggle('on'); return;
+    case 'savesel': { const n = S.sel.size; S.sel.clear(); render(); return sheet(`<h3>Save ${n} verse${n > 1 ? 's' : ''} to…</h3><div class="picklist">${LISTS.map(l => `<button data-saved="${esc(l.name)}">${esc(l.name)}</button>`).join('')}<button data-saved="a new list">＋ New list</button></div>`); }
+    case 'notesel': { const n = S.sel.size; S.sel.clear(); render(); return sheet(`<h3>Add ${n} verse${n > 1 ? 's' : ''} to a note</h3><div class="picklist">${NOTES.map(x => `<button data-saved="${esc(x.title)}">${esc(x.title)}</button>`).join('')}<button data-saved="a new note">＋ New note</button></div>`); }
+    case 'sharesel': S.sel.clear(); render(); return toast('Opens your phone’s share menu with the verses.');
+    case 'clearsel': S.sel.clear(); return render();
+    case 'pick': return sheet(`<h3>Go to</h3><div class="picklist">${['Genesis', 'Psalms', 'Proverbs', 'Isaiah', 'Matthew', 'John', 'Romans', 'Hebrews'].map(b => `<button data-soon="The Book · Chapter · Verse wheels">${b}</button>`).join('')}</div>`);
+    case 'tr': return sheet(`<h3>Translation</h3><div class="picklist"><button data-soon="KJV">KJV</button><button data-soon="KJV with Strong’s">KJV+S</button><button data-soon="Reina-Valera, with the app in Spanish,">RV1909</button></div>`);
+    case 'prevch': case 'nextch': return toast('Turns to the next chapter, as swiping does today.');
+    case 'newlist': return toast('A name box appears here.');
+    case 'newnote': S.note = 0; return render();
+    case 'dictate': el.classList.toggle('on'); return toast('Dictation goes where your cursor is.');
+    case 'nlisten': return toast('Reads the note aloud from your cursor, with Loop and speed.');
+    case 'ninsert': return toast('Insert a verse, a list or a chat.');
+    case 'note-share': return toast('Opens your phone’s share menu with the note.');
+    case 'chat-listen': return toast('Reads the chat aloud, message by message.');
+  }
+  if (d.saved) { closeSheet(); return toast(`Added to ${d.saved}.`); }
+  if (el.classList.contains('del')) return toast('Asks “Delete?” before it goes.');
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.i !== undefined) { e.preventDefault(); e.target.click(); }
+  if (e.key === 'Escape') closeSheet();
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'homeform') runSearch($('#hq').value.trim() || 'faith');
+  if (e.target.id === 'searchform') runSearch($('#q').value.trim() || 'faith');
+  if (e.target.id === 'chatform') {
+    const v = $('#cq').value.trim(); if (!v) return;
+    CHAT.push(['me', v], ['ai', 'This is a prototype, so answers aren’t live here. In the app, ChatGPT answers with tappable references like Romans 8:28.']);
+    render(); $('#main').scrollTop = $('#main').scrollHeight;
+  }
+});
+render();
+</script>
