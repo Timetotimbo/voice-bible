@@ -1,0 +1,287 @@
+<title>Voice Bible Neon Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  /* One neon night look: magenta and cyan glowing on violet-black */
+  :root {
+    --bg: #09050f;
+    --tile: #130b1f;
+    --tile-2: #1c1130;
+    --line: #2d1d48;
+    --text: #f2eaff;
+    --soft: #b3a3cf;
+    --faint: #7a6a96;
+    --pink: #ff3fd8;
+    --cyan: #22e3ff;
+    --glow-p: rgba(255, 63, 216, 0.45);
+    --glow-c: rgba(34, 227, 255, 0.4);
+    --ui: 'Exo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --read: 'Spectral', Georgia, 'Times New Roman', serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 15.5px/1.5 var(--ui); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  svg { display: block; }
+  .ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+  .app { height: 100%; max-width: 460px; margin: 0 auto; position: relative; display: flex; flex-direction: column; overflow: hidden;
+    background: radial-gradient(120% 60% at 50% -10%, rgba(255, 63, 216, 0.16), transparent 60%), var(--bg); }
+  .app::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--pink), var(--cyan)); box-shadow: 0 0 12px var(--glow-p), 0 0 22px var(--glow-c); z-index: 5; }
+  .scroll { flex: 1; overflow-y: auto; padding: 14px 16px 24px; }
+
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .head h1 { flex: 1; margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: 0.03em;
+    background: linear-gradient(90deg, var(--pink), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 8px rgba(255, 63, 216, 0.35)); }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-size: 0.8rem; font-weight: 700; color: var(--soft); }
+  .round { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--soft); border: 1px solid var(--line); }
+  .greet { color: var(--soft); margin: 0 0 12px; }
+  .greet b { color: var(--text); }
+
+  .search { display: flex; align-items: center; gap: 8px; background: var(--tile); border: 1px solid var(--pink); border-radius: 16px; padding: 5px 5px 5px 14px;
+    box-shadow: 0 0 14px rgba(255, 63, 216, 0.25), inset 0 0 12px rgba(255, 63, 216, 0.08); }
+  .search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); font: inherit; padding: 9px 0; }
+  .search input::placeholder { color: var(--faint); }
+  .mic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--pink), #b43cff); color: #fff; box-shadow: 0 0 16px var(--glow-p); flex: none; }
+  .mic svg { width: 22px; height: 22px; fill: currentColor; }
+  .mic.on { animation: pulse 1.2s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--glow-p); } 100% { box-shadow: 0 0 0 18px transparent; } }
+  .hint { color: var(--faint); font-size: 0.8rem; margin: 8px 2px 0; }
+  body.nohints .hint { display: none; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+  .tile { background: var(--tile); border: 1px solid var(--line); border-radius: 18px; padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-width: 0; transition: border-color 0.2s, box-shadow 0.2s; }
+  .tile:hover { border-color: var(--cyan); box-shadow: 0 0 14px rgba(34, 227, 255, 0.2); }
+  .tile.wide { grid-column: 1 / -1; }
+  .tile .lab { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cyan); display: flex; align-items: center; gap: 6px; }
+  .tile .lab.p { color: var(--pink); }
+  .tile h2 { margin: 0; font-size: 1.15rem; font-weight: 800; }
+  .tile .big { font-family: var(--read); font-size: 1.18rem; line-height: 1.5; }
+  .tile .ref { font-weight: 700; color: var(--soft); font-size: 0.85rem; }
+  .tile .s { color: var(--soft); font-size: 0.86rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .bar { height: 5px; border-radius: 3px; background: var(--tile-2); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 66%; background: linear-gradient(90deg, var(--pink), var(--cyan)); box-shadow: 0 0 8px var(--glow-c); }
+  .row-acts { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .nb { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.84rem; font-weight: 700; color: var(--soft); display: inline-flex; align-items: center; gap: 6px; }
+  .nb.hot { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(34, 227, 255, 0.25); }
+  .lists { display: flex; gap: 8px; overflow-x: auto; margin: 2px -2px 0; padding: 2px; scrollbar-width: none; }
+  .lists button { flex: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; text-align: left; background: var(--tile-2); }
+  .lists b { display: block; font-size: 0.92rem; }
+  .lists small { color: var(--faint); font-weight: 700; }
+  .ask { display: flex; gap: 8px; margin-top: 4px; }
+  .ask input { flex: 1; min-width: 0; background: var(--tile-2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; color: var(--text); font: inherit; outline: none; }
+  .hist { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hist button { border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-size: 0.84rem; color: var(--soft); }
+
+  /* Full-screen pages opened from tiles */
+  .page { position: absolute; inset: 0; background: var(--bg); z-index: 8; display: flex; flex-direction: column; }
+  .page-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px; border-bottom: 1px solid var(--line); }
+  .page-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1.1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-head small { color: var(--faint); font-weight: 600; margin-left: 6px; font-size: 0.8rem; }
+  .page .scroll { padding-top: 12px; padding-bottom: 96px; }
+  #strip { position: relative; z-index: 9; }
+  .chapter { font-family: var(--read); font-size: 1.14rem; line-height: 1.8; }
+  .cv { padding: 3px 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; display: block; }
+  .cv sup { font-family: var(--ui); font-size: 0.66rem; font-weight: 800; color: var(--pink); margin-right: 4px; }
+  .cv.sel { background: rgba(34, 227, 255, 0.1); box-shadow: inset 3px 0 0 var(--cyan); }
+  .cv.now { background: rgba(255, 63, 216, 0.12); box-shadow: inset 3px 0 0 var(--pink); }
+  .vcard { border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: pointer; background: var(--tile); }
+  .vcard.sel { border-color: var(--cyan); box-shadow: 0 0 10px rgba(34, 227, 255, 0.25); }
+  .vcard .r { font-size: 0.8rem; font-weight: 800; color: var(--cyan); }
+  .vcard p { margin: 2px 0 0; font-family: var(--read); font-size: 1.05rem; line-height: 1.55; }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 16px; margin-bottom: 10px; white-space: pre-wrap; line-height: 1.5; }
+  .msg.me { margin-left: auto; background: linear-gradient(135deg, var(--pink), #b43cff); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.ai { background: var(--tile); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg .ref { color: var(--cyan); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .note-title { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: 800 1.2rem var(--ui); padding: 4px 0 10px; outline: none; margin-bottom: 10px; }
+  textarea.note { width: 100%; min-height: 50vh; background: none; border: 0; color: var(--text); font: 1.06rem/1.7 var(--read); outline: none; resize: none; }
+
+  /* Player / selection strip */
+  .strip { border-top: 1px solid var(--line); background: rgba(9, 5, 15, 0.96); padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .strip .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border-radius: 12px; padding: 11px 14px; font-weight: 800;
+    background: linear-gradient(90deg, var(--pink), #b43cff); color: #fff; box-shadow: 0 0 14px var(--glow-p); }
+  .strip .main span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .strip .ctl { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line); display: grid; place-items: center; font-weight: 800; font-size: 0.85rem; color: var(--soft); flex: none; }
+  .strip .ctl.on { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(34, 227, 255, 0.3); }
+  .strip .count { font-weight: 800; margin-right: auto; }
+
+  .scrim { position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-end; }
+  .sheet { width: 100%; background: var(--tile); border-top: 1px solid var(--pink); box-shadow: 0 -6px 24px rgba(255, 63, 216, 0.2); border-radius: 22px 22px 0 0; padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px)); max-height: 82%; overflow-y: auto; }
+  .sheet h3 { margin: 4px 0 10px; }
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 13px 2px; border-bottom: 1px solid var(--line); font-weight: 700; }
+  .opt small { margin-left: auto; color: var(--faint); }
+  .sw { width: 42px; height: 24px; border-radius: 999px; background: var(--tile-2); border: 1px solid var(--line); position: relative; margin-left: auto; }
+  .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--faint); transition: transform 0.2s; }
+  .sw.on { border-color: var(--cyan); box-shadow: 0 0 8px rgba(34, 227, 255, 0.4); }
+  .sw.on::after { transform: translateX(18px); background: var(--cyan); }
+  .toast { position: absolute; left: 16px; right: 16px; top: 16px; z-index: 30; background: var(--tile-2); border: 1px solid var(--cyan); border-radius: 12px; padding: 11px 14px; font-size: 0.9rem; box-shadow: 0 0 16px rgba(34, 227, 255, 0.25); }
+  .proto { text-align: center; color: var(--faint); font-size: 0.72rem; margin-top: 18px; }
+  @media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } .tile, .sw::after { transition: none; } }
+</style>
+
+<div class="app" id="app">
+  <div class="scroll" id="home"></div>
+  <div id="strip"></div>
+  <div id="page"></div>
+  <div id="layer"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>';
+const ico = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const BACK = ico('<path d="m15 18-6-6 6-6"/>');
+
+// Sample text (KJV, public domain)
+const PSALM = ['The LORD is my shepherd; I shall not want.', 'He maketh me to lie down in green pastures: he leadeth me beside the still waters.', 'He restoreth my soul: he leadeth me in the paths of righteousness for his name’s sake.', 'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.', 'Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.', 'Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.'];
+const FAITH = [['Hebrews 11:1', 'Now faith is the substance of things hoped for, the evidence of things not seen.'], ['Romans 10:17', 'So then faith cometh by hearing, and hearing by the word of God.'], ['2 Corinthians 5:7', '(For we walk by faith, not by sight:)'], ['Ephesians 2:8', 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:'], ['Mark 11:22', 'And Jesus answering saith unto them, Have faith in God.']];
+const LISTS = [['Faith', FAITH.slice(0, 4)], ['Peace', [['John 14:27', 'Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.'], ['Isaiah 26:3', 'Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee.']]], ['Sunday readings', PSALM.slice(0, 3).map((t, i) => [`Psalm 23:${i + 1}`, t])], ['Comfort', [['2 Corinthians 1:3', 'Blessed be God, even the Father of our Lord Jesus Christ, the Father of mercies, and the God of all comfort;']]]];
+const NOTES = [['Walking by faith', 'Sunday sermon. Faith is trusting what God has said before we can see it.\n\n2 Corinthians 5:7 (KJV)\n(For we walk by faith, not by sight:)'], ['Prayer list', 'Mom’s surgery on Thursday.\nThe youth retreat.\nWisdom for the new job.']];
+
+let S = { page: null, sel: new Set(), playing: false, now: -1, repeat: false, speed: 1, hints: true, listening: false };
+let timer = 0, tt = 0;
+
+function toast(m) { clearTimeout(tt); $('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m; $('#app').append(t); tt = setTimeout(() => t.remove(), 2600); }
+
+function home() {
+  document.body.classList.toggle('nohints', !S.hints);
+  $('#home').innerHTML = `
+    <div class="head"><h1>Voice Bible</h1><button class="chip" id="tr">KJV ▾</button><button class="round" id="settings" aria-label="Settings">${ico('<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>')}</button></div>
+    <p class="greet">Good morning. <b>Day 12</b> of reading in a row.</p>
+    <form class="search" id="sform"><input id="q" placeholder="Search a word, or John 3:16" aria-label="Search the Bible" autocomplete="off"><button type="button" class="mic ${S.listening ? 'on' : ''}" id="mic" aria-label="Speak a search">${MIC}</button></form>
+    <p class="hint">Tap the mic and say a word or a verse.</p>
+    <div class="grid">
+      <button class="tile wide" data-go="read"><span class="lab">${ico('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Zm0 0v13"/>')}Continue reading</span>
+        <h2>Psalms 23</h2><span class="s">Verse 4 of 6 · “Yea, though I walk through the valley…”</span><div class="bar"><i></i></div>
+        <span class="row-acts"><span class="nb hot">▶ Resume</span><span class="nb">Open chapter</span></span></button>
+      <div class="tile wide"><span class="lab p">${ico('<path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/>')}Verse of the day</span>
+        <div class="big">“Fear thou not; for I am with thee: be not dismayed; for I am thy God.”</div><span class="ref">Isaiah 41:10</span>
+        <div class="row-acts"><button class="nb" id="votd-play">▶ Listen</button><button class="nb" id="votd-save">Save</button><button class="nb" id="votd-share">Share</button></div></div>
+      <div class="tile wide"><span class="lab">${ico('<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/>')}Verse Lists</span>
+        <div class="lists">${LISTS.map(([n, v], i) => `<button data-list="${i}"><b>${esc(n)}</b><small>${v.length} verses</small></button>`).join('')}<button id="newlist"><b>＋</b><small>New list</small></button></div></div>
+      <button class="tile" data-go="notes"><span class="lab p">${ico('<path d="M5 4h10l4 4v12H5Z"/><path d="M15 4v4h4M8 12h8"/>')}Notes</span><h2>${NOTES.length}</h2><span class="s">${esc(NOTES[0][0])} · ${esc(NOTES[1][0])}</span></button>
+      <button class="tile" data-go="search"><span class="lab">${ico('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}Last search</span><h2>“faith”</h2><span class="s">231 verses</span></button>
+      <div class="tile wide"><span class="lab p">${ico('<path d="M4 5h16v11H9l-5 4Z"/>')}Ask ChatGPT</span>
+        <form class="ask" id="aform"><input id="aq" placeholder="What does the Bible say about fear?" aria-label="Ask ChatGPT" autocomplete="off"><button class="nb hot">Ask</button></form>
+        <span class="s">Recent: Fear · Grace · Romans 8</span></div>
+      <div class="tile wide"><span class="lab">History</span><div class="hist">${['faith', 'Psalm 23', 'love your enemies', 'peace', 'John 3:16'].map(h => `<button data-go="search">${esc(h)}</button>`).join('')}</div></div>
+    </div>
+    <p class="proto">Clickable prototype · Option D · sample verses</p>`;
+}
+
+function page(kind, arg) {
+  S.page = { kind, arg }; S.sel.clear();
+  let title = '', body = '', extra = '';
+  if (kind === 'read') {
+    title = 'Psalms 23<small>KJV</small>';
+    body = `<p class="hint">Tap verses to choose them.</p><div class="chapter">${PSALM.map((t, i) => `<span class="cv ${S.now === i ? 'now' : ''}" data-i="${i}" role="button" tabindex="0"><sup>${i + 1}</sup>${esc(t)}</span>`).join('')}</div>`;
+  }
+  if (kind === 'search' || kind === 'list') {
+    const items = kind === 'list' ? LISTS[arg][1] : FAITH;
+    title = kind === 'list' ? `${esc(LISTS[arg][0])}<small>${items.length} verses</small>` : '“faith”<small>231 verses</small>';
+    body = `<p class="hint">Tap verses to choose them.</p>${items.map(([r, t], i) => `<div class="vcard" data-i="${i}" role="button" tabindex="0"><div class="r">${esc(r)}</div><p>${esc(t)}</p></div>`).join('')}`;
+  }
+  if (kind === 'notes') {
+    title = 'Notes';
+    body = NOTES.map(([t, b], i) => `<button class="vcard" style="display:block;width:100%;text-align:left" data-note="${i}"><div class="r">${esc(t)}</div><p style="font-family:var(--ui);font-size:.9rem;color:var(--soft)">${esc(b.replace(/\n+/g, ' '))}</p></button>`).join('') + `<button class="nb hot" data-note="0">＋ New note</button>`;
+  }
+  if (kind === 'note') {
+    title = 'Note';
+    body = `<input class="note-title" value="${esc(NOTES[arg][0])}" aria-label="Title"><div class="row-acts" style="margin-bottom:10px"><button class="nb hot" data-soon="Dictation goes where your cursor is.">🎙 Dictate</button><button class="nb" data-soon="Reads the note aloud, with Loop.">▶ Listen</button><button class="nb" data-soon="Insert a verse, a list or a chat.">＋ Insert</button></div><textarea class="note" aria-label="Note">${esc(NOTES[arg][1])}</textarea>`;
+  }
+  if (kind === 'chat') {
+    title = 'Ask ChatGPT';
+    body = `<div class="msg me">${esc(arg || 'What does the Bible say about fear?')}</div><div class="msg ai">Scripture meets fear with a promise that God is near.\n\n<span class="ref">Isaiah 41:10</span> “Fear thou not; for I am with thee.”\n\n<span class="ref">2 Timothy 1:7</span> “God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.”</div>`;
+  }
+  $('#page').innerHTML = `<section class="page" aria-label="${kind}"><div class="page-head"><button class="round" id="back" aria-label="Back">${BACK}</button><h2>${title}</h2></div><div class="scroll" id="pscroll">${body}</div></section>`;
+  strip();
+}
+function refreshPage() {
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const i = +el.dataset.i;
+    el.classList.toggle('sel', S.sel.has(i));
+    el.classList.toggle('now', S.now === i);
+  });
+  strip();
+}
+function pageItems() {
+  const p = S.page; if (!p) return [];
+  if (p.kind === 'read') return PSALM.map((t, i) => [`Psalm 23:${i + 1}`, t]);
+  if (p.kind === 'search') return FAITH;
+  if (p.kind === 'list') return LISTS[p.arg][1];
+  return [];
+}
+function strip() {
+  const items = pageItems();
+  if (!items.length && !S.playing) { $('#strip').innerHTML = ''; return; }
+  if (S.sel.size) {
+    $('#strip').innerHTML = `<div class="strip"><span class="count">${S.sel.size} chosen</span><button class="nb hot" id="playsel">▶ Play</button><button class="nb" data-soon="Pick a list to save them to.">Save</button><button class="nb" data-soon="Pick a note to add them to.">To note</button><button class="nb" data-soon="Opens your phone’s share menu.">Share</button><button class="nb" id="clr" aria-label="Clear">✕</button></div>`;
+    return;
+  }
+  const label = S.playing && items[S.now] ? items[S.now][0] : S.page?.kind === 'read' ? 'Play chapter' : `Play all ${items.length}`;
+  $('#strip').innerHTML = `<div class="strip"><button class="main" id="play">${S.playing ? '❚❚' : '▶'} <span>${esc(label)}</span></button><button class="ctl ${S.repeat ? 'on' : ''}" id="repeat" aria-label="Repeat" aria-pressed="${S.repeat}">⟳</button><button class="ctl" id="speed" aria-label="Speed">${S.speed}×</button></div>`;
+}
+function stop() { clearInterval(timer); S.playing = false; S.now = -1; }
+function play(only) {
+  const items = pageItems(); if (!items.length) return;
+  const order = only ?? items.map((_, i) => i); let k = 0;
+  S.playing = true; S.now = order[0]; S.sel.clear(); refreshPage();
+  clearInterval(timer);
+  timer = setInterval(() => {
+    k++;
+    if (k >= order.length) { if (S.repeat) k = 0; else { stop(); return refreshPage(); } }
+    S.now = order[k]; refreshPage();
+    document.querySelector('[data-i].now')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, 2400 / S.speed);
+}
+function sheet(html) { $('#layer').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`; }
+function close() { $('#layer').innerHTML = ''; }
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, [data-i], #scrim'); if (!el) return;
+  const d = el.dataset;
+  if (el.id === 'scrim' && e.target === el) return close();
+  if (d.i !== undefined && !el.matches('button')) { if (S.playing) stop(); const i = +d.i; S.sel.has(i) ? S.sel.delete(i) : S.sel.add(i); return refreshPage(); }
+  if (d.go) return page(d.go);
+  if (d.list !== undefined) return page('list', +d.list);
+  if (d.note !== undefined) return page('note', +d.note);
+  if (d.soon) { close(); return toast(d.soon); }
+  switch (el.id) {
+    case 'back': stop(); S.page = null; $('#page').innerHTML = ''; S.sel.clear(); return strip();
+    case 'mic':
+      S.listening = true; home(); $('#q').placeholder = 'Listening…';
+      return setTimeout(() => { S.listening = false; home(); page('search'); }, 1300);
+    case 'play': if (S.playing) { stop(); return refreshPage(); } return play();
+    case 'playsel': return play([...S.sel].sort((a, b) => a - b));
+    case 'clr': S.sel.clear(); return refreshPage();
+    case 'repeat': S.repeat = !S.repeat; return strip();
+    case 'speed': { const sp = [0.75, 1, 1.25, 1.5, 2]; S.speed = sp[(sp.indexOf(S.speed) + 1) % sp.length]; return strip(); }
+    case 'votd-play': return toast('Reads Isaiah 41:10 aloud.');
+    case 'votd-save': return toast('Pick a list to save it to.');
+    case 'votd-share': return toast('Opens your phone’s share menu.');
+    case 'newlist': return toast('A name box appears.');
+    case 'tr': return sheet(`<h3>Translation</h3><button class="opt" data-soon="KJV is on.">KJV</button><button class="opt" data-soon="KJV with Strong’s numbers.">KJV+S</button><button class="opt" data-soon="Reina-Valera, with the app in Spanish.">RV1909 <small>Español</small></button>`);
+    case 'settings': return sheet(`<h3>Settings</h3>
+      <button class="opt" data-soon="Voice picker.">Reading voice<small>Heart ›</small></button>
+      <button class="opt" data-soon="Colour picker.">Colours<small>Synthwave ›</small></button>
+      <button class="opt" id="hints">Hints<span class="sw ${S.hints ? 'on' : ''}" role="switch" aria-checked="${S.hints}"></span></button>
+      <button class="opt" data-soon="Opens your phone’s share menu.">Share Voice Bible<small>›</small></button>
+      <button class="opt" data-soon="Save or restore your lists, notes and chats.">Backup<small>›</small></button>`);
+    case 'hints': S.hints = !S.hints; close(); return home();
+  }
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset?.i !== undefined) { e.preventDefault(); e.target.click(); }
+  if (e.key === 'Escape') close();
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'sform') page('search');
+  if (e.target.id === 'aform') page('chat', $('#aq').value.trim());
+});
+home();
+</script>
