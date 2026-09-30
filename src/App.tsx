@@ -127,6 +127,22 @@ export default function App() {
   const [gotoOpen, setGotoOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemeId>(savedTheme);
+  // Instructions on screen ("Tap the mic…", "Say a word…"); the switch under the title hides them, per device
+  const [hints, setHintsState] = useState(() => {
+    try {
+      return localStorage.getItem('hints') !== 'off';
+    } catch {
+      return true;
+    }
+  });
+  const setHints = (on: boolean) => {
+    setHintsState(on);
+    try {
+      localStorage.setItem('hints', on ? 'on' : 'off');
+    } catch {
+      // storage unavailable; lasts for this visit
+    }
+  };
   // Brief message near the top; one about a list can be tapped to open it
   // Verses on their way into a note, while the note picker is open
   const [toNote, setToNote] = useState<{ verses: VerseHit[]; title: string } | null>(null);
@@ -395,7 +411,13 @@ export default function App() {
         </select>
       </header>
 
-      <MicPanel speech={speech} />
+      <label className="hints-switch">
+        <input type="checkbox" role="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
+        <span className="slider" aria-hidden />
+        {t('Hints')}
+      </label>
+
+      <MicPanel speech={speech} hints={hints} />
 
       {/* A note is for writing: keep the page to the note (the mic above still shows dictation) */}
       {view.kind !== 'note' && (
@@ -440,7 +462,7 @@ export default function App() {
         {loadError && <p className="notice error">{t('{error}. Check your connection and reload.', { error: loadError })}</p>}
         {!bible && !loadError && <p className="notice">{t('Loading the {bible} Bible…', { bible: abbrev })}</p>}
 
-        {view.kind === 'home' && bible && (
+        {view.kind === 'home' && bible && hints && (
           <div className="home">
             <p>{t('Say a word or phrase like')} <em>{t('“faith”')}</em> {t('or')} <em>{t('“love your enemies”')}</em> {t('to find every verse that contains it.')}</p>
             <p>{t('Say a reference like')} <em>{t('“John 3:16”')}</em> {t('or')} <em>{t('“Psalm 23”')}</em> {t('to open it.')}</p>
@@ -639,6 +661,7 @@ export default function App() {
             onShown={place => (shownChapter.current = place)}
             onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
             onPick={() => setGotoOpen(true)}
+            hints={hints}
           />
         )}
       </main>
@@ -897,7 +920,8 @@ function useNewVersion() {
   return latest;
 }
 
-function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
+/** The big mic. Without hints, only what it hears and problems (blocked, unsupported) show beneath it. */
+function MicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
   const { status, interim, start, stop } = speech;
   const listening = status === 'listening';
   const message = {
@@ -922,7 +946,9 @@ function MicPanel({ speech }: { speech: ReturnType<typeof useSpeech> }) {
           <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
         </svg>
       </button>
-      <p className="mic-status" aria-live="polite">{interim ? `“${interim}”` : message}</p>
+      <p className="mic-status" aria-live="polite">
+        {interim ? `“${interim}”` : hints || status === 'blocked' || status === 'unsupported' ? message : ''}
+      </p>
     </section>
   );
 }
@@ -1056,8 +1082,9 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, aroundList,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, aroundList, hints,
 }: {
+  hints: boolean; // show the "Tap a word… Swipe…" line
   bible: BibleText;
   view: Extract<View, { kind: 'chapter' }>;
   abbrev: string;
@@ -1168,12 +1195,12 @@ function Chapter({
             {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
           </button>
         </h2>
-        <p className="chapter-hint">
+        {hints && <p className="chapter-hint">
           {aroundList && onMain
             ? t('Tap verses around {ref} to add them to “{list}”. ', { ref: aroundList.label, list: aroundList.name })
             : tags ? t('Tap a word to study the Hebrew or Greek. ') : reader.supported ? t('Tap verses to choose which ones to play. ') : ''}
           {t('Swipe left or right for the next or previous chapter.')}
-        </p>
+        </p>}
         <ol className="chapter">
           {all.map(h => {
             const v = h.verse;

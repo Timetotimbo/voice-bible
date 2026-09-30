@@ -648,3 +648,13 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .list-title { display: flex; align-items: baseline; gap: 10px; }
 .list-title .note-title { flex: 1; min-width: 0; font-size: inherit; }
 .list-title small { flex: none; }
+
+/* The Hints switch under the title: shows or hides the instructions on screen */
+.hints-switch { display: inline-flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); cursor: pointer; user-select: none; }
+.hints-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.hints-switch .slider { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); transition: background 0.2s; flex: none; }
+.hints-switch .slider::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 0.2s, background 0.2s; }
+.hints-switch input:checked + .slider { background: var(--purple-deep); border-color: var(--purple); }
+.hints-switch input:checked + .slider::after { transform: translateX(16px); background: var(--on-accent); }
+.hints-switch input:focus-visible + .slider { outline: 2px solid var(--purple); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .hints-switch .slider, .hints-switch .slider::after { transition: none; } }

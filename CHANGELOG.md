@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v1.49.0 — 2026-09-29
+- A Hints switch under the Voice Bible title ("Ayudas" in Spanish). Turn it off to hide the instructions: the mic's "Tap the mic…" and "Listening…", the front page's "Say a word or phrase…", and the chapter page's "Tap a word… Swipe left or right…". What the mic hears, and problems like a blocked microphone, still show. It's remembered on each device.
+
 ## v1.48.0 — 2026-09-29
 - En español: with the Reina-Valera (RV1909) chosen, the whole app is in Spanish. That covers the front page, microphone messages, search, buttons, the play bar, Verse Lists, Notes, ChatGPT, History, Backup, colours, voices, word study, Go to, import and messages. The name stays Voice Bible. Switching back to KJV puts it back in English.
 - Dictating a note in Spanish understands "punto", "coma", "punto y coma", "dos puntos", "nuevo párrafo", "nueva línea", "punto y aparte", "signo de interrogación" and "signo de exclamación".

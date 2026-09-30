@@ -56,6 +56,7 @@ const ES: Record<string, string> = {
   'to open it.': 'para abrirla.',
   'New version {v} — tap to update': 'Nueva versión {v}: toca para actualizar',
   'Open ›': 'Abrir ›',
+  'Hints': 'Ayudas',
 
   // Microphone
   'Listening… say a word or verse': 'Escuchando… di una palabra o versículo',
