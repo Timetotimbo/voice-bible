@@ -32,6 +32,9 @@ jobs:
           VITE_AUDIO_BASE: https://pub-5a66f38c566346e2a958c9e52686537e.r2.dev/
       # SPA fallback so deep links and refreshes don't 404
       - run: cp dist/index.html dist/404.html
+      # ClipForge also lives at /clipforge/ (same address, so the teleprompter can hand it videos).
+      # Its code is in a private repo; the live, already-public page is copied in. ClipForge's deploy.sh re-runs this.
+      - run: mkdir -p dist/clipforge && curl -fsSL --retry 3 https://clipforge.eefavorbooks.com/ -o dist/clipforge/index.html && grep -q "CF_VERSION" dist/clipforge/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

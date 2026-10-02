@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.4.0 — 2026-10-01
+- ClipForge now lives inside Voice Bible, at voicebible.eefavorbooks.com/clipforge/. They're still two apps, but on one address they can share things:
+  - Send to ClipForge (after a teleprompter recording) opens ClipForge in the same window with the video already in it. There's no new tab or pop-up, and it works when Voice Bible is installed on the home screen (iPhone, iPad and Android).
+  - ClipForge uses the ChatGPT key you gave Voice Bible, so one key does both.
+  - "← Voice Bible" in ClipForge's top bar goes back.
+- clipforge.eefavorbooks.com still works. The first time you open ClipForge inside Voice Bible, "Bring over my templates, palettes and projects" copies everything from the old address in one step.
+
 ## v2.3.0 — 2026-10-01
 - Insert into a note: after finding verses by words (e.g. "God is good"), tap a verse to open its chapter, with that verse already chosen and in view. Tick any verses around it, then Insert, or go "← Back to results" to choose more. Tapping a result's box still chooses it without opening the chapter.
 - Your choices are kept while moving between the results, a chapter and new searches, and they're inserted together in Bible order (e.g. "Psalms 73:1-3").

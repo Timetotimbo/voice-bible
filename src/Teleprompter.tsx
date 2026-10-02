@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from './i18n';
+import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
 
@@ -36,8 +37,6 @@ export function videoFileName(title: string, type: string): string {
   return `${base}-${new Date().toLocaleDateString('en-CA')}.${type.includes('mp4') ? 'mp4' : 'webm'}`;
 }
 
-// ClipForge (captions, word animations, auto-reframe) takes the video in a new tab
-const CLIPFORGE = 'https://clipforge.eefavorbooks.com';
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
@@ -252,38 +251,22 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       if ((e as Error).name !== 'AbortError') setNote(t('Couldn’t share the video: {error}. Save it instead.', { error: (e as Error).message }));
     }
   };
-  // Send to ClipForge: open it, wait for it to say it's ready, then pass the file across (only to ClipForge's address)
+  // Send to ClipForge (at /clipforge/ on this same address): leave the video in storage it can read, then go there
   const [sendState, setSendState] = useState<'' | 'sending' | 'sent'>('');
-  const stopListening = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopListening.current?.(), []);
-  const sendToClipForge = () => {
+  const sendToClipForge = async () => {
     const f = file();
     if (!f || !take) return;
-    stopListening.current?.();
     setNote('');
-    const w = window.open(`${CLIPFORGE}/?from=voicebible`, '_blank');
-    if (!w) return setNote(t('The browser blocked the new tab. Allow pop-ups for this site, or save the video and upload it in ClipForge.'));
     setSendState('sending');
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin !== CLIPFORGE || e.source !== w) return;
-      if (e.data?.type === 'clipforge-ready') w.postMessage({ type: 'voicebible-video', file: f, name: take.name, title, script: text }, CLIPFORGE);
-      else if (e.data?.type === 'clipforge-got') {
-        stopListening.current?.();
-        setSendState('sent');
-        setTake(tk => (tk ? { ...tk, saved: true } : tk));
-      }
-    };
-    const timer = setTimeout(() => {
-      stopListening.current?.();
+    try {
+      await leaveForClipForge({ file: f, name: take.name, title, script: text, at: Date.now() });
+      setSendState('sent');
+      stream.current?.getTracks().forEach(tr => tr.stop());
+      location.assign(clipForgeUrl());
+    } catch (e) {
       setSendState('');
-      setNote(t('ClipForge didn’t answer. Save the video, then upload it in ClipForge.'));
-    }, 30000);
-    window.addEventListener('message', onMessage);
-    stopListening.current = () => {
-      window.removeEventListener('message', onMessage);
-      clearTimeout(timer);
-      stopListening.current = null;
-    };
+      setNote(t('Couldn’t pass the video to ClipForge: {error}. Save it instead.', { error: (e as Error).message }));
+    }
   };
 
   const close = () => {
