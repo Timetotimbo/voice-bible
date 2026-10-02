@@ -35,6 +35,8 @@ jobs:
       # ClipForge also lives at /clipforge/ (same address, so the teleprompter can hand it videos).
       # Its code is in a private repo; the live, already-public page is copied in. ClipForge's deploy.sh re-runs this.
       - run: mkdir -p dist/clipforge && curl -fsSL --retry 3 https://clipforge.eefavorbooks.com/ -o dist/clipforge/index.html && grep -q "CF_VERSION" dist/clipforge/index.html
+      # ClipForge's app manifest and icons, so it can be added to the home screen as its own app
+      - run: for f in manifest.webmanifest icon.svg icon-192.png icon-512.png apple-touch-icon.png; do curl -fsSL --retry 3 "https://clipforge.eefavorbooks.com/$f" -o "dist/clipforge/$f" || echo "skipped $f"; done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
