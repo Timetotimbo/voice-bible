@@ -35,6 +35,9 @@ export function videoFileName(title: string, type: string): string {
   return `${base}-${new Date().toLocaleDateString('en-CA')}.${type.includes('mp4') ? 'mp4' : 'webm'}`;
 }
 
+// ClipForge (captions, word animations, auto-reframe) takes the video in a new tab
+const CLIPFORGE = 'https://clipforge.eefavorbooks.com';
+
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 type Take = { url: string; blob: Blob; name: string; saved: boolean };
@@ -214,6 +217,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     if (take) URL.revokeObjectURL(take.url);
     setTake(null);
     setNote('');
+    setSendState('');
   };
   const save = () => {
     if (!take) return;
@@ -243,6 +247,40 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       if ((e as Error).name !== 'AbortError') setNote(t('Couldn’t share the video: {error}. Save it instead.', { error: (e as Error).message }));
     }
   };
+  // Send to ClipForge: open it, wait for it to say it's ready, then pass the file across (only to ClipForge's address)
+  const [sendState, setSendState] = useState<'' | 'sending' | 'sent'>('');
+  const stopListening = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopListening.current?.(), []);
+  const sendToClipForge = () => {
+    const f = file();
+    if (!f || !take) return;
+    stopListening.current?.();
+    setNote('');
+    const w = window.open(`${CLIPFORGE}/?from=voicebible`, '_blank');
+    if (!w) return setNote(t('The browser blocked the new tab. Allow pop-ups for this site, or save the video and upload it in ClipForge.'));
+    setSendState('sending');
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== CLIPFORGE || e.source !== w) return;
+      if (e.data?.type === 'clipforge-ready') w.postMessage({ type: 'voicebible-video', file: f, name: take.name, title, script: text }, CLIPFORGE);
+      else if (e.data?.type === 'clipforge-got') {
+        stopListening.current?.();
+        setSendState('sent');
+        setTake(tk => (tk ? { ...tk, saved: true } : tk));
+      }
+    };
+    const timer = setTimeout(() => {
+      stopListening.current?.();
+      setSendState('');
+      setNote(t('ClipForge didn’t answer. Save the video, then upload it in ClipForge.'));
+    }, 30000);
+    window.addEventListener('message', onMessage);
+    stopListening.current = () => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(timer);
+      stopListening.current = null;
+    };
+  };
+
   const close = () => {
     if (recording) stopRecording();
     if (take && !take.saved && !window.confirm(t('Close without saving this video?'))) return;
@@ -368,10 +406,17 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
           <div className="prompter-actions">
             {canShare && <button className="primary" onClick={share}>{t('Share')}</button>}
             <button className={canShare ? '' : 'primary'} onClick={save}>{t('Save video')}</button>
+            <button className="clipforge" onClick={sendToClipForge} disabled={sendState === 'sending'}>
+              {t(sendState === 'sending' ? 'Opening ClipForge…' : 'Send to ClipForge')}
+            </button>
             <button onClick={() => (take.saved || window.confirm(t('Delete this video and record again?'))) && discardTake()}>{t('Record again')}</button>
             <button onClick={close}>{t('Done')}</button>
           </div>
-          <p className="prompter-hint">{t('Share sends it to TikTok, Instagram, YouTube, WhatsApp and other apps on your phone.')}</p>
+          <p className="prompter-hint">
+            {sendState === 'sent'
+              ? t('Sent to ClipForge. Add captions there, then export.')
+              : t('Share sends it to TikTok, Instagram, YouTube, WhatsApp and other apps on your phone. ClipForge adds captions and effects.')}
+          </p>
         </div>
       )}
     </div>,

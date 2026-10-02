@@ -816,4 +816,6 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .prompter-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .prompter-actions button { padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); color: #fff; font-weight: 600; font-size: 0.95rem; }
 .prompter-actions .primary { background: var(--purple-deep); border-color: var(--purple-bright); color: var(--on-accent); }
+.prompter-actions .clipforge { border-color: rgba(245, 158, 11, 0.6); color: #fbbf24; }
+.prompter-actions .clipforge:disabled { opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) { .prompter-record span { transition: none; } }

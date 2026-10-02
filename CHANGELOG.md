@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.2.0 — 2026-10-01
+- Send to ClipForge: after recording with the teleprompter, "Send to ClipForge" opens ClipForge in a new tab with the video already in it, ready for captions, word animations and auto-reframe. The video goes only to ClipForge's own address. If the browser blocks the new tab, or ClipForge doesn't answer, it tells you to save the video and upload it there instead.
+
 ## v2.1.0 — 2026-10-01
 - Teleprompter in Notes: the camera button in a note's toolbar opens the camera full screen, with the note scrolling at the top, close to the lens, so you can read it while looking at the camera.
   - Speed in words a minute (60–260), with − and + or the slider. It can be changed while recording, and the screen shows about how long the note takes at that speed.

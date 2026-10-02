@@ -439,6 +439,11 @@ const ES: Record<string, string> = {
   'Save video': 'Guardar video',
   'Delete this video and record again?': '¿Borrar este video y grabar de nuevo?',
   'Record again': 'Grabar de nuevo',
-  'Share sends it to TikTok, Instagram, YouTube, WhatsApp and other apps on your phone.': 'Compartir lo envía a TikTok, Instagram, YouTube, WhatsApp y otras apps de tu teléfono.',
+  'Share sends it to TikTok, Instagram, YouTube, WhatsApp and other apps on your phone. ClipForge adds captions and effects.': 'Compartir lo envía a TikTok, Instagram, YouTube, WhatsApp y otras apps de tu teléfono. ClipForge añade subtítulos y efectos.',
+  'The browser blocked the new tab. Allow pop-ups for this site, or save the video and upload it in ClipForge.': 'El navegador bloqueó la pestaña nueva. Permite las ventanas emergentes para este sitio, o guarda el video y súbelo en ClipForge.',
+  'ClipForge didn’t answer. Save the video, then upload it in ClipForge.': 'ClipForge no respondió. Guarda el video y luego súbelo en ClipForge.',
+  'Opening ClipForge…': 'Abriendo ClipForge…',
+  'Send to ClipForge': 'Enviar a ClipForge',
+  'Sent to ClipForge. Add captions there, then export.': 'Enviado a ClipForge. Añade los subtítulos allí y luego exporta.',
   'Teleprompter: read this note to the camera and record a video': 'Teleprompter: lee esta nota a la cámara y graba un video',
 };
