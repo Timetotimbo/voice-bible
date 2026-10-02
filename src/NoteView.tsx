@@ -9,6 +9,7 @@ import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
+import { Teleprompter } from './Teleprompter';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
@@ -32,6 +33,7 @@ export function NoteView({
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const [inserting, setInserting] = useState(false);
+  const [prompting, setPrompting] = useState(false); // the teleprompter camera is open
   const insertingRef = useRef(inserting);
   insertingRef.current = inserting;
   // Where the cursor was in the note (opening Insert takes the focus away); null = the end
@@ -190,6 +192,22 @@ export function NoteView({
           <SpeakerIcon />
         </button>
         <button onClick={openInsert} disabled={reading}>{t('Insert')}</button>
+        <button
+          className="undo"
+          aria-label={t('Teleprompter')}
+          title={t('Teleprompter: read this note to the camera and record a video')}
+          disabled={!note.text.trim() || !navigator.mediaDevices?.getUserMedia}
+          onClick={() => {
+            if (reading) reader.stop();
+            if (listening) onDictate(false); // the camera needs the microphone
+            setPrompting(true);
+          }}
+        >
+          <svg className="cam-icon" viewBox="0 0 24 24" aria-hidden>
+            <rect x="2.5" y="6.5" width="13" height="11" rx="2.5" />
+            <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
+          </svg>
+        </button>
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
         <button className="undo" aria-label={t('Share')} title={t('Share')} onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
@@ -238,6 +256,7 @@ export function NoteView({
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
+      {prompting && <Teleprompter title={note.title || noteTitle(note)} text={note.text} onClose={() => setPrompting(false)} />}
       {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : t('Listening…')}</p>}
 
       {inserting && (

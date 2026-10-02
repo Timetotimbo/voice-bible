@@ -766,3 +766,54 @@ input.switch { appearance: none; -webkit-appearance: none; width: 44px; height: 
 input.switch:checked { border-color: var(--purple); background: radial-gradient(circle, var(--on-accent) 8px, transparent 9px) no-repeat 20px center / 20px 20px, var(--purple-deep); }
 input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { input.switch { transition: none; } }
+
+/* Teleprompter: the camera full screen, the note scrolling near the lens */
+.cam-icon { width: 19px; height: 19px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.prompter { position: fixed; inset: 0; z-index: 1000; background: #000; color: #fff; overflow: hidden; height: 100dvh; touch-action: none; }
+.prompter-cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.prompter-cam.selfie { transform: scaleX(-1); }
+.prompter-scroll {
+  position: absolute; left: 0; right: 0; top: 0; height: 48%; overflow-y: auto; touch-action: pan-y; scrollbar-width: none;
+  background: linear-gradient(rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0));
+  -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 82%, transparent);
+  mask-image: linear-gradient(transparent, #000 12%, #000 82%, transparent);
+}
+.prompter-scroll::-webkit-scrollbar { display: none; }
+/* Room above and below so the first line starts at the reading line and the last can scroll up to it */
+.prompter-words { padding: calc(48dvh * 0.3) 7% calc(48dvh * 0.7); line-height: 1.35; font-weight: 600; text-align: center; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8); }
+.prompter-words p { margin: 0 0 0.8em; }
+.prompter-words.mirror { transform: scaleX(-1); }
+.prompter-empty { opacity: 0.7; font-size: 0.6em; }
+.prompter-guide { position: absolute; left: 0; right: 0; top: calc(48dvh * 0.3 + 0.2em); height: 0; pointer-events: none; border-top: 1px dashed rgba(255, 255, 255, 0.25); }
+.prompter-guide::before { content: '▶'; position: absolute; left: 6px; top: -0.75em; font-size: 14px; color: var(--purple-bright); }
+.prompter-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.prompter-top > * { pointer-events: auto; }
+.prompter-info { font-size: 0.78rem; background: rgba(0, 0, 0, 0.55); padding: 4px 10px; border-radius: 999px; }
+.prompter-rec { font-size: 0.9rem; font-weight: 700; color: #fff; background: #d92d2d; padding: 4px 12px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.prompter-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 1.1rem; display: grid; place-items: center; padding: 0; }
+.prompter-icon:disabled { opacity: 0.35; }
+.prompter-settings {
+  position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 52px); right: 12px; width: min(300px, calc(100% - 24px));
+  background: rgba(15, 12, 22, 0.94); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; font-size: 0.88rem; z-index: 2;
+}
+.prompter-settings label { display: grid; gap: 4px; }
+.prompter-settings .prompter-check { display: flex; gap: 8px; align-items: center; }
+.prompter input[type='range'] { width: 100%; accent-color: var(--purple-bright); }
+.prompter-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 7rem; font-weight: 800; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8); pointer-events: none; }
+.prompter-error { position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.8); border: 1px solid #f87171; color: #fecaca; padding: 12px 14px; border-radius: 12px; text-align: center; z-index: 3; }
+.prompter-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px max(14px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0, 0, 0, 0.7) 35%); display: grid; gap: 10px; }
+.prompter-speed { display: flex; align-items: center; gap: 10px; }
+.prompter-speed label { flex: 1; display: grid; gap: 2px; font-size: 0.8rem; text-align: center; }
+.prompter-speed button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 1.2rem; padding: 0; }
+.prompter-controls { display: flex; justify-content: space-evenly; align-items: center; }
+.prompter-record { width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fff; background: transparent; padding: 0; display: grid; place-items: center; }
+.prompter-record span { width: 54px; height: 54px; border-radius: 50%; background: #e53935; transition: all 0.15s; }
+.prompter-record.on span { width: 28px; height: 28px; border-radius: 6px; }
+.prompter-record:disabled { opacity: 0.4; }
+.prompter-hint { margin: 0; text-align: center; font-size: 0.75rem; opacity: 0.75; }
+.prompter-review { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); }
+.prompter-take { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #000; }
+.prompter-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.prompter-actions button { padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); color: #fff; font-weight: 600; font-size: 0.95rem; }
+.prompter-actions .primary { background: var(--purple-deep); border-color: var(--purple-bright); color: var(--on-accent); }
+@media (prefers-reduced-motion: reduce) { .prompter-record span { transition: none; } }

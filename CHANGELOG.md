@@ -2,6 +2,15 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.1.0 — 2026-10-01
+- Teleprompter in Notes: the camera button in a note's toolbar opens the camera full screen, with the note scrolling at the top, close to the lens, so you can read it while looking at the camera.
+  - Speed in words a minute (60–260), with − and + or the slider. It can be changed while recording, and the screen shows about how long the note takes at that speed.
+  - Tap the text to pause or carry on; drag it to go back or ahead. ▶ scrolls it to practise without recording; ⤒ goes back to the top.
+  - ● records with a 3-2-1 countdown (it can be turned off) and a running timer. The words on screen aren't in the video. ⟲ switches between the front and back cameras.
+  - ⚙ has text size, the countdown, and mirrored text for a teleprompter glass.
+  - After recording, watch the take, then Share it (to TikTok, Instagram, YouTube, WhatsApp and other apps on the phone), Save video, or Record again. Closing asks first if the video hasn't been saved or shared.
+  - Records MP4 where the browser can (Chrome on Android, Safari on iPhone), else WebM. The screen stays on while it's open. Works in both layouts and in Spanish.
+
 ## v2.0.0 — 2026-09-30
 A new look, built from the Neon Book design (mockup Option E):
 - The app opens on the chapter you last read, set like an open book: the book's name, a big chapter number, and the verses running together in a reading font (Spectral). "Go to ▾" picks another place.
