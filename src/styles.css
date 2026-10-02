@@ -619,6 +619,15 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .pick-verses label.on { background: var(--surface-2); }
 .pick-verses input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--purple); }
 .pick-verses b { color: var(--purple-bright); font-weight: 600; }
+.pick-verses.tall { max-height: 50vh; }
+.pick-result { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; line-height: 1.45; }
+.pick-result.on { background: var(--surface-2); }
+.pick-open { flex: 1; min-width: 0; text-align: left; background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.pick-more { white-space: nowrap; font-size: 0.8em; color: var(--purple-bright); }
+.pick-tip { margin: 0 0 6px; font-size: 0.82rem; color: var(--muted); }
+.pick-chapter-head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.pick-chapter-head b { color: var(--purple-bright); }
+.pick-back { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; }
 .word-sheet .add-note { background: var(--surface-2); border-color: var(--border); color: var(--purple-bright); }
 .choose-note { margin-top: 10px; }
 .note-tools .undo { padding: 8px 10px; font-size: 1.05rem; line-height: 1; }

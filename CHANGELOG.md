@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.3.0 — 2026-10-01
+- Insert into a note: after finding verses by words (e.g. "God is good"), tap a verse to open its chapter, with that verse already chosen and in view. Tick any verses around it, then Insert, or go "← Back to results" to choose more. Tapping a result's box still chooses it without opening the chapter.
+- Your choices are kept while moving between the results, a chapter and new searches, and they're inserted together in Bible order (e.g. "Psalms 73:1-3").
+
 ## v2.2.1 — 2026-10-01
 - Fix: teleprompter videos showed the wrong length in the phone's Photos/Gallery app (a 12-second video said 3 seconds). Phone browsers record MP4 in many small pieces without writing the total length. After recording, Voice Bible now copies the picture and sound, unchanged and with no loss of quality, into a normal MP4 with the right length. You'll see "Preparing the video…" for a moment. If a phone records in a format this can't handle, the video is kept as it was.
 

@@ -13,7 +13,7 @@ import { Teleprompter } from './Teleprompter';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
-  note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, versesText, reader, listen,
+  note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -27,6 +27,7 @@ export function NoteView({
   onShare: (text: string) => void;
   // Looks up a reference or words, like the main search; `picked` are the verses a reference asked for
   findVerses: (query: string) => { verses: VerseHit[]; picked: VerseHit[] };
+  chapterOf: (book: number, chapter: number) => VerseHit[]; // a whole chapter, to choose verses around a result
   versesText: (verses: VerseHit[]) => string; // verses written out with their references
   reader: Reader;
   listen: Listen;
@@ -44,15 +45,20 @@ export function NoteView({
   // Finding a verse to insert
   const [query, setQuery] = useState('');
   const [found, setFound] = useState<VerseHit[]>([]);
-  const [checked, setChecked] = useState<Set<string>>(new Set());
+  // Chosen verses, kept while moving between the results and a chapter
+  const [checked, setChecked] = useState<Map<string, VerseHit>>(new Map());
+  // A result opened in its chapter (to see it in context and choose the verses around it)
+  const [inChapter, setInChapter] = useState<{ verses: VerseHit[]; focus: string } | null>(null);
   const [searched, setSearched] = useState(false);
   const key = (v: VerseHit) => `${v.book}-${v.chapter}-${v.verse}`;
-  const shown = useMemo(() => found.slice(0, 60), [found]);
+  const shown = useMemo(() => (inChapter ? inChapter.verses : found.slice(0, 60)), [found, inChapter]);
   // A reference opens its whole chapter: bring the verse asked for into view
   const pickList = useRef<HTMLUListElement>(null);
   useEffect(() => {
-    pickList.current?.querySelector('label.on')?.scrollIntoView({ block: 'center' });
-  }, [found]);
+    const list = pickList.current;
+    const el = (inChapter && list?.querySelector(`[data-key="${inChapter.focus}"]`)) || list?.querySelector('label.on');
+    el?.scrollIntoView({ block: 'center' });
+  }, [found, inChapter]);
   // Always dictate onto the newest text, even while typing between phrases
   const textRef = useRef(note.text);
   textRef.current = note.text;
@@ -128,21 +134,35 @@ export function NoteView({
     if (!q) return;
     const { verses, picked } = findVerses(q);
     setFound(verses);
-    setChecked(new Set(picked.map(key)));
+    setInChapter(null);
+    setChecked(c => {
+      const next = new Map(c);
+      picked.forEach(v => next.set(key(v), v));
+      return next;
+    });
     setSearched(true);
   };
   const toggle = (v: VerseHit) =>
     setChecked(c => {
-      const next = new Set(c);
+      const next = new Map(c);
       if (next.has(key(v))) next.delete(key(v));
-      else next.add(key(v));
+      else next.set(key(v), v);
       return next;
     });
-  const chosen = found.filter(v => checked.has(key(v)));
+  /** Open a search result in its chapter, with it chosen, to add the verses around it. */
+  const openChapter = (v: VerseHit) => {
+    setChecked(c => new Map(c).set(key(v), v));
+    setInChapter({ verses: chapterOf(v.book, v.chapter), focus: key(v) });
+  };
+  // Everything chosen, in Bible order
+  const chosen = [...checked.values()].sort((a, b) => a.book - b.book || a.chapter - b.chapter || a.verse - b.verse);
+  // A reference search ("Psalm 73") already shows a chapter: tapping a verse chooses it there too
+  const chapterList = !!inChapter || (found.length > 1 && found.every(v => v.book === found[0].book && v.chapter === found[0].chapter) && found.length === chapterOf(found[0].book, found[0].chapter).length);
   const openInsert = () => {
     setQuery('');
     setFound([]);
-    setChecked(new Set());
+    setChecked(new Map());
+    setInChapter(null);
     setSearched(false);
     setInserting(true);
   };
@@ -285,21 +305,37 @@ export function NoteView({
               <button type="submit" disabled={!query.trim()}>{t('Find')}</button>
             </form>
             {searched && !found.length && <p className="notice">{t('No verses found.')}</p>}
+            {inChapter && (
+              <div className="pick-chapter-head">
+                <button className="pick-back" onClick={() => setInChapter(null)}>{t('← Back to results')}</button>
+                <b>{bookName(inChapter.verses[0]?.book ?? 0)} {inChapter.verses[0]?.chapter}</b>
+              </div>
+            )}
             {found.length > 0 && (
               <>
-                <ul className="pick-verses" ref={pickList}>
+                {!chapterList && <p className="pick-tip">{t('Tap a verse to see its chapter and choose the verses around it, or tap its box to choose it.')}</p>}
+                <ul className={`pick-verses ${inChapter ? 'tall' : ''}`} ref={pickList}>
                   {shown.map(v => (
-                    <li key={key(v)}>
-                      <label className={checked.has(key(v)) ? 'on' : ''}>
-                        <input type="checkbox" checked={checked.has(key(v))} onChange={() => toggle(v)} />
-                        <span>
-                          <b>{bookName(v.book)} {v.chapter}:{v.verse}</b> {v.text}
-                        </span>
-                      </label>
+                    <li key={key(v)} data-key={key(v)}>
+                      {chapterList ? (
+                        <label className={checked.has(key(v)) ? 'on' : ''}>
+                          <input type="checkbox" checked={checked.has(key(v))} onChange={() => toggle(v)} />
+                          <span>
+                            <b>{inChapter ? v.verse : `${bookName(v.book)} ${v.chapter}:${v.verse}`}</b> {v.text}
+                          </span>
+                        </label>
+                      ) : (
+                        <div className={`pick-result ${checked.has(key(v)) ? 'on' : ''}`}>
+                          <input type="checkbox" checked={checked.has(key(v))} onChange={() => toggle(v)} aria-label={t('Choose {ref}', { ref: `${bookName(v.book)} ${v.chapter}:${v.verse}` })} />
+                          <button className="pick-open" onClick={() => openChapter(v)} title={t('See the chapter')}>
+                            <b>{bookName(v.book)} {v.chapter}:{v.verse}</b> {v.text} <span className="pick-more">{t('Chapter ›')}</span>
+                          </button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
-                {found.length > shown.length && <p className="notice">{t('Showing the first {shown} of {n}. Add more words to narrow it.', { shown: shown.length, n: found.length })}</p>}
+                {!inChapter && found.length > shown.length && <p className="notice">{t('Showing the first {shown} of {n}. Add more words to narrow it.', { shown: shown.length, n: found.length })}</p>}
                 <button className="goto-open" disabled={!chosen.length} onClick={() => insert(versesText(chosen))}>
                   {chosen.length ? n('Insert {n} verse', 'Insert {n} verses', chosen.length) : t('Insert verses')}
                 </button>

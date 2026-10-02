@@ -759,6 +759,7 @@ export default function App() {
                   : ''
               }
               versesText={verses => versesAsText(verses, abbrev)}
+              chapterOf={(book, chapter) => (bible?.[book]?.[chapter - 1] ?? []).map((text, i) => ({ book, chapter, verse: i + 1, text }))}
               findVerses={q => {
                 if (!bible || !index) return { verses: [], picked: [] };
                 const ref = parseReference(q, bible);
