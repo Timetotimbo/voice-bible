@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.2.1 — 2026-10-01
+- Fix: teleprompter videos showed the wrong length in the phone's Photos/Gallery app (a 12-second video said 3 seconds). Phone browsers record MP4 in many small pieces without writing the total length. After recording, Voice Bible now copies the picture and sound, unchanged and with no loss of quality, into a normal MP4 with the right length. You'll see "Preparing the video…" for a moment. If a phone records in a format this can't handle, the video is kept as it was.
+
 ## v2.2.0 — 2026-10-01
 - Send to ClipForge: after recording with the teleprompter, "Send to ClipForge" opens ClipForge in a new tab with the video already in it, ready for captions, word animations and auto-reframe. The video goes only to ClipForge's own address. If the browser blocks the new tab, or ClipForge doesn't answer, it tells you to save the video and upload it there instead.
 

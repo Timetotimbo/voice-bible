@@ -800,6 +800,7 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .prompter-settings .prompter-check { display: flex; gap: 8px; align-items: center; }
 .prompter input[type='range'] { width: 100%; accent-color: var(--purple-bright); }
 .prompter-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 7rem; font-weight: 800; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8); pointer-events: none; }
+.prompter-preparing { font-size: 1.2rem; font-weight: 600; background: rgba(0, 0, 0, 0.6); }
 .prompter-error { position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.8); border: 1px solid #f87171; color: #fecaca; padding: 12px 14px; border-radius: 12px; text-align: center; z-index: 3; }
 .prompter-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px max(14px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0, 0, 0, 0.7) 35%); display: grid; gap: 10px; }
 .prompter-speed { display: flex; align-items: center; gap: 10px; }

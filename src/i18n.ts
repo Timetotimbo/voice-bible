@@ -444,6 +444,7 @@ const ES: Record<string, string> = {
   'ClipForge didn’t answer. Save the video, then upload it in ClipForge.': 'ClipForge no respondió. Guarda el video y luego súbelo en ClipForge.',
   'Opening ClipForge…': 'Abriendo ClipForge…',
   'Send to ClipForge': 'Enviar a ClipForge',
+  'Preparing the video…': 'Preparando el video…',
   'Sent to ClipForge. Add captions there, then export.': 'Enviado a ClipForge. Añade los subtítulos allí y luego exporta.',
   'Teleprompter: read this note to the camera and record a video': 'Teleprompter: lee esta nota a la cámara y graba un video',
 };

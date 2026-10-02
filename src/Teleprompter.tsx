@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from './i18n';
+import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
 
 /**
@@ -157,6 +158,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const [count, setCount] = useState(0); // 3, 2, 1 before recording
   const [elapsed, setElapsed] = useState(0);
   const [take, setTake] = useState<Take | null>(null);
+  const [preparing, setPreparing] = useState(false); // making the recording into a normal MP4
   const [note, setNote] = useState('');
   const type = useMemo(recordingType, []);
 
@@ -179,9 +181,12 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       return;
     }
     rec.ondataavailable = e => e.data.size && chunks.push(e.data);
-    rec.onstop = () => {
+    rec.onstop = async () => {
       const blobType = rec.mimeType || type || 'video/webm';
-      const blob = new Blob(chunks, { type: blobType.split(';')[0] });
+      setPreparing(true);
+      // Rewrite the phone's MP4 so its length is right in the gallery (it records in pieces)
+      const blob = await normalMp4(new Blob(chunks, { type: blobType.split(';')[0] }));
+      setPreparing(false);
       setTake({ url: URL.createObjectURL(blob), blob, name: videoFileName(title, blobType), saved: false });
     };
     rec.start(1000);
@@ -360,6 +365,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
           )}
 
           {count > 0 && <div className="prompter-count" aria-live="assertive">{count}</div>}
+          {preparing && <div className="prompter-count prompter-preparing" aria-live="polite">{t('Preparing the video…')}</div>}
           {note && <p className="prompter-error">{note}</p>}
 
           <div className="prompter-bottom">
