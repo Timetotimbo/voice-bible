@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.4.1 — 2026-10-02
+- A new app icon for the home screen: an open Bible with sound rising from it, as a glowing neon sign (magenta into cyan on deep navy). It's also made in the shape Android expects, so it fills the icon instead of sitting small on a white circle. Phones show it the next time Voice Bible is added to the home screen.
+
 ## v2.4.0 — 2026-10-01
 - ClipForge now lives inside Voice Bible, at voicebible.eefavorbooks.com/clipforge/. They're still two apps, but on one address they can share things:
   - Send to ClipForge (after a teleprompter recording) opens ClipForge in the same window with the video already in it. There's no new tab or pop-up, and it works when Voice Bible is installed on the home screen (iPhone, iPad and Android).
