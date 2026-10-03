@@ -412,7 +412,12 @@ const ES: Record<string, string> = {
   'Translated as: {words}': 'Traducido como: {words}',
   // Teleprompter
   'Screen + face': 'Pantalla + cara',
-  'Camera only': 'Solo cámara',
+  'Camera': 'Cámara',
+  'Words + face': 'Palabras + cara',
+  'What to record': 'Qué grabar',
+  'What the video will look like': 'Así se verá el video',
+  'The video shows the words at the ▶ line. Tap the text to pause it.': 'El video muestra las palabras de la línea ▶. Toca el texto para pausarlo.',
+  'The video shows the words you’re reading at the ▶ line, large, with your face under them (small preview on the right).': 'El video muestra en grande las palabras que lees en la línea ▶, con tu cara debajo (vista previa pequeña a la derecha).',
   'Couldn’t share the screen: {error}': 'No se pudo compartir la pantalla: {error}',
   'Face bubble': 'Burbuja de la cara',
   'Bottom right': 'Abajo a la derecha',

@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.6.0 — 2026-10-03
+- Teleprompter: **Words + face**, on phones and computers. The video is tall (for Shorts, Reels and TikTok) and shows the words you're reading, large and clean, with your face in a glowing circle under them and your voice.
+  - The words follow the ▶ line as the text scrolls: each paragraph shows on its own, and long ones are split into pieces of about 40 words at the ends of sentences.
+  - A small preview on the right shows what the video looks like.
+  - To show Bible verses, put them in a note first (Insert into a note), then open the teleprompter from that note.
+- The teleprompter's top now has Camera · Words + face (· Screen + face on computers).
+
 ## v2.5.0 — 2026-10-03
 - Teleprompter: **Screen + face** (on a computer, in Chrome or Edge). Record your screen, a window or a browser tab with your camera in a round bubble in a corner, plus your voice (and the computer's sound if you tick "share audio").
   - Choose the bubble's corner and size in the teleprompter settings (⚙).

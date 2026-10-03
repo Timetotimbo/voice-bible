@@ -783,9 +783,13 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .prompter-cam.selfie { transform: scaleX(-1); }
 .prompter-screen-box { background: #000; display: flex; align-items: center; justify-content: center; }
 .prompter-screen { max-width: 100%; max-height: 100%; width: auto; height: auto; }
-.prompter-mode { margin-left: auto; margin-right: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.5); background: rgba(0,0,0,.45); color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+.prompter-modes { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.prompter-mode { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.5); background: rgba(0,0,0,.45); color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
 .prompter-mode[aria-pressed="true"] { background: #e5484d; border-color: #e5484d; }
 .prompter-mode:disabled { opacity: .5; cursor: default; }
+.prompter-mode[aria-pressed="true"]:disabled { opacity: 1; }
+.prompter-thumb { position: absolute; right: 12px; bottom: 200px; width: min(26vw, 140px); aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; border: 2px solid rgba(255,255,255,.7); box-shadow: 0 4px 16px rgba(0,0,0,.5); pointer-events: none; background: #000; }
+.prompter-thumb-canvas { width: 100%; height: 100%; display: block; }
 .prompter-scroll {
   position: absolute; left: 0; right: 0; top: 0; height: 48%; overflow-y: auto; touch-action: pan-y; scrollbar-width: none;
   background: linear-gradient(rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0));

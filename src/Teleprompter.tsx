@@ -4,6 +4,7 @@ import { t } from './i18n';
 import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
+import { slidesOf, startWordsFace, type WordsFace } from './wordsFace';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
 
 /**
@@ -156,6 +157,49 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   useEffect(() => () => screenRef.current?.stop(), []);
   const floating = useRef<{ close: () => void } | null>(null);
 
+  // ---- Words + face (any device): what you're reading, large, with your face in a circle under it ----
+  const [wordsOn, setWordsOn] = useState(false);
+  const wordsRef = useRef<WordsFace | null>(null);
+  const [wordsFace, setWordsFace] = useState<WordsFace | null>(null);
+  const guide = useRef<HTMLDivElement>(null);
+  const slides = useMemo(() => paragraphs.map(slidesOf), [paragraphs]);
+  // The piece being read: the paragraph at the ▶ line, and how far through it you are
+  const currentSlide = () => {
+    const lineY = guide.current?.getBoundingClientRect().top ?? 0;
+    const ps = Array.from(words.current?.children ?? []) as HTMLElement[];
+    let i = 0;
+    for (let k = 0; k < ps.length; k++) if (ps[k].getBoundingClientRect().top <= lineY + 4) i = k;
+    const parts = slides[i] ?? [''];
+    const r = ps[i]?.getBoundingClientRect();
+    const through = r && r.height ? Math.max(0, Math.min(0.999, (lineY - r.top) / r.height)) : 0;
+    return parts[Math.floor(through * parts.length)] ?? parts[0];
+  };
+  const currentSlideRef = useRef(currentSlide);
+  currentSlideRef.current = currentSlide;
+  useEffect(() => {
+    if (!wordsOn || !camReady || !stream.current) return;
+    const wf = startWordsFace(stream.current, () => currentSlideRef.current(), { title, mirror: prefs.facing === 'user' });
+    wordsRef.current = wf;
+    setWordsFace(wf);
+    return () => {
+      wf.stop();
+      wordsRef.current = null;
+      setWordsFace(null);
+    };
+  }, [wordsOn, camReady, prefs.facing, title]);
+  // The small preview shows the canvas itself (put back each time the box appears, e.g. after reviewing a take)
+  const thumb = (box: HTMLDivElement | null) => {
+    if (!box || !wordsFace || box.firstChild === wordsFace.canvas) return;
+    wordsFace.canvas.className = 'prompter-thumb-canvas';
+    box.replaceChildren(wordsFace.canvas);
+  };
+  const chooseMode = (m: 'camera' | 'words' | 'screen') => {
+    if (m !== 'screen' && screenRef.current) stopScreen();
+    setWordsOn(m === 'words');
+    if (m === 'screen' && !screenRef.current) startScreen();
+  };
+  const mode = screen ? 'screen' : wordsOn ? 'words' : 'camera';
+
   // ---- Scrolling ----
   const scroller = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLDivElement>(null);
@@ -211,12 +255,12 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   }, [recording]);
 
   const begin = () => {
-    const s = screenRef.current?.stream ?? stream.current;
+    const s = screenRef.current?.stream ?? wordsRef.current?.stream ?? stream.current;
     if (!s) return;
     const chunks: Blob[] = [];
     let rec: MediaRecorder;
     try {
-      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: screenRef.current ? 8_000_000 : 6_000_000 });
+      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: screenRef.current || wordsRef.current ? 8_000_000 : 6_000_000 });
     } catch (e) {
       setNote(t('This browser can’t record video: {error}', { error: (e as Error).message }));
       floating.current?.close();
@@ -370,7 +414,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               {paragraphs.length ? paragraphs.map((p, i) => <p key={i}>{p}</p>) : <p className="prompter-empty">{t('This note is empty. Write something to read first.')}</p>}
             </div>
           </div>
-          <div className="prompter-guide" aria-hidden />
+          <div ref={guide} className="prompter-guide" aria-hidden />
+          {wordsOn && <div ref={thumb} className="prompter-thumb" aria-label={t('What the video will look like')} />}
 
           <div className="prompter-top">
             {recording ? (
@@ -378,11 +423,19 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             ) : (
               <span className="prompter-info">{t('About {m} min at this speed', { m: Math.max(1, Math.round(minutes)) })}</span>
             )}
-            {showScreenOption && (
-              <button className="prompter-mode" onClick={screen ? stopScreen : startScreen} disabled={recording || !camReady} aria-pressed={!!screen}>
-                {screen ? t('Camera only') : t('Screen + face')}
+            <div className="prompter-modes" role="group" aria-label={t('What to record')}>
+              <button className="prompter-mode" onClick={() => chooseMode('camera')} disabled={recording || !camReady} aria-pressed={mode === 'camera'}>
+                {t('Camera')}
               </button>
-            )}
+              <button className="prompter-mode" onClick={() => chooseMode('words')} disabled={recording || !camReady} aria-pressed={mode === 'words'}>
+                {t('Words + face')}
+              </button>
+              {showScreenOption && (
+                <button className="prompter-mode" onClick={() => chooseMode('screen')} disabled={recording || !camReady} aria-pressed={mode === 'screen'}>
+                  {t('Screen + face')}
+                </button>
+              )}
+            </div>
             <button className="prompter-icon" aria-label={t('Teleprompter settings')} aria-expanded={showSettings} onClick={() => setShowSettings(s => !s)}>
               ⚙
             </button>
@@ -463,7 +516,9 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               </button>
             </div>
             <p className="prompter-hint">
-              {screen
+              {wordsOn && !screen
+                ? t(recording ? 'The video shows the words at the ▶ line. Tap the text to pause it.' : 'The video shows the words you’re reading at the ▶ line, large, with your face under them (small preview on the right).')
+                : screen
                 ? t(recording ? 'Recording your screen and face. Stop here, in the small floating window, or with “Stop sharing”.' : 'Press ● to record your screen with your face in the corner. Switch to the window you want to show after the countdown.')
                 : t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}
             </p>

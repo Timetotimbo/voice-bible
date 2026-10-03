@@ -33,7 +33,7 @@ export function outputSize(w: number, h: number) {
   return { w: even(w), h: even(h) };
 }
 
-function hiddenVideo(stream: MediaStream) {
+export function hiddenVideo(stream: MediaStream) {
   const v = document.createElement('video');
   v.muted = true;
   v.playsInline = true;
@@ -45,7 +45,8 @@ function hiddenVideo(stream: MediaStream) {
   return v;
 }
 
-function ticker(fps: number, onTick: () => void) {
+/** Calls onTick fps times a second, even while the page is hidden (a Worker's timer isn't slowed down). */
+export function ticker(fps: number, onTick: () => void) {
   const src = `let iv;onmessage=e=>{clearInterval(iv);if(e.data)iv=setInterval(()=>postMessage(0),e.data)}`;
   const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
   const w = new Worker(url);
