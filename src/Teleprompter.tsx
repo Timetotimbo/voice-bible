@@ -4,15 +4,16 @@ import { t } from './i18n';
 import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
+import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
 
 /**
  * Teleprompter: the camera full screen with the note scrolling near the lens, so you can read it while
  * looking at the camera. Record, watch the take, then save it or share it (to TikTok, Instagram, YouTube…).
  * The words on screen aren't in the video.
  */
-type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment' };
+type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize };
 const PREFS_KEY = 'prompter';
-const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user' };
+const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm' };
 const MIN_WPM = 60;
 const MAX_WPM = 260;
 
@@ -114,6 +115,47 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     };
   }, []);
 
+  // ---- Screen + face (computers only): your screen with your camera in a bubble ----
+  const [screen, setScreen] = useState<ScreenFace | null>(null);
+  const screenRef = useRef<ScreenFace | null>(null);
+  screenRef.current = screen;
+  const screenBox = useRef<HTMLDivElement>(null);
+  const showScreenOption = useMemo(canRecordScreen, []);
+  const layout = () => ({ corner: prefsRef.current.corner, size: prefsRef.current.bubble, mirror: prefsRef.current.facing === 'user' });
+  const startScreen = async () => {
+    if (!stream.current) return;
+    setNote('');
+    try {
+      const sf = await startScreenFace(stream.current, layout());
+      sf.onEnded(() => {
+        // "Stop sharing" in the browser's bar: finish the take, back to the camera
+        if (recorder.current) stopRecording();
+        sf.stop();
+        setScreen(null);
+      });
+      setScreen(sf);
+    } catch (e) {
+      const name = (e as Error).name;
+      if (name !== 'NotAllowedError' && name !== 'AbortError') setNote(t('Couldn’t share the screen: {error}', { error: (e as Error).message }));
+    }
+  };
+  const stopScreen = () => {
+    screenRef.current?.stop();
+    setScreen(null);
+  };
+  useEffect(() => {
+    const box = screenBox.current;
+    if (!screen || !box) return;
+    screen.canvas.className = 'prompter-screen';
+    box.replaceChildren(screen.canvas);
+    return () => screen.canvas.remove();
+  }, [screen]);
+  useEffect(() => {
+    screen?.setLayout(layout());
+  }, [screen, prefs.corner, prefs.bubble, prefs.facing]);
+  useEffect(() => () => screenRef.current?.stop(), []);
+  const floating = useRef<{ close: () => void } | null>(null);
+
   // ---- Scrolling ----
   const scroller = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLDivElement>(null);
@@ -169,14 +211,16 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   }, [recording]);
 
   const begin = () => {
-    const s = stream.current;
+    const s = screenRef.current?.stream ?? stream.current;
     if (!s) return;
     const chunks: Blob[] = [];
     let rec: MediaRecorder;
     try {
-      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: 6_000_000 });
+      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: screenRef.current ? 8_000_000 : 6_000_000 });
     } catch (e) {
       setNote(t('This browser can’t record video: {error}', { error: (e as Error).message }));
+      floating.current?.close();
+      floating.current = null;
       return;
     }
     rec.ondataavailable = e => e.data.size && chunks.push(e.data);
@@ -197,6 +241,10 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const startRecording = () => {
     setNote('');
     setRunning(false);
+    // Recording the screen: a small floating window with your camera and Stop, above whatever you're showing
+    if (screenRef.current && stream.current) {
+      openFloatingControls(stream.current, { stop: t('Stop') }, () => stopRecording()).then(f => (floating.current = f));
+    }
     if (!prefs.countdown) return begin();
     let n = 3;
     setCount(n);
@@ -209,6 +257,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     }, 1000);
   };
   const stopRecording = () => {
+    floating.current?.close();
+    floating.current = null;
     setRunning(false);
     setRecording(false);
     if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
@@ -262,6 +312,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       await leaveForClipForge({ file: f, name: take.name, title, script: text, at: Date.now() });
       setSendState('sent');
       stream.current?.getTracks().forEach(tr => tr.stop());
+      screenRef.current?.stop();
       location.assign(clipForgeUrl());
     } catch (e) {
       setSendState('');
@@ -273,6 +324,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     if (recording) stopRecording();
     if (take && !take.saved && !window.confirm(t('Close without saving this video?'))) return;
     if (take) URL.revokeObjectURL(take.url);
+    stopScreen();
     onClose();
   };
   useEffect(() => {
@@ -289,7 +341,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
 
   return createPortal(
     <div className="prompter" role="dialog" aria-modal="true" aria-label={t('Teleprompter')}>
-      <video ref={video} className={`prompter-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay />
+      <video ref={video} className={`prompter-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay hidden={!!screen && !take} />
+      {screen && !take && <div ref={screenBox} className="prompter-cam prompter-screen-box" />}
       {camError && <p className="prompter-error">{camError}</p>}
 
       {!take && (
@@ -325,6 +378,11 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             ) : (
               <span className="prompter-info">{t('About {m} min at this speed', { m: Math.max(1, Math.round(minutes)) })}</span>
             )}
+            {showScreenOption && (
+              <button className="prompter-mode" onClick={screen ? stopScreen : startScreen} disabled={recording || !camReady} aria-pressed={!!screen}>
+                {screen ? t('Camera only') : t('Screen + face')}
+              </button>
+            )}
             <button className="prompter-icon" aria-label={t('Teleprompter settings')} aria-expanded={showSettings} onClick={() => setShowSettings(s => !s)}>
               ⚙
             </button>
@@ -336,6 +394,27 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
                 {t('Text size')}
                 <input type="range" min={20} max={64} step={2} value={prefs.size} onChange={e => setPrefs({ size: +e.target.value })} />
               </label>
+              {screen && (
+                <>
+                  <label>
+                    {t('Face bubble')}
+                    <select value={prefs.corner} onChange={e => setPrefs({ corner: e.target.value as Corner })}>
+                      <option value="br">{t('Bottom right')}</option>
+                      <option value="bl">{t('Bottom left')}</option>
+                      <option value="tr">{t('Top right')}</option>
+                      <option value="tl">{t('Top left')}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t('Bubble size')}
+                    <select value={prefs.bubble} onChange={e => setPrefs({ bubble: e.target.value as BubbleSize })}>
+                      <option value="s">{t('Small')}</option>
+                      <option value="m">{t('Medium')}</option>
+                      <option value="l">{t('Large')}</option>
+                    </select>
+                  </label>
+                </>
+              )}
               <label className="prompter-check">
                 <input type="checkbox" checked={prefs.countdown} onChange={e => setPrefs({ countdown: e.target.checked })} />
                 {t('3-second countdown')}
@@ -378,12 +457,16 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
                 className="prompter-icon"
                 aria-label={t('Switch camera')}
                 onClick={() => setPrefs({ facing: prefs.facing === 'user' ? 'environment' : 'user' })}
-                disabled={recording}
+                disabled={recording || !!screen}
               >
                 ⟲
               </button>
             </div>
-            <p className="prompter-hint">{t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}</p>
+            <p className="prompter-hint">
+              {screen
+                ? t(recording ? 'Recording your screen and face. Stop here, in the small floating window, or with “Stop sharing”.' : 'Press ● to record your screen with your face in the corner. Switch to the window you want to show after the countdown.')
+                : t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}
+            </p>
           </div>
         </>
       )}

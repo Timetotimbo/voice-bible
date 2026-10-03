@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.5.0 — 2026-10-03
+- Teleprompter: **Screen + face** (on a computer, in Chrome or Edge). Record your screen, a window or a browser tab with your camera in a round bubble in a corner, plus your voice (and the computer's sound if you tick "share audio").
+  - Choose the bubble's corner and size in the teleprompter settings (⚙).
+  - While recording, a small window with your camera and a Stop button floats above everything, so you can stop without coming back to Voice Bible. You can also stop with the browser's "Stop sharing" bar.
+  - Phones and tablets can't share their screen from a browser, so the button only shows on computers.
+
 ## v2.4.1 — 2026-10-02
 - A new app icon for the home screen: an open Bible with sound rising from it, as a glowing neon sign (magenta into cyan on deep navy). It's also made in the shape Android expects, so it fills the icon instead of sitting small on a white circle. Phones show it the next time Voice Bible is added to the home screen.
 
