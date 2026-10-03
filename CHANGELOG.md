@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.7.0 — 2026-10-03
+- Keep recording while you use the rest of the app. While the teleprompter records, tap **Browse while recording**: it shrinks to a small floating recorder (a preview, the time, ■ Stop and ⤢ back to the teleprompter), and you can go to a chapter, search, open notes and lists, and the recording carries on.
+- In **Words + face**, the video follows what you're reading: the verse at the reading line (a third of the way down the screen), or the verse being read aloud, with its reference (like John 3:16) at the top. Hints and menus are skipped.
+- The teleprompter now opens over the whole app instead of inside the note, so leaving the note doesn't end a recording.
+
 ## v2.6.0 — 2026-10-03
 - Teleprompter: **Words + face**, on phones and computers. The video is tall (for Shorts, Reels and TikTok) and shows the words you're reading, large and clean, with your face in a glowing circle under them and your voice.
   - The words follow the ▶ line as the text scrolls: each paragraph shows on its own, and long ones are split into pieces of about 40 words at the ends of sentences.

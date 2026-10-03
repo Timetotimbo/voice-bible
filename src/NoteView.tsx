@@ -9,11 +9,10 @@ import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
-import { Teleprompter } from './Teleprompter';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
-  note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen,
+  note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -31,10 +30,10 @@ export function NoteView({
   versesText: (verses: VerseHit[]) => string; // verses written out with their references
   reader: Reader;
   listen: Listen;
+  onTeleprompter: (title: string, text: string) => void; // opens it over the whole app, so a recording carries on elsewhere
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const [inserting, setInserting] = useState(false);
-  const [prompting, setPrompting] = useState(false); // the teleprompter camera is open
   const insertingRef = useRef(inserting);
   insertingRef.current = inserting;
   // Where the cursor was in the note (opening Insert takes the focus away); null = the end
@@ -220,7 +219,7 @@ export function NoteView({
           onClick={() => {
             if (reading) reader.stop();
             if (listening) onDictate(false); // the camera needs the microphone
-            setPrompting(true);
+            onTeleprompter(note.title || noteTitle(note), note.text);
           }}
         >
           <svg className="cam-icon" viewBox="0 0 24 24" aria-hidden>
@@ -276,7 +275,6 @@ export function NoteView({
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
-      {prompting && <Teleprompter title={note.title || noteTitle(note)} text={note.text} onClose={() => setPrompting(false)} />}
       {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : t('Listening…')}</p>}
 
       {inserting && (

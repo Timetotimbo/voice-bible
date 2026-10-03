@@ -24,6 +24,7 @@ import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
+import { Teleprompter } from './Teleprompter';
 
 type View =
   | { kind: 'home' }
@@ -152,6 +153,8 @@ export default function App() {
   setBookLanguage(language); // book names on screen follow the Bible's language
   setUiLanguage(language); // and so do the app's words
   // Word study: the tapped word and its Strong's number
+  // The teleprompter sits over the whole app (not inside the note), so a recording carries on while you browse
+  const [prompter, setPrompter] = useState<{ title: string; text: string; at: number } | null>(null);
   const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
@@ -740,6 +743,7 @@ export default function App() {
           return note ? (
             <NoteView
               key={note.id}
+              onTeleprompter={(title, text) => setPrompter({ title, text, at: Date.now() })}
               note={note}
               onChange={noteChanger(note.id)}
               reader={reader}
@@ -870,6 +874,7 @@ export default function App() {
         )}
       </main>
 
+      {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
       {!classic && <nav className="tabbar" aria-label={t('Sections')}>
         {TABS.map(tb => (

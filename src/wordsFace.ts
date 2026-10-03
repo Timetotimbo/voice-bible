@@ -62,8 +62,8 @@ export function fitText(text: string, boxW: number, boxH: number, measureAt: (si
 
 export type WordsFace = { canvas: HTMLCanvasElement; stream: MediaStream; stop: () => void };
 
-/** Start drawing. getSlide is asked every frame for what's being read now. */
-export function startWordsFace(camera: MediaStream, getSlide: () => string, opts: { title: string; mirror: boolean }): WordsFace {
+/** Start drawing. getSlide is asked every frame for what's being read now (and its own title, if it has one). */
+export function startWordsFace(camera: MediaStream, getSlide: () => { title?: string; text: string }, opts: { title: string; mirror: boolean }): WordsFace {
   const canvas = document.createElement('canvas');
   canvas.width = WORDS_W;
   canvas.height = WORDS_H;
@@ -106,7 +106,9 @@ export function startWordsFace(camera: MediaStream, getSlide: () => string, opts
 
   const draw = () => {
     const now = performance.now();
-    const text = getSlide();
+    const slide = getSlide();
+    const text = slide.text;
+    const heading = slide.title ?? opts.title;
     if (text !== shown) {
       previous = shown;
       shown = text;
@@ -119,12 +121,12 @@ export function startWordsFace(camera: MediaStream, getSlide: () => string, opts
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, WORDS_W, WORDS_H);
 
-    if (opts.title) {
+    if (heading) {
       ctx.font = font(44);
       ctx.fillStyle = '#c792ff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const title = wrapLines(opts.title, box.w, measureAt(44))[0] ?? '';
+      const title = wrapLines(heading, box.w, measureAt(44))[0] ?? '';
       ctx.fillText(title, WORDS_W / 2, 150);
     }
 

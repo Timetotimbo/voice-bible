@@ -5,6 +5,7 @@ import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
 import { slidesOf, startWordsFace, type WordsFace } from './wordsFace';
+import { readOnScreen, type OnScreen } from './pageWords';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
 
 /**
@@ -174,8 +175,23 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     const through = r && r.height ? Math.max(0, Math.min(0.999, (lineY - r.top) / r.height)) : 0;
     return parts[Math.floor(through * parts.length)] ?? parts[0];
   };
-  const currentSlideRef = useRef(currentSlide);
-  currentSlideRef.current = currentSlide;
+  // Browsing the app while recording: the words on screen instead (looked up 5 times a second)
+  const [minimized, setMinimized] = useState(false);
+  const minimizedRef = useRef(false);
+  minimizedRef.current = minimized;
+  const mini = useRef<HTMLDivElement | null>(null);
+  const onScreen = useRef<{ at: number; found: OnScreen }>({ at: 0, found: { text: '' } });
+  const slideNow = (): { title?: string; text: string } => {
+    if (!minimizedRef.current) return { text: currentSlide() };
+    const now = performance.now();
+    if (now - onScreen.current.at > 200) {
+      const found = readOnScreen(mini.current);
+      onScreen.current = { at: now, found: found ?? onScreen.current.found };
+    }
+    return onScreen.current.found;
+  };
+  const currentSlideRef = useRef(slideNow);
+  currentSlideRef.current = slideNow;
   useEffect(() => {
     if (!wordsOn || !camReady || !stream.current) return;
     const wf = startWordsFace(stream.current, () => currentSlideRef.current(), { title, mirror: prefs.facing === 'user' });
@@ -190,6 +206,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   // The small preview shows the canvas itself (put back each time the box appears, e.g. after reviewing a take)
   const thumb = (box: HTMLDivElement | null) => {
     if (!box || !wordsFace || box.firstChild === wordsFace.canvas) return;
+    // While browsing, the floating recorder has it, not the hidden teleprompter
+    if (minimizedRef.current !== !!box.closest('.prompter-mini')) return;
     wordsFace.canvas.className = 'prompter-thumb-canvas';
     box.replaceChildren(wordsFace.canvas);
   };
@@ -307,6 +325,13 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     setRecording(false);
     if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
     recorder.current = null;
+    setMinimized(false); // back to the teleprompter to watch the take
+  };
+  const browse = () => {
+    onScreen.current = { at: 0, found: { text: currentSlide() } }; // until something readable is on screen
+    setRunning(false);
+    setShowSettings(false);
+    setMinimized(true);
   };
   // Stop cleanly if the teleprompter is closed mid-take
   useEffect(() => () => recorder.current?.stop(), []);
@@ -373,7 +398,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape' && !minimized) close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -383,8 +408,27 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const speed = (wpm: number) => setPrefs({ wpm: Math.max(MIN_WPM, Math.min(MAX_WPM, wpm)) });
   const minutes = wordCount / prefs.wpm;
 
+  // The small recorder that floats over the app while you browse
+  const camBubble = (v: HTMLVideoElement | null) => {
+    if (v && stream.current && v.srcObject !== stream.current) {
+      v.srcObject = stream.current;
+      v.play().catch(() => {});
+    }
+  };
+  const miniBar = minimized && recording && createPortal(
+    <div ref={mini} className="prompter-mini" role="region" aria-label={t('Recording')}>
+      {wordsFace ? <div ref={thumb} className="prompter-mini-preview" /> : <video ref={camBubble} className={`prompter-mini-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay />}
+      <span className="prompter-rec">● {clock(elapsed)}</span>
+      <button className="prompter-mini-stop" aria-label={t('Stop recording')} onClick={stopRecording}><span /></button>
+      <button className="prompter-mini-back" aria-label={t('Back to the teleprompter')} onClick={() => setMinimized(false)}>⤢</button>
+    </div>,
+    document.body,
+  );
+
   return createPortal(
-    <div className="prompter" role="dialog" aria-modal="true" aria-label={t('Teleprompter')}>
+    <>
+    {miniBar}
+    <div className="prompter" role="dialog" aria-modal="true" aria-label={t('Teleprompter')} hidden={minimized}>
       <video ref={video} className={`prompter-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay hidden={!!screen && !take} />
       {screen && !take && <div ref={screenBox} className="prompter-cam prompter-screen-box" />}
       {camError && <p className="prompter-error">{camError}</p>}
@@ -419,7 +463,10 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
 
           <div className="prompter-top">
             {recording ? (
-              <span className="prompter-rec">● {clock(elapsed)}</span>
+              <span className="prompter-rec-group">
+                <span className="prompter-rec">● {clock(elapsed)}</span>
+                <button className="prompter-mode" onClick={browse}>{t('Browse while recording')}</button>
+              </span>
             ) : (
               <span className="prompter-info">{t('About {m} min at this speed', { m: Math.max(1, Math.round(minutes)) })}</span>
             )}
@@ -546,7 +593,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
           </p>
         </div>
       )}
-    </div>,
+    </div>
+    </>,
     document.body,
   );
 }
