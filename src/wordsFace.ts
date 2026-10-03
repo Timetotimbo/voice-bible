@@ -4,6 +4,7 @@
  * phones, where a browser can't record the screen.
  */
 import { hiddenVideo, ticker } from './screenFace';
+import type { Page } from './pageWords';
 
 export const WORDS_W = 1080;
 export const WORDS_H = 1920;
@@ -60,10 +61,47 @@ export function fitText(text: string, boxW: number, boxH: number, measureAt: (si
   return { size: min, lines: wrapLines(text, boxW, measureAt(min)) };
 }
 
+/** One word (or verse number) of a page, placed: item is which verse/paragraph it belongs to. */
+export type Placed = { text: string; x: number; y: number; item: number; num: boolean };
+
+/**
+ * Lay a page out as flowing text: verse numbers small, words wrapped at the width, block items on new lines.
+ * Returns the words with their places, where each item starts (y) and the total height.
+ */
+export function layoutPage(page: Pick<Page, 'items'>, width: number, size: number, measure: (t: string, num: boolean) => number) {
+  const lh = size * 1.5;
+  const placed: Placed[] = [];
+  const starts: number[] = [];
+  let x = 0, y = 0;
+  const space = measure(' ', false);
+  const put = (text: string, item: number, num: boolean) => {
+    const w = measure(text, num);
+    if (x > 0 && x + w > width) {
+      x = 0;
+      y += lh;
+    }
+    placed.push({ text, x, y, item, num });
+    x += w + (num ? space * 0.6 : space);
+  };
+  page.items.forEach((it, i) => {
+    if (i > 0 && it.block) {
+      x = 0;
+      y += lh * 1.35;
+    }
+    starts.push(y);
+    if (it.num) put(it.num, i, true);
+    for (const word of it.text.split(/\s+/).filter(Boolean)) put(word, i, false);
+  });
+  return { placed, starts, height: y + lh, lineHeight: lh };
+}
+
 export type WordsFace = { canvas: HTMLCanvasElement; stream: MediaStream; stop: () => void };
 
-/** Start drawing. getSlide is asked every frame for what's being read now (and its own title, if it has one). */
-export function startWordsFace(camera: MediaStream, getSlide: () => { title?: string; text: string }, opts: { title: string; mirror: boolean }): WordsFace {
+/**
+ * Start drawing. getSlide is asked every frame for what's being read now (and its own title, if it has one):
+ * one piece of text, big, or a page that scrolls like the screen.
+ */
+export function startWordsFace(camera: MediaStream, getSlide: () => { title?: string; text: string; page?: Page }, opts: { title: string; mirror: boolean }): WordsFace {
   const canvas = document.createElement('canvas');
   canvas.width = WORDS_W;
   canvas.height = WORDS_H;
@@ -104,6 +142,56 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
     ctx.globalAlpha = 1;
   };
 
+  const PAGE_SIZE = 50;
+  const pageLayouts = new Map<string, ReturnType<typeof layoutPage>>();
+  const measurePage = (t: string, num: boolean) => {
+    ctx.font = num ? `700 ${PAGE_SIZE * 0.6}px system-ui, sans-serif` : `500 ${PAGE_SIZE}px Georgia, "Times New Roman", serif`;
+    return ctx.measureText(t).width;
+  };
+  const drawPage = (page: Page) => {
+    const key = page.items.map(i => (i.num ?? '') + '|' + i.text + '|' + i.block).join('\n');
+    let lay = pageLayouts.get(key);
+    if (!lay) {
+      if (pageLayouts.size > 40) pageLayouts.clear();
+      pageLayouts.set(key, (lay = layoutPage(page, box.w, PAGE_SIZE, measurePage)));
+    }
+    // Scroll: part of the first item is above the screen's top, so start that far up
+    const firstH = (lay.starts[1] ?? lay.height) - lay.starts[0];
+    const shift = page.offset * firstH;
+    const top = box.y - 40, bottom = box.y + box.h + 40;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, top, WORDS_W, bottom - top);
+    ctx.clip();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    for (const w of lay.placed) {
+      const y = top + PAGE_SIZE + w.y - shift;
+      if (y < top - PAGE_SIZE || y > bottom + PAGE_SIZE) continue;
+      const current = page.items[w.item]?.current;
+      if (w.num) {
+        ctx.font = `700 ${PAGE_SIZE * 0.6}px system-ui, sans-serif`;
+        ctx.fillStyle = '#ff6fe0';
+        ctx.fillText(w.text, box.x + w.x, y - PAGE_SIZE * 0.35);
+      } else {
+        ctx.font = `500 ${PAGE_SIZE}px Georgia, "Times New Roman", serif`;
+        ctx.fillStyle = current ? '#ffffff' : 'rgba(225, 215, 245, 0.62)';
+        ctx.fillText(w.text, box.x + w.x, y);
+      }
+    }
+    ctx.restore();
+    // Soft edges where the text runs off the top and bottom
+    const fade = (y0: number, y1: number) => {
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgba(14, 9, 30, 1)');
+      g.addColorStop(1, 'rgba(14, 9, 30, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, Math.min(y0, y1), WORDS_W, Math.abs(y1 - y0));
+    };
+    fade(top, top + 70);
+    fade(bottom, bottom - 70);
+  };
+
   const draw = () => {
     const now = performance.now();
     const slide = getSlide();
@@ -130,9 +218,12 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
       ctx.fillText(title, WORDS_W / 2, 150);
     }
 
-    const k = Math.min(1, (now - changedAt) / FADE_MS);
-    drawText(previous, 1 - k);
-    drawText(shown, k);
+    if (slide.page) drawPage(slide.page);
+    else {
+      const k = Math.min(1, (now - changedAt) / FADE_MS);
+      drawText(previous, 1 - k);
+      drawText(shown, k);
+    }
 
     // Your face in a circle with a magenta-to-cyan ring
     const cw = cam.videoWidth, ch = cam.videoHeight;

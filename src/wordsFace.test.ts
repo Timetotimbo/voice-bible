@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitText, slidesOf, wrapLines } from './wordsFace';
+import { fitText, layoutPage, slidesOf, wrapLines } from './wordsFace';
 
 const charWidth = (size: number) => (t: string) => t.length * size * 0.5;
 
@@ -31,5 +31,21 @@ describe('fitting text', () => {
     expect(short.size).toBe(92);
     expect(long.size).toBeLessThan(92);
     expect(long.lines.length * long.size * 1.3).toBeLessThanOrEqual(900);
+  });
+});
+
+describe('layoutPage', () => {
+  const measure = (t: string, num: boolean) => t.length * (num ? 5 : 10);
+  it('flows inline verses on, with their numbers, and starts block items on new lines', () => {
+    const lay = layoutPage({ items: [
+      { num: '1', text: 'In the beginning', current: false, block: false },
+      { num: '2', text: 'And the earth', current: true, block: false },
+      { text: 'A note', current: false, block: true },
+    ] }, 300, 20, measure);
+    const words = lay.placed.map(p => p.text);
+    expect(words).toEqual(['1', 'In', 'the', 'beginning', '2', 'And', 'the', 'earth', 'A', 'note']);
+    expect(lay.starts[1]).toBe(lay.starts[0]); // verse 2 carries on the same line
+    expect(lay.starts[2]).toBeGreaterThan(lay.starts[1]); // the block starts lower
+    lay.placed.forEach(p => expect(p.x + measure(p.text, p.num)).toBeLessThanOrEqual(300));
   });
 });

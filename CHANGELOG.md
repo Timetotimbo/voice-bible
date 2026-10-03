@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.8.0 — 2026-10-03
+- Browse while recording, in **Words + face**: the video now shows **the page**, not one verse at a time. The verses on your screen flow on with their numbers, like the chapter page, and **scroll in the video as you scroll**. The verse at the reading line (or the one being read aloud) is bright white, the rest a little dimmer, with the chapter (like John 3) at the top.
+- Prefer the old way? Teleprompter settings (⚙) → "While browsing, the video shows" → "One verse at a time, big".
+
 ## v2.7.0 — 2026-10-03
 - Keep recording while you use the rest of the app. While the teleprompter records, tap **Browse while recording**: it shrinks to a small floating recorder (a preview, the time, ■ Stop and ⤢ back to the teleprompter), and you can go to a chapter, search, open notes and lists, and the recording carries on.
 - In **Words + face**, the video follows what you're reading: the verse at the reading line (a third of the way down the screen), or the verse being read aloud, with its reference (like John 3:16) at the top. Hints and menus are skipped.

@@ -68,3 +68,46 @@ export function readOnScreen(ignore?: Element | null): OnScreen | null {
   }
   return null;
 }
+
+/** "Page view": the part of the page that's on screen, as flowing text that scrolls when you scroll. */
+export type PageItem = { num?: string; text: string; current: boolean; block: boolean };
+export type Page = { title: string; items: PageItem[]; offset: number }; // offset: how much of the first item is scrolled off
+
+const TOP = 0.1; // the top bar
+const BOTTOM = 0.88; // the play bar and tabs
+
+const visible = (r: DOMRect, top: number, bottom: number) => r.height > 0 && r.bottom > top && r.top < bottom;
+/** How far an element's nearest line is from y (0 when it's on it). */
+const distance = (el: Element, y: number) => Math.min(...Array.from(el.getClientRects()).map(r => (y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0)), Infinity);
+const nearest = (els: Element[], y: number) => els.reduce<Element | undefined>((best, el) => (!best || distance(el, y) < distance(best, y) ? el : best), undefined);
+
+export function readScreenPage(ignore?: Element | null): Page | null {
+  const H = window.innerHeight;
+  const top = H * TOP, bottom = H * BOTTOM, lineY = H * READING_LINE;
+
+  // A chapter: its verses flow on like the page, with their numbers
+  const verses = Array.from(document.querySelectorAll('ol.chapter > li')).filter(li => visible(li.getBoundingClientRect(), top, bottom));
+  if (verses.length) {
+    const reading = verses.find(li => li.classList.contains('reading')) ?? nearest(verses, lineY);
+    const r = verses[0].getBoundingClientRect();
+    const title = chapterTitle(verses[0])?.replace(/:\d+$/, '') ?? '';
+    return {
+      title,
+      offset: Math.max(0, Math.min(1, (top - r.top) / r.height)),
+      items: verses.map(li => ({ num: li.querySelector('sup')?.textContent?.replace(/\D/g, '') || undefined, text: textOf(li).replace(/\s+/g, ' ').trim(), current: li === reading, block: getComputedStyle(li).display !== 'inline' })),
+    };
+  }
+
+  // Anything else (search results, notes, lists…): the readable blocks on screen, top to bottom
+  const blocks = Array.from(document.querySelectorAll(BLOCKS)).filter(
+    el => !el.closest(SKIP) && !ignore?.contains(el) && !el.querySelector(BLOCKS) && visible(el.getBoundingClientRect(), top, bottom) && textOf(el).trim(),
+  );
+  if (!blocks.length) return null;
+  const r = blocks[0].getBoundingClientRect();
+  const current = nearest(blocks, lineY);
+  return {
+    title: '',
+    offset: Math.max(0, Math.min(1, (top - r.top) / r.height)),
+    items: blocks.map(el => ({ text: textOf(el).replace(/\s+/g, ' ').trim(), current: el === current, block: true })),
+  };
+}

@@ -5,7 +5,7 @@ import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
 import { slidesOf, startWordsFace, type WordsFace } from './wordsFace';
-import { readOnScreen, type OnScreen } from './pageWords';
+import { readOnScreen, readScreenPage, type OnScreen, type Page } from './pageWords';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
 
 /**
@@ -13,9 +13,9 @@ import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize
  * looking at the camera. Record, watch the take, then save it or share it (to TikTok, Instagram, YouTube…).
  * The words on screen aren't in the video.
  */
-type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize };
+type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse' };
 const PREFS_KEY = 'prompter';
-const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm' };
+const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm', browseView: 'page' };
 const MIN_WPM = 60;
 const MAX_WPM = 260;
 
@@ -180,12 +180,15 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const minimizedRef = useRef(false);
   minimizedRef.current = minimized;
   const mini = useRef<HTMLDivElement | null>(null);
-  const onScreen = useRef<{ at: number; found: OnScreen }>({ at: 0, found: { text: '' } });
-  const slideNow = (): { title?: string; text: string } => {
+  const onScreen = useRef<{ at: number; found: OnScreen & { page?: Page } }>({ at: 0, found: { text: '' } });
+  const slideNow = (): { title?: string; text: string; page?: Page } => {
     if (!minimizedRef.current) return { text: currentSlide() };
     const now = performance.now();
-    if (now - onScreen.current.at > 200) {
-      const found = readOnScreen(mini.current);
+    const asPage = prefsRef.current.browseView === 'page';
+    // The page view scrolls with you, so it's looked at more often
+    if (now - onScreen.current.at > (asPage ? 50 : 200)) {
+      const page = asPage ? readScreenPage(mini.current) : null;
+      const found = page ? { title: page.title, text: '', page } : readOnScreen(mini.current);
       onScreen.current = { at: now, found: found ?? onScreen.current.found };
     }
     return onScreen.current.found;
@@ -494,6 +497,15 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
                 {t('Text size')}
                 <input type="range" min={20} max={64} step={2} value={prefs.size} onChange={e => setPrefs({ size: +e.target.value })} />
               </label>
+              {wordsOn && !screen && (
+                <label>
+                  {t('While browsing, the video shows')}
+                  <select value={prefs.browseView} onChange={e => setPrefs({ browseView: e.target.value as 'page' | 'verse' })}>
+                    <option value="page">{t('The page, scrolling with you')}</option>
+                    <option value="verse">{t('One verse at a time, big')}</option>
+                  </select>
+                </label>
+              )}
               {screen && (
                 <>
                   <label>
