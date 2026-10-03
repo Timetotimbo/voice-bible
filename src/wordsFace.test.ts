@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitText, layoutPage, slidesOf, wrapLines } from './wordsFace';
+import { clampFace, fitText, layoutPage, slidesOf, textBox, wrapLines } from './wordsFace';
 
 const charWidth = (size: number) => (t: string) => t.length * size * 0.5;
 
@@ -47,5 +47,23 @@ describe('layoutPage', () => {
     expect(lay.starts[1]).toBe(lay.starts[0]); // verse 2 carries on the same line
     expect(lay.starts[2]).toBeGreaterThan(lay.starts[1]); // the block starts lower
     lay.placed.forEach(p => expect(p.x + measure(p.text, p.num)).toBeLessThanOrEqual(300));
+  });
+});
+
+describe('moving the face', () => {
+  it('keeps the circle on the video and within the sizes', () => {
+    expect(clampFace({ x: -500, y: 5000, d: 2000 })).toEqual({ x: 450, y: 1920 - 450, d: 900 });
+    expect(clampFace({ x: 540, y: 960, d: 10 }).d).toBe(240);
+  });
+  it('puts the words above a low face, below a high one, and everywhere when it is in the middle', () => {
+    const low = textBox({ x: 540, y: 1500, d: 640 });
+    expect(low.y + low.h).toBeLessThanOrEqual(1500 - 320);
+    const high = textBox({ x: 540, y: 400, d: 500 });
+    expect(high.y).toBeGreaterThanOrEqual(400 + 250);
+    const middle = textBox({ x: 540, y: 960, d: 300 });
+    expect(middle).toEqual({ x: 90, y: 250, w: 900, h: 1920 - 120 - 250, titleY: 150 });
+    const top = textBox({ x: 760, y: 340, d: 560 });
+    expect(top.titleY).toBeGreaterThan(340 + 280);
+    expect(top.y).toBeGreaterThan(top.titleY);
   });
 });

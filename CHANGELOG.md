@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.9.0 — 2026-10-03
+- Words + face: **move your face**. Tap the small preview to make it bigger, then drag your face anywhere and use − / + to make it smaller or bigger. The words make room: above your face when it's low, below it when it's high (the title moves too). Your spot is remembered.
+- The verse you're on now has a **pink highlight band** behind it and the other verses are dimmer, so it's easy to see even in the small preview.
+- The top line of a chapter is no longer faded when you first open it; the soft edge only shows once you've scrolled.
+- The floating recorder's preview can be tapped to make it bigger too.
+
 ## v2.8.0 — 2026-10-03
 - Browse while recording, in **Words + face**: the video now shows **the page**, not one verse at a time. The verses on your screen flow on with their numbers, like the chapter page, and **scroll in the video as you scroll**. The verse at the reading line (or the one being read aloud) is bright white, the rest a little dimmer, with the chapter (like John 3) at the top.
 - Prefer the old way? Teleprompter settings (⚙) → "While browsing, the video shows" → "One verse at a time, big".

@@ -95,13 +95,55 @@ export function layoutPage(page: Pick<Page, 'items'>, width: number, size: numbe
   return { placed, starts, height: y + lh, lineHeight: lh };
 }
 
-export type WordsFace = { canvas: HTMLCanvasElement; stream: MediaStream; stop: () => void };
+/** Where your face goes: its centre and diameter, on the 1080×1920 video. */
+export type Face = { x: number; y: number; d: number };
+export const DEFAULT_FACE: Face = { x: WORDS_W / 2, y: 1500, d: 640 };
+export const FACE_MIN = 240;
+export const FACE_MAX = 900;
+
+/** Keep the face circle wholly on the video. */
+export function clampFace(f: Face): Face {
+  const d = Math.max(FACE_MIN, Math.min(FACE_MAX, f.d));
+  const r = d / 2;
+  return { d, x: Math.max(r, Math.min(WORDS_W - r, f.x)), y: Math.max(r, Math.min(WORDS_H - r, f.y)) };
+}
+
+/**
+ * The words' box, out of the face's way: above the face when it's low, below it when it's high.
+ * In the middle, the face sits over the words, like a picture in a picture.
+ */
+export function textBox(face: Face) {
+  const top = 250, bottom = WORDS_H - 120;
+  let y0 = top, y1 = bottom;
+  if (face.y > WORDS_H * 0.55) y1 = Math.min(bottom, face.y - face.d / 2 - 50);
+  else if (face.y < WORDS_H * 0.45) y0 = Math.max(top, face.y + face.d / 2 + 50);
+  if (y1 - y0 < 400) [y0, y1] = [top, bottom]; // too little room: use it all
+  // The title sits at the top, unless the face is there: then it goes just above the words
+  let titleY = 150;
+  if (face.y - face.d / 2 < 200 && Math.abs(face.x - WORDS_W / 2) < face.d / 2 + 260 && y0 > top) {
+    titleY = y0 + 10;
+    y0 += 80;
+  }
+  return { x: 90, y: y0, w: WORDS_W - 180, h: y1 - y0, titleY };
+}
+
+export type WordsFace = {
+  canvas: HTMLCanvasElement;
+  stream: MediaStream;
+  face: () => Face;
+  setFace: (f: Face) => void;
+  stop: () => void;
+};
 
 /**
  * Start drawing. getSlide is asked every frame for what's being read now (and its own title, if it has one):
  * one piece of text, big, or a page that scrolls like the screen.
  */
-export function startWordsFace(camera: MediaStream, getSlide: () => { title?: string; text: string; page?: Page }, opts: { title: string; mirror: boolean }): WordsFace {
+export function startWordsFace(
+  camera: MediaStream,
+  getSlide: () => { title?: string; text: string; page?: Page },
+  opts: { title: string; mirror: boolean; face?: Face },
+): WordsFace {
   const canvas = document.createElement('canvas');
   canvas.width = WORDS_W;
   canvas.height = WORDS_H;
@@ -113,15 +155,19 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
     return t => ctx.measureText(t).width;
   };
 
-  const box = { x: 90, y: 250, w: WORDS_W - 180, h: 900 };
-  const face = { x: WORDS_W / 2, y: 1500, d: 640 };
+  let face = clampFace(opts.face ?? DEFAULT_FACE);
+  let box = textBox(face);
   let shown = '';
   let previous = '';
   let changedAt = 0;
   const layouts = new Map<string, { size: number; lines: string[] }>();
   const layoutOf = (text: string) => {
-    let l = layouts.get(text);
-    if (!l) layouts.set(text, (l = fitText(text, box.w, box.h, measureAt)));
+    const key = `${box.h}|${text}`;
+    let l = layouts.get(key);
+    if (!l) {
+      if (layouts.size > 60) layouts.clear();
+      layouts.set(key, (l = fitText(text, box.w, box.h, measureAt)));
+    }
     return l;
   };
 
@@ -143,9 +189,11 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
   };
 
   const PAGE_SIZE = 50;
+  const WORD_FONT = `500 ${PAGE_SIZE}px Georgia, "Times New Roman", serif`;
+  const NUM_FONT = `700 ${PAGE_SIZE * 0.6}px system-ui, sans-serif`;
   const pageLayouts = new Map<string, ReturnType<typeof layoutPage>>();
   const measurePage = (t: string, num: boolean) => {
-    ctx.font = num ? `700 ${PAGE_SIZE * 0.6}px system-ui, sans-serif` : `500 ${PAGE_SIZE}px Georgia, "Times New Roman", serif`;
+    ctx.font = num ? NUM_FONT : WORD_FONT;
     return ctx.measureText(t).width;
   };
   const drawPage = (page: Page) => {
@@ -158,29 +206,48 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
     // Scroll: part of the first item is above the screen's top, so start that far up
     const firstH = (lay.starts[1] ?? lay.height) - lay.starts[0];
     const shift = page.offset * firstH;
-    const top = box.y - 40, bottom = box.y + box.h + 40;
+    const top = box.y - 20, bottom = box.y + box.h + 20;
+    const yOf = (wy: number) => top + PAGE_SIZE * 1.1 + wy - shift;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, top, WORDS_W, bottom - top);
     ctx.clip();
+
+    // The verse being read: a soft pink band behind each of its lines, so it stands out even small
+    const lines = new Map<number, { x0: number; x1: number }>();
+    for (const w of lay.placed) {
+      if (!page.items[w.item]?.current) continue;
+      const l = lines.get(w.y) ?? { x0: Infinity, x1: -Infinity };
+      l.x0 = Math.min(l.x0, w.x);
+      l.x1 = Math.max(l.x1, w.x + measurePage(w.text, w.num));
+      lines.set(w.y, l);
+    }
+    ctx.fillStyle = 'rgba(255, 63, 216, 0.26)';
+    for (const [wy, l] of lines) {
+      const y = yOf(wy);
+      ctx.beginPath();
+      ctx.roundRect(box.x + l.x0 - 12, y - PAGE_SIZE * 0.95, l.x1 - l.x0 + 24, PAGE_SIZE * 1.35, 12);
+      ctx.fill();
+    }
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     for (const w of lay.placed) {
-      const y = top + PAGE_SIZE + w.y - shift;
+      const y = yOf(w.y);
       if (y < top - PAGE_SIZE || y > bottom + PAGE_SIZE) continue;
       const current = page.items[w.item]?.current;
       if (w.num) {
-        ctx.font = `700 ${PAGE_SIZE * 0.6}px system-ui, sans-serif`;
+        ctx.font = NUM_FONT;
         ctx.fillStyle = '#ff6fe0';
         ctx.fillText(w.text, box.x + w.x, y - PAGE_SIZE * 0.35);
       } else {
-        ctx.font = `500 ${PAGE_SIZE}px Georgia, "Times New Roman", serif`;
-        ctx.fillStyle = current ? '#ffffff' : 'rgba(225, 215, 245, 0.62)';
+        ctx.font = WORD_FONT;
+        ctx.fillStyle = current ? '#ffffff' : 'rgba(225, 215, 245, 0.5)';
         ctx.fillText(w.text, box.x + w.x, y);
       }
     }
     ctx.restore();
-    // Soft edges where the text runs off the top and bottom
+    // Soft edges where the text runs off: at the top only once it has scrolled, at the bottom when there's more
     const fade = (y0: number, y1: number) => {
       const g = ctx.createLinearGradient(0, y0, 0, y1);
       g.addColorStop(0, 'rgba(14, 9, 30, 1)');
@@ -188,8 +255,39 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
       ctx.fillStyle = g;
       ctx.fillRect(0, Math.min(y0, y1), WORDS_W, Math.abs(y1 - y0));
     };
-    fade(top, top + 70);
-    fade(bottom, bottom - 70);
+    if (shift > 1) fade(top, top + 60);
+    if (yOf(lay.height) > bottom) fade(bottom, bottom - 60);
+  };
+
+  const drawFace = () => {
+    const cw = cam.videoWidth, ch = cam.videoHeight;
+    const { x, y, d } = face;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, d / 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    if (cw && ch) {
+      const side = Math.min(cw, ch);
+      ctx.clip();
+      if (opts.mirror) {
+        ctx.translate(x * 2, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(cam, (cw - side) / 2, (ch - side) / 2, side, side, x - d / 2, y - d / 2, d, d);
+    }
+    ctx.restore();
+    const ring = ctx.createLinearGradient(x - d / 2, y - d / 2, x + d / 2, y + d / 2);
+    ring.addColorStop(0, '#ff3fd8');
+    ring.addColorStop(1, '#3fe0ff');
+    ctx.beginPath();
+    ctx.arc(x, y, d / 2 + 6, 0, Math.PI * 2);
+    ctx.lineWidth = Math.max(8, d * 0.02);
+    ctx.strokeStyle = ring;
+    ctx.shadowColor = '#ff3fd8';
+    ctx.shadowBlur = 30;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
   };
 
   const draw = () => {
@@ -215,7 +313,7 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const title = wrapLines(heading, box.w, measureAt(44))[0] ?? '';
-      ctx.fillText(title, WORDS_W / 2, 150);
+      ctx.fillText(title, WORDS_W / 2, box.titleY);
     }
 
     if (slide.page) drawPage(slide.page);
@@ -224,34 +322,7 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
       drawText(previous, 1 - k);
       drawText(shown, k);
     }
-
-    // Your face in a circle with a magenta-to-cyan ring
-    const cw = cam.videoWidth, ch = cam.videoHeight;
-    const { x, y, d } = face;
-    if (cw && ch) {
-      const side = Math.min(cw, ch);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, d / 2, 0, Math.PI * 2);
-      ctx.clip();
-      if (opts.mirror) {
-        ctx.translate(x * 2, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.drawImage(cam, (cw - side) / 2, (ch - side) / 2, side, side, x - d / 2, y - d / 2, d, d);
-      ctx.restore();
-    }
-    const ring = ctx.createLinearGradient(x - d / 2, y - d / 2, x + d / 2, y + d / 2);
-    ring.addColorStop(0, '#ff3fd8');
-    ring.addColorStop(1, '#3fe0ff');
-    ctx.beginPath();
-    ctx.arc(x, y, d / 2 + 6, 0, Math.PI * 2);
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = ring;
-    ctx.shadowColor = '#ff3fd8';
-    ctx.shadowBlur = 30;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+    drawFace();
   };
   draw();
   const stopTicker = ticker(FPS, draw);
@@ -259,6 +330,18 @@ export function startWordsFace(camera: MediaStream, getSlide: () => { title?: st
   return {
     canvas,
     stream,
+    face: () => face,
+    setFace: f => {
+      const next = clampFace(f);
+      // The words only move to a new box when the face really changes place, not on every tiny drag step
+      const nextBox = textBox(next);
+      if (nextBox.y !== box.y || nextBox.h !== box.h || nextBox.titleY !== box.titleY) {
+        box = nextBox;
+        pageLayouts.clear();
+      }
+      face = next;
+      draw();
+    },
     stop: () => {
       stopTicker();
       stream.getVideoTracks().forEach(tr => tr.stop());

@@ -4,7 +4,7 @@ import { t } from './i18n';
 import { clipForgeUrl, leaveForClipForge } from './handoff';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
-import { slidesOf, startWordsFace, type WordsFace } from './wordsFace';
+import { WORDS_H, WORDS_W, slidesOf, startWordsFace, type Face, type WordsFace } from './wordsFace';
 import { readOnScreen, readScreenPage, type OnScreen, type Page } from './pageWords';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
 
@@ -13,7 +13,7 @@ import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize
  * looking at the camera. Record, watch the take, then save it or share it (to TikTok, Instagram, YouTube…).
  * The words on screen aren't in the video.
  */
-type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse' };
+type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse'; face?: Face };
 const PREFS_KEY = 'prompter';
 const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm', browseView: 'page' };
 const MIN_WPM = 60;
@@ -197,7 +197,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   currentSlideRef.current = slideNow;
   useEffect(() => {
     if (!wordsOn || !camReady || !stream.current) return;
-    const wf = startWordsFace(stream.current, () => currentSlideRef.current(), { title, mirror: prefs.facing === 'user' });
+    const wf = startWordsFace(stream.current, () => currentSlideRef.current(), { title, mirror: prefs.facing === 'user', face: prefsRef.current.face });
     wordsRef.current = wf;
     setWordsFace(wf);
     return () => {
@@ -214,6 +214,58 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     wordsFace.canvas.className = 'prompter-thumb-canvas';
     box.replaceChildren(wordsFace.canvas);
   };
+  // Tap the preview to make it bigger; when big, drag your face to move it and −/+ to size it
+  const [bigPreview, setBigPreview] = useState(false);
+  const drag = useRef<{ dx: number; dy: number; onFace: boolean; sx: number; sy: number; moved: boolean } | null>(null);
+  const onVideo = (e: { clientX: number; clientY: number }) => {
+    const r = wordsFace!.canvas.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * WORDS_W, y: ((e.clientY - r.top) / r.height) * WORDS_H };
+  };
+  const previewHandlers = {
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!wordsFace) return;
+      const p = onVideo(e);
+      const f = wordsFace.face();
+      const onFace = bigPreview && Math.hypot(p.x - f.x, p.y - f.y) <= f.d / 2;
+      drag.current = { dx: f.x - p.x, dy: f.y - p.y, onFace, sx: e.clientX, sy: e.clientY, moved: false };
+      if (onFace) e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      if (!d || !wordsFace) return;
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 4) d.moved = true;
+      if (!d.onFace || !d.moved) return;
+      const p = onVideo(e);
+      wordsFace.setFace({ ...wordsFace.face(), x: p.x + d.dx, y: p.y + d.dy });
+    },
+    onPointerUp: () => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d || !wordsFace) return;
+      if (d.onFace && d.moved) setPrefs({ face: wordsFace.face() });
+      else if (!d.moved) setBigPreview(b => !b);
+    },
+    onPointerCancel: () => {
+      drag.current = null;
+    },
+  };
+  const resizeFace = (by: number) => {
+    if (!wordsFace) return;
+    wordsFace.setFace({ ...wordsFace.face(), d: wordsFace.face().d + by });
+    setPrefs({ face: wordsFace.face() });
+  };
+  const preview = (where: 'thumb' | 'mini') => (
+    <div className={`${where === 'mini' ? 'prompter-mini-preview' : 'prompter-thumb'} ${bigPreview ? 'big' : ''}`}>
+      <div ref={thumb} className="prompter-preview-canvas" {...previewHandlers} aria-label={t('What the video will look like')} />
+      {bigPreview && (
+        <div className="prompter-face-size">
+          <button aria-label={t('Smaller face')} onClick={() => resizeFace(-80)}>−</button>
+          <span>{t('Drag your face')}</span>
+          <button aria-label={t('Bigger face')} onClick={() => resizeFace(80)}>+</button>
+        </div>
+      )}
+    </div>
+  );
   const chooseMode = (m: 'camera' | 'words' | 'screen') => {
     if (m !== 'screen' && screenRef.current) stopScreen();
     setWordsOn(m === 'words');
@@ -331,6 +383,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     setMinimized(false); // back to the teleprompter to watch the take
   };
   const browse = () => {
+    setBigPreview(false); // the floating recorder starts small
     onScreen.current = { at: 0, found: { text: currentSlide() } }; // until something readable is on screen
     setRunning(false);
     setShowSettings(false);
@@ -420,7 +473,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   };
   const miniBar = minimized && recording && createPortal(
     <div ref={mini} className="prompter-mini" role="region" aria-label={t('Recording')}>
-      {wordsFace ? <div ref={thumb} className="prompter-mini-preview" /> : <video ref={camBubble} className={`prompter-mini-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay />}
+      {wordsFace ? preview('mini') : <video ref={camBubble} className={`prompter-mini-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay />}
       <span className="prompter-rec">● {clock(elapsed)}</span>
       <button className="prompter-mini-stop" aria-label={t('Stop recording')} onClick={stopRecording}><span /></button>
       <button className="prompter-mini-back" aria-label={t('Back to the teleprompter')} onClick={() => setMinimized(false)}>⤢</button>
@@ -462,7 +515,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             </div>
           </div>
           <div ref={guide} className="prompter-guide" aria-hidden />
-          {wordsOn && <div ref={thumb} className="prompter-thumb" aria-label={t('What the video will look like')} />}
+          {wordsOn && preview('thumb')}
 
           <div className="prompter-top">
             {recording ? (
@@ -576,7 +629,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             </div>
             <p className="prompter-hint">
               {wordsOn && !screen
-                ? t(recording ? 'The video shows the words at the ▶ line. Tap the text to pause it.' : 'The video shows the words you’re reading at the ▶ line, large, with your face under them (small preview on the right).')
+                ? t(recording ? 'The video shows the words at the ▶ line. Tap the text to pause it.' : 'The video shows the words you’re reading at the ▶ line, large, with your face. Tap the preview on the right to make it bigger and drag your face where you want it.')
                 : screen
                 ? t(recording ? 'Recording your screen and face. Stop here, in the small floating window, or with “Stop sharing”.' : 'Press ● to record your screen with your face in the corner. Switch to the window you want to show after the countdown.')
                 : t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}
