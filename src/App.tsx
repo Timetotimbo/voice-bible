@@ -1204,11 +1204,28 @@ function ClassicMicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeec
   );
 }
 
+/** Whether there's a connection now (the phone says so when it changes). */
+function useOnline() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false);
+    addEventListener('online', on);
+    addEventListener('offline', off);
+    return () => {
+      removeEventListener('online', on);
+      removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
+}
+
 /** Under the search bar: what the mic is hearing, and problems. "Listening…" is a hint, so it hides with them. */
 function MicStatus({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
   const { status, interim } = speech;
+  const online = useOnline();
   const message =
     interim ? `“${interim}”`
+    : !online ? t('Offline: type to search and read. The mic, Natural voices and Chat need the internet.')
     : status === 'listening' && hints ? (TAP_TO_TALK ? t('Listening… say a word or verse') : t('Listening… just speak'))
     : status === 'blocked' ? (TAP_TO_TALK
       ? t('Microphone is blocked. In Safari tap aA › Website Settings › Microphone › Allow, then tap the mic.')

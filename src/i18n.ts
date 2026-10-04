@@ -414,6 +414,7 @@ const ES: Record<string, string> = {
   'Screen + face': 'Pantalla + cara',
   'Camera': 'Cámara',
   'Words + face': 'Palabras + cara',
+  'Offline: type to search and read. The mic, Natural voices and Chat need the internet.': 'Sin conexión: escribe para buscar y leer. El micrófono, las voces naturales y el chat necesitan internet.',
   'Move {ref} (drag, or arrow keys)': 'Mover {ref} (arrastra o usa las flechas)',
   'Browse while recording': 'Navegar mientras grabas',
   'While browsing, the video shows': 'Al navegar, el video muestra',

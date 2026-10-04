@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.11.0 — 2026-10-04
+- **Works offline.** The first time Voice Bible opens with a connection, it saves itself and the Bible text on the phone (KJV, KJV with Strong's numbers, Reina-Valera 1909 and the Strong's dictionary, about 6 MB to download), plus its fonts. After that, away from Wi-Fi or with no signal, it opens and you can type to search (words, phrases or references like John 3:16), read chapters, use your verse lists and notes, and have verses read aloud with the phone's own voices.
+- Needs the internet still: the mic (voice search), the Natural voices, and Chat. When offline, a note under the search box says so.
+- Updates still arrive: with a connection it always loads the newest version.
+
 ## v2.10.0 — 2026-10-04
 - **Reorder the verses in a verse list.** Open a list and drag a verse by its ⠿ handle (on the right of the card) up or down; the others slide aside, and the new order is kept. Playing the list reads them in that order. With a keyboard, focus the handle and use the arrow keys. (The handles hide while you're choosing verses.)
 
