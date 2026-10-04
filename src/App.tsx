@@ -1301,8 +1301,8 @@ function ListsPage({ library, onOpen, onShare }: {
             <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
           </li>
         ) : (
-          <li key={l.id} {...(editing ? drag.rowProps(l.id, i) : {})}>
-            {editing && library.lists.length > 1 && <button {...drag.handleProps(l.id, i, l.name)}>⠿</button>}
+          <li key={l.id} {...drag.rowProps(l.id, i)}>
+            {library.lists.length > 1 && <button {...drag.handleProps(l.id, i, l.name)}>⠿</button>}
             <button className="sheet-item" onClick={() => onOpen(l.id)}>
               {l.name} <small>{l.verses.length}</small>
             </button>
@@ -1356,8 +1356,8 @@ function NotesPage({ notes, onOpen, onNew, onDelete, onMove }: {
             <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
           </li>
         ) : (
-          <li key={n.id} {...(editing ? drag.rowProps(n.id, i) : {})}>
-            {editing && notes.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+          <li key={n.id} {...drag.rowProps(n.id, i)}>
+            {notes.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
             <button className="sheet-item note-row" onClick={() => onOpen(n.id)}>
               <span>{noteTitle(n)}</span>
               {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
@@ -1399,8 +1399,8 @@ function ChatsPage({ chats, onOpen, onNew, onImport, onDelete, onMove }: {
             <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
           </li>
         ) : (
-          <li key={c.id} {...(editing ? drag.rowProps(c.id, i) : {})}>
-            {editing && chats.length > 1 && <button {...drag.handleProps(c.id, i, c.title)}>⠿</button>}
+          <li key={c.id} {...drag.rowProps(c.id, i)}>
+            {chats.length > 1 && <button {...drag.handleProps(c.id, i, c.title)}>⠿</button>}
             <button className="sheet-item" onClick={() => onOpen(c.id)}>{c.title}</button>
             {editing && <button className="sheet-x" aria-label={t('Delete chat {name}', { name: c.title })} onClick={() => setDeleting(c.id)}>✕</button>}
           </li>

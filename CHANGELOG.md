@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.13.0 — 2026-10-04
+- **Drag notes to reorder them** right away: each note in the Notes tab has its ⠿ handle showing (no need to tap Edit first). The same for your verse lists in the Verse Lists tab and your chats in Chat. Deleting still needs Edit, so nothing is removed by accident.
+
 ## v2.12.0 — 2026-10-04
 - **Heart (the Natural voice) offline.** Settings → Reading voice → **Heart offline**: save a book (pick it from the list), the New Testament (about 440 MB) or the whole Bible (about 1.9 GB) on the phone, with a progress bar. Stop any time and carry on later; it picks up where it left off. Saved chapters play with no internet, starting at any verse, with "Say the reference first" too.
 - Chapters you play on Wi-Fi are kept for offline as well (not on mobile data).
