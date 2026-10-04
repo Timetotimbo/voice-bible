@@ -368,7 +368,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           unfollow();
           if (id !== run.current) return;
           // A dropped connection often comes back: try this verse again a few times, waiting a little longer each time
-          if (attempt < 4) {
+          // (but with no connection at all, and this chapter not saved on the phone, go straight to the device voice)
+          if (attempt < 4 && navigator.onLine) {
             await wait(3000 * attempt);
             if (id !== run.current) return;
             continue;

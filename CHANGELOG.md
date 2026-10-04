@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.12.0 — 2026-10-04
+- **Heart (the Natural voice) offline.** Settings → Reading voice → **Heart offline**: save a book (pick it from the list), the New Testament (about 440 MB) or the whole Bible (about 1.9 GB) on the phone, with a progress bar. Stop any time and carry on later; it picks up where it left off. Saved chapters play with no internet, starting at any verse, with "Say the reference first" too.
+- Chapters you play on Wi-Fi are kept for offline as well (not on mobile data).
+- Offline, a chapter that isn't saved switches to the phone's own voice straight away (it used to wait about 20 seconds trying the connection).
+- "Remove saved recordings" frees the space again.
+
 ## v2.11.0 — 2026-10-04
 - **Works offline.** The first time Voice Bible opens with a connection, it saves itself and the Bible text on the phone (KJV, KJV with Strong's numbers, Reina-Valera 1909 and the Strong's dictionary, about 6 MB to download), plus its fonts. After that, away from Wi-Fi or with no signal, it opens and you can type to search (words, phrases or references like John 3:16), read chapters, use your verse lists and notes, and have verses read aloud with the phone's own voices.
 - Needs the internet still: the mic (voice search), the Natural voices, and Chat. When offline, a note under the search box says so.

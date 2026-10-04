@@ -7,6 +7,8 @@ const DATA = __DATA__; // the Bible translations and the Strong's dictionary (bi
 const SHELL_CACHE = 'vb-shell-' + VERSION;
 const DATA_CACHE = 'vb-data-__DATAKEY__';
 const FONT_CACHE = 'vb-fonts';
+const AUDIO_BASE = '__AUDIO__'; // the Natural voice recordings (another address)
+const AUDIO_CACHE = 'vb-audio'; // saved by the reader (src/offlineAudio.ts) or kept when played on Wi-Fi
 const FONT_CSS = __FONTS__; // the Google Fonts stylesheets in index.html
 
 self.addEventListener('install', event => {
@@ -42,7 +44,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     (async () => {
-      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE];
+      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE, AUDIO_CACHE];
       for (const k of await caches.keys()) if (k.startsWith('vb-') && !keep.includes(k)) await caches.delete(k);
       await self.clients.claim();
     })(),
@@ -65,6 +67,10 @@ self.addEventListener('fetch', event => {
         return hit || fresh;
       }),
     );
+    return;
+  }
+  if (AUDIO_BASE && req.url.startsWith(AUDIO_BASE)) {
+    event.respondWith(recording(event, req));
     return;
   }
   if (url.origin !== location.origin || !url.pathname.startsWith(SCOPE)) return;
@@ -93,3 +99,48 @@ self.addEventListener('fetch', event => {
     })(),
   );
 });
+
+// ---- Natural voice recordings ----
+const keeping = new Set();
+const onWifi = () => {
+  const c = self.navigator.connection;
+  return !!c && (c.type === 'wifi' || c.type === 'ethernet');
+};
+/** A saved recording if there is one (just the part asked for, so seeking to a verse works), else the network. */
+async function recording(event, req) {
+  const key = req.url.split('#')[0];
+  const cache = await caches.open(AUDIO_CACHE);
+  const hit = await cache.match(key, { ignoreVary: true, ignoreSearch: true });
+  if (hit) return part(req, hit);
+  // Played on Wi-Fi: keep the whole file for next time (not on mobile data)
+  if (!keeping.has(key) && (/\.json$/.test(key) || onWifi())) {
+    keeping.add(key);
+    event.waitUntil(
+      fetch(key, { mode: 'cors' })
+        .then(r => (r.ok ? cache.put(key, r) : null))
+        .catch(() => {})
+        .finally(() => keeping.delete(key)),
+    );
+  }
+  return fetch(req);
+}
+/** Answer a "Range: bytes=a-b" request from a whole saved file. */
+async function part(req, res) {
+  const range = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range') || '');
+  if (!range) return res;
+  const blob = await res.blob();
+  const size = blob.size;
+  let start = range[1] ? +range[1] : size - +range[2];
+  let end = range[1] && range[2] ? +range[2] : size - 1;
+  start = Math.max(0, Math.min(start, size - 1));
+  end = Math.max(start, Math.min(end, size - 1));
+  return new Response(blob.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type': res.headers.get('Content-Type') || 'audio/mpeg',
+      'Content-Range': `bytes ${start}-${end}/${size}`,
+      'Content-Length': String(end - start + 1),
+      'Accept-Ranges': 'bytes',
+    },
+  });
+}

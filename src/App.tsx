@@ -10,6 +10,7 @@ import { renderingsOf, strongsCode, tagsOf, versesWithCode, type Tag } from './b
 import { WordSheet } from './WordSheet';
 import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
+import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
 import { shareVerses, versesAsText } from './shareVerses';
@@ -2404,6 +2405,56 @@ function Backup() {
   );
 }
 
+/** Keeping a Natural voice on the phone, by book, New Testament or the whole Bible, so it reads offline. */
+function OfflineVoice({ voice, name, book }: { voice: string; name: string; book?: number }) {
+  const s = useOfflineAudio();
+  const [pick, setPick] = useState(book !== undefined && book >= 0 ? book : 42); // John
+  const all = savedChapters(s, voice, WHOLE_BIBLE);
+  const save = (books: number[], label: string) => void saveBooks(voice, books, label);
+  const option = (books: number[], label: string) => {
+    const have = savedChapters(s, voice, books), total = chaptersIn(books);
+    return (
+      <button className="offline-opt" disabled={!!s.busy || have === total} onClick={() => save(books, label)}>
+        <span>{label}</span>
+        <small>{have === total ? t('Saved ✓') : have ? t('{n} of {total} chapters saved', { n: have, total }) : t('about {size}', { size: sizeText(aboutMb(books)) })}</small>
+      </button>
+    );
+  };
+  return (
+    <div className="offline-voice">
+      <h3 className="sheet-sub">{t('{name} offline', { name })}</h3>
+      <p className="voice-help">
+        {t('Save {name} on this phone to hear it with no internet. Chapters you play on Wi-Fi are kept too.', { name })}{' '}
+        {all > 0 && t('Saved now: {n} of 1,189 chapters.', { n: all })}
+      </p>
+      {s.busy ? (
+        <div className="offline-progress" aria-live="polite">
+          <div className="offline-bar"><span style={{ width: `${Math.round((s.busy.done / Math.max(1, s.busy.total)) * 100)}%` }} /></div>
+          <p>{t('Saving {label}… {pct}%', { label: s.busy.label, pct: Math.round((s.busy.done / Math.max(1, s.busy.total)) * 100) })}</p>
+          <button onClick={stopSaving}>{t('Stop (you can carry on later)')}</button>
+        </div>
+      ) : (
+        <div className="offline-opts">
+          <div className="offline-book">
+            <select value={pick} onChange={e => setPick(+e.target.value)} aria-label={t('Book to save')}>
+              {WHOLE_BIBLE.map(b => <option key={b} value={b}>{bookName(b)}</option>)}
+            </select>
+            {option([pick], bookName(pick))}
+          </div>
+          {option(NEW_TESTAMENT, t('New Testament'))}
+          {option(WHOLE_BIBLE, t('Whole Bible'))}
+        </div>
+      )}
+      {s.error && <p className="notice">{t(s.error)} {t('Tap again to carry on.')}</p>}
+      {all > 0 && !s.busy && (
+        <button className="offline-remove" onClick={() => window.confirm(t('Remove the saved recordings from this phone?')) && void removeSaved()}>
+          {t('Remove saved recordings')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>; onClose: () => void }) {
   const { voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices } = reader;
   const hasMan = voices.some(v => describeVoice(v).startsWith('Man'));
@@ -2453,6 +2504,7 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
               })}
             </ul>
             <p className="voice-help">{t('Recorded voices that sound human. They stream over the internet.')}</p>
+            {canSaveOffline && <OfflineVoice voice={(recordedVoice ?? RECORDED_VOICES[0]).id} name={(recordedVoice ?? RECORDED_VOICES[0]).name} book={reader.current?.book} />}
           </>
         )}
 

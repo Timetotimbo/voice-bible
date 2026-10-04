@@ -27,6 +27,7 @@ function offlineServiceWorker(base: string): Plugin {
         .replace('__SHELL__', JSON.stringify([...new Set(shell)].map(f => base + f)))
         .replace('__DATA__', JSON.stringify(data.map(f => base + f)))
         .replace('__DATAKEY__', dataKey)
+        .replace('__AUDIO__', process.env.VITE_AUDIO_BASE || '')
         .replace('__FONTS__', JSON.stringify([...readFileSync('index.html', 'utf8').matchAll(/href="(https:\/\/fonts\.googleapis\.com\/css2[^"]+)"/g)].map(m => m[1].replace(/&amp;/g, '&'))));
       this.emitFile({ type: 'asset', fileName: 'sw.js', source });
     },

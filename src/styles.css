@@ -862,3 +862,17 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .prompter-actions .clipforge { border-color: rgba(245, 158, 11, 0.6); color: #fbbf24; }
 .prompter-actions .clipforge:disabled { opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) { .prompter-record span { transition: none; } }
+
+/* Natural voice offline: save by book, New Testament or all */
+.offline-voice { margin-top: 6px; }
+.offline-opts { display: grid; gap: 6px; }
+.offline-book { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 6px; }
+.offline-book select { min-width: 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 0 8px; font: inherit; }
+.offline-opt { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.offline-opt small { color: var(--muted); white-space: nowrap; }
+.offline-opt:disabled { opacity: 0.6; cursor: default; }
+.offline-progress { display: grid; gap: 6px; }
+.offline-progress p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.offline-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.offline-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-bright)); transition: width 0.3s; }
+.offline-progress button, .offline-remove { justify-self: start; border: 1px solid var(--border); background: none; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 0.85rem; cursor: pointer; margin-top: 6px; }
