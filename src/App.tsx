@@ -705,6 +705,12 @@ export default function App() {
             }
             hits={savedHits}
             shown={savedHits.length}
+            onMoveVerse={(hit, to) => {
+              // `to` counts the verses shown; a verse missing from this translation isn't shown, so go by the verse there
+              const there = savedHits[to];
+              const at = there ? savedList.verses.findIndex(v => v[0] === there.book && v[1] === there.chapter && v[2] === there.verse) : savedList.verses.length - 1;
+              library.moveVerse(savedList.id, toRef(hit), at);
+            }}
             abbrev={abbrev}
             onMore={() => {}}
             onOpen={hit =>
@@ -1392,8 +1398,9 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onMoveVerse,
 }: {
+  onMoveVerse?: (hit: VerseHit, to: number) => void; // a saved list: drag a verse by its handle to reorder
   title: ReactNode;
   strongs?: string; // a Strong's number search: mark the words that translate it
   tagsFor?: (hit: VerseHit) => Tag[] | undefined;
@@ -1420,11 +1427,42 @@ function SearchResults({
   const picked = hits.filter(h => selected.has(hitKey(h)));
   const queue = picked.length ? picked : hits;
   const current = reader.current && hitKey(reader.current);
-  const currentEl = useRef<HTMLLIElement>(null);
+  const currentEl = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
     currentEl.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [current]);
+
+  // Reordering a list's verses: each card gets a ⠿ handle (not while choosing verses)
+  const keys = hits.slice(0, shown).map(hitKey);
+  const verseDrag = useDragOrder(keys, (key, to) => {
+    const hit = hits.find(h => hitKey(h) === key);
+    if (hit) onMoveVerse?.(hit, to);
+  });
+  const movable = !!onMoveVerse && keys.length > 1 && !picked.length;
+  // The card's own ref and class, plus the drag's (it measures the rows and slides them aside)
+  const cardProps = (key: string, i: number, isCurrent: boolean, cls: string) => {
+    if (!movable) return { ref: isCurrent ? currentEl : undefined, className: cls };
+    const d = verseDrag.rowProps(key, i);
+    return {
+      ref: (el: HTMLLIElement | null) => {
+        d.ref(el);
+        if (isCurrent) currentEl.current = el;
+      },
+      className: `${cls} movable ${d.className}`,
+      style: d.style,
+    };
+  };
+  const handle = (hit: VerseHit, i: number) =>
+    movable && (
+      <button
+        {...verseDrag.handleProps(hitKey(hit), i, `${bookName(hit.book)} ${hit.chapter}:${hit.verse}`)}
+        aria-label={t('Move {ref} (drag, or arrow keys)', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
+        onClick={e => e.stopPropagation()} // moving, not opening
+      >
+        ⠿
+      </button>
+    );
 
   return (
     <section className={reader.supported && count ? `has-player ${picked.length || count > 1 ? 'selecting' : ''}` : ''}>
@@ -1441,7 +1479,7 @@ function SearchResults({
                 <li className="loose-divider">{t(i ? 'Also: verses with all these words' : 'No exact phrase. Verses with all these words')}</li>
               )}
               {classic ? (
-                <li ref={isCurrent ? currentEl : undefined} className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}>
+                <li {...cardProps(key, i, isCurrent, `verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`)}>
                   <button className="verse-body" onClick={() => onOpen(hit)}>
                     <span className="ref">{bookName(hit.book)} {hit.chapter}:{hit.verse} <small>{abbrev}</small></span>
                     <span className="text">
@@ -1473,11 +1511,11 @@ function SearchResults({
                       </button>
                     </div>
                   )}
+                  {handle(hit, i)}
                 </li>
               ) : (
                 <li
-                  ref={isCurrent ? currentEl : undefined}
-                  className={`verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`}
+                  {...cardProps(key, i, isCurrent, `verse-card ${isCurrent ? 'reading' : ''} ${isSelected ? 'selected' : ''}`)}
                   role="button"
                   tabIndex={0}
                   aria-label={t('Open {ref} in its chapter', { ref: `${bookName(hit.book)} ${hit.chapter}:${hit.verse}` })}
@@ -1516,6 +1554,7 @@ function SearchResults({
                       )}
                     </span>
                   </div>
+                  {handle(hit, i)}
                 </li>
               )}
             </Fragment>

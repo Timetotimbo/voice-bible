@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.10.0 — 2026-10-04
+- **Reorder the verses in a verse list.** Open a list and drag a verse by its ⠿ handle (on the right of the card) up or down; the others slide aside, and the new order is kept. Playing the list reads them in that order. With a keyboard, focus the handle and use the arrow keys. (The handles hide while you're choosing verses.)
+
 ## v2.9.0 — 2026-10-03
 - Words + face: **move your face**. Tap the small preview to make it bigger, then drag your face anywhere and use − / + to make it smaller or bigger. The words make room: above your face when it's low, below it when it's high (the title moves too). Your spot is remembered.
 - The verse you're on now has a **pink highlight band** behind it and the other verses are dimmer, so it's easy to see even in the small preview.

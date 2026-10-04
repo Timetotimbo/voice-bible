@@ -112,5 +112,22 @@ export function useLibrary() {
     [setLists],
   );
 
-  return { history, remember, forget, clearHistory, lists, addToList, addAround, removeFromList, renameList, deleteList, moveList };
+  /** Moves a verse within a list to position `to` (0 = first). */
+  const moveVerse = useCallback(
+    (id: string, verse: VerseRef, to: number) =>
+      setLists(ls =>
+        ls.map(l => {
+          if (l.id !== id) return l;
+          const from = l.verses.findIndex(v => sameRef(v, verse));
+          if (from < 0 || from === to) return l;
+          const verses = [...l.verses];
+          const [moved] = verses.splice(from, 1);
+          verses.splice(Math.max(0, Math.min(to, verses.length)), 0, moved);
+          return { ...l, verses };
+        }),
+      ),
+    [setLists],
+  );
+
+  return { history, remember, forget, clearHistory, lists, addToList, addAround, removeFromList, renameList, deleteList, moveList, moveVerse };
 }

@@ -385,6 +385,14 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sheet-list li.shifting { transition: transform 0.15s ease; }
 .sheet-list li.dragging { position: relative; z-index: 2; background: var(--surface-2); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
 .sheet-list li.dragging .drag-handle { cursor: grabbing; color: var(--purple-bright); }
+/* A saved list's verses: drag a card by its ⠿ handle to reorder */
+.verse-card.movable { display: flex; align-items: flex-start; }
+.verse-card.movable > .verse-body { flex: 1; min-width: 0; }
+.v2 .verse-card.movable { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px; }
+.verse-card.movable > .drag-handle { align-self: center; padding: 10px 4px; margin: -8px -6px -8px 0; font-size: 1.3rem; }
+.verse-card.shifting { transition: transform 0.15s ease; }
+.verse-card.dragging { position: relative; z-index: 2; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55); border-color: var(--purple-bright); }
+.verse-card.dragging .drag-handle { cursor: grabbing; color: var(--purple-bright); }
 /* Keep ✕ (delete) apart from ✎ so one isn't tapped for the other */
 .list-delete { margin-left: 14px; }
 .confirm-row { gap: 8px; padding: 8px 4px; background: var(--surface-2); border-radius: 10px; }
