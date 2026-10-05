@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOKS, BOOKS_ES, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
+import { heartCancel, heartSay, heartTextSaved } from './heartText';
 import { muteReferences } from './noteSpeech';
 import { chunks, speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
 
@@ -105,7 +106,7 @@ const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Thi
 export type ReadingLanguage = 'en' | 'es';
 
 // Text that isn't a verse (a note, a chat) is read as "verses" of this book: one per paragraph or message,
-// numbered from 1. It's always read by a device voice (the recordings are of the Bible), without references.
+// numbered from 1. It's read by a device voice, or by Heart made on the phone (src/heartText.ts) once downloaded.
 export const TEXT_BOOK = -1;
 const isText = (verses: VerseHit[]) => verses[0]?.book === TEXT_BOOK;
 
@@ -262,6 +263,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   const recordedVoice = language === 'en' ? RECORDED_VOICES.find(v => REC + v.id === voiceId) : undefined;
   const recordedRef = useRef(recordedVoice?.id);
   recordedRef.current = recordedVoice?.id;
+  const heartRun = useRef(false); // reading a note in Heart's voice (made on the phone)
   const run = useRef(0); // bumps on every play/stop so callbacks from a cancelled run are ignored
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -311,6 +313,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     run.current++;
     synth?.cancel();
     endSegment?.();
+    heartCancel();
     finish();
   }, [finish]);
 
@@ -318,10 +321,14 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     (verses: VerseHit[], from = 0) => {
       const text = isText(verses);
       const recorded = text ? undefined : recordedRef.current;
-      if ((!synth && !recorded) || !verses.length) return;
+      // Notes and chats in Heart's voice, made on the phone (src/heartText.ts), when it's been downloaded
+      const heart = text && !!recordedRef.current && heartTextSaved();
+      heartRun.current = heart;
+      if ((!synth && !recorded && !heart) || !verses.length) return;
       const id = ++run.current;
       synth?.cancel();
       endSegment?.();
+      heartCancel();
       queue.current = verses;
       setPlaying(verses);
 
@@ -381,7 +388,6 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         speakRecorded(i + 1, voiceName);
       };
 
-      let muted: string[] | undefined;
       const speak = (i: number) => {
         if (id !== run.current) return;
         if (i >= verses.length) {
@@ -392,7 +398,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         index.current = i;
         const verse = verses[i];
         // A note or chat with "Say the reference first" off: its references are blanked out (keeping word positions)
-        const said = text && !sayRefsRef.current ? (muted ??= muteReferences(verses.map(v => v.text)))[i] : verse.text;
+        const said = text ? saidText(i) : verse.text;
         const pieces = chunks(said).filter(c => /[\p{L}\p{N}]/u.test(c));
         // Nothing left to say (a reference on its own line): on to the next
         if (!pieces.length) {
@@ -459,7 +465,95 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           synth!.speak(u);
         });
       };
-      if (recorded) {
+      // Heart for notes: each paragraph in pieces of a few sentences, made a few pieces ahead of where it's reading
+      let muted: string[] | undefined;
+      const saidText = (i: number) => (!sayRefsRef.current ? (muted ??= muteReferences(verses.map(v => v.text)))[i] : verses[i].text);
+      const made = new Map<string, Promise<string>>();
+      const make = (key: string, piece: string) => {
+        let p = made.get(key);
+        if (!p) {
+          p = heartSay(piece);
+          p.catch(() => {});
+          made.set(key, p);
+        }
+        return p;
+      };
+      const piecesOf = (i: number) => {
+        const said = saidText(i);
+        const out: { text: string; at: number }[] = [];
+        let pos = 0;
+        for (const c of chunks(said).filter(c => /[\p{L}\p{N}]/u.test(c))) {
+          const at = said.indexOf(c, pos);
+          pos = at + c.length;
+          const last = out[out.length - 1];
+          // Joined into pieces of up to ~300 letters: fewer joins, and the model's limit is ~500 sounds
+          if (last && last.text.length + c.length < 300) last.text = said.slice(last.at, pos).replace(/^\s+/, '');
+          else out.push({ text: c, at });
+        }
+        return out;
+      };
+      const ahead = (i: number, k: number, n: number) => {
+        for (let pi = i, pk = k; pi < verses.length && n > 0; pi++, pk = 0) {
+          const ps = piecesOf(pi);
+          for (; pk < ps.length && n > 0; pk++, n--) void make(`${pi}:${pk}`, ps[pk].text);
+        }
+      };
+      const speakHeart = async (i: number) => {
+        if (id !== run.current) return;
+        if (i >= verses.length) {
+          if (repeatRef.current) speakHeart(0);
+          else finish();
+          return;
+        }
+        index.current = i;
+        const verse = verses[i];
+        const ps = piecesOf(i);
+        if (!ps.length) return speakHeart(i + 1);
+        setCurrent(verse);
+        for (let k = 0; k < ps.length; k++) {
+          ahead(i, k, 3);
+          showWord(null);
+          // Making the voice can take a moment on a phone; the watchdog shouldn't count that as stuck
+          const busy = setInterval(() => (lastProgress.current = Date.now()), 5000);
+          lastProgress.current = Date.now();
+          let url: string;
+          try {
+            url = await make(`${i}:${k}`, ps[k].text);
+          } catch {
+            clearInterval(busy);
+            if (id !== run.current) return;
+            // The model couldn't run: read on with the device voice
+            heartRun.current = false;
+            return synth ? speak(i) : finish();
+          } finally {
+            clearInterval(busy);
+          }
+          if (id !== run.current) return;
+          const { text: piece, at } = ps[k];
+          const spans = wordSpans(verse.text, at, at + piece.length);
+          follow(() => {
+            const el = mainEl!;
+            if (el.src === url && el.duration) showWord(wordAt(spans, el.currentTime / el.duration));
+          });
+          const result = await playSegment(mainEl!, url, 0, undefined, speedRef.current);
+          unfollow();
+          made.delete(`${i}:${k}`);
+          URL.revokeObjectURL(url);
+          if (id !== run.current) return;
+          if (result === 'error') {
+            heartRun.current = false;
+            return synth ? speak(i) : finish();
+          }
+        }
+        speakHeart(i + 1);
+      };
+
+      if (heart) {
+        // The silence loop keeps the page awake while a piece is being made
+        keepAwake(true);
+        unlockAudio();
+        speakHeart(from);
+      } else if (recorded) {
         keepAwake(false);
         unlockAudio();
         speakRecorded(from, recorded);
@@ -563,7 +657,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         // storage unavailable; setting lasts for this visit
       }
       // Recordings can change speed as they play; device speech has to restart
-      if (recordedRef.current && !isText(queue.current)) allEls.forEach(el => (el.playbackRate = el.defaultPlaybackRate = next));
+      if ((recordedRef.current && !isText(queue.current)) || heartRun.current) allEls.forEach(el => (el.playbackRate = el.defaultPlaybackRate = next));
       else restart();
     },
     [restart],
@@ -627,7 +721,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   return { supported: !!synth || !!mainEl, language, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
     voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop,
     /** Whether a note or chat can be read aloud (it needs a device voice) */
-    canReadText: !!synth,
+    canReadText: !!synth || (!!recordedVoice && heartTextSaved()),
     /** The paragraph of text being read (0-based), or -1 */
     textAt: current?.book === TEXT_BOOK ? current.verse - 1 : -1,
     readingText: !!playing && isText(playing) };

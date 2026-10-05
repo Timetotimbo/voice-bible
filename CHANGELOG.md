@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.15.0 — 2026-10-05
+- **Heart reads your notes, and keeps going when you leave the app.** Settings → Reading voice → **Heart for notes** → Download (about 160 MB, once). After that, with Heart as your reading voice, notes and chats are read in Heart's own voice, made on the phone, as real audio: they keep playing with the screen off or another app open, like Bible chapters, and work offline. A long paragraph may take a moment to start. "Remove Heart for notes" frees the space; without it, notes are read by the phone's voice as before.
+- The app now runs "cross-origin isolated" (set by its offline helper), which lets Heart use several of the phone's cores: about 2.5 times faster.
+
 ## v2.14.0 — 2026-10-05
 - **Notes can be read without the Bible references.** While a note (or a chat) is being read, the play bar has a new **Refs** button. Turned off, it skips references like "John 3:16 (KJV)", "(Rom 8:28)" or "— Psalm 23:1 NIV" and the verse numbers in front of each line of an inserted passage, and reads just the words. It's the same setting as "Say the reference first" for chapters.
 

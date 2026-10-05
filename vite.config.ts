@@ -18,13 +18,16 @@ function offlineServiceWorker(base: string): Plugin {
     generateBundle(_, bundle) {
       const pub = publicFiles();
       const data = pub.filter(f => f.startsWith('bibles/'));
-      const shell = ['', 'index.html', ...pub.filter(f => !data.includes(f)), ...Object.keys(bundle).filter(f => !f.endsWith('.map') && f !== 'version.json')];
+      // Heart for notes' engine (src/heartWorker.ts) is big: kept only on phones that download it
+      const heart = Object.keys(bundle).filter(f => /heartWorker|ort-wasm/.test(f));
+      const shell = ['', 'index.html', ...pub.filter(f => !data.includes(f)), ...Object.keys(bundle).filter(f => !f.endsWith('.map') && f !== 'version.json' && !heart.includes(f))];
       // The Bible files' cache only changes when the files do (they're big)
       const dataKey = createHash('sha256').update(data.map(f => readFileSync(join('public', f))).reduce((h, b) => h + createHash('sha256').update(b).digest('hex'), '')).digest('hex').slice(0, 12);
       const source = readFileSync('scripts/sw-template.js', 'utf8')
         .replace('__VERSION__', `${pkg.version}-${Date.now().toString(36)}`)
         .replace('__BASE__', base)
         .replace('__SHELL__', JSON.stringify([...new Set(shell)].map(f => base + f)))
+        .replace('__HEART__', JSON.stringify(heart.map(f => base + f)))
         .replace('__DATA__', JSON.stringify(data.map(f => base + f)))
         .replace('__DATAKEY__', dataKey)
         .replace('__AUDIO__', process.env.VITE_AUDIO_BASE || '')
@@ -51,5 +54,8 @@ export default defineConfig({
     },
     offlineServiceWorker(BASE),
   ],
+  // Heart for notes (src/heartWorker.ts): the ONNX runtime without its WebGPU part, so its engine file is half the size
+  resolve: { alias: [{ find: /^onnxruntime-web$/, replacement: 'onnxruntime-web/wasm' }] },
+  worker: { format: 'es' },
   server: { host: true, port: 8080 },
 });

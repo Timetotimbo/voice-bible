@@ -9,6 +9,8 @@ const DATA_CACHE = 'vb-data-__DATAKEY__';
 const FONT_CACHE = 'vb-fonts';
 const AUDIO_BASE = '__AUDIO__'; // the Natural voice recordings (another address)
 const AUDIO_CACHE = 'vb-audio'; // saved by the reader (src/offlineAudio.ts) or kept when played on Wi-Fi
+const HEART = __HEART__; // Heart for notes' engine (src/heartWorker.ts), kept once the reader downloads it
+const HEART_CACHE = 'vb-heart';
 const FONT_CSS = __FONTS__; // the Google Fonts stylesheets in index.html
 
 self.addEventListener('install', event => {
@@ -36,6 +38,14 @@ self.addEventListener('install', event => {
           await Promise.all(files.map(f => fetch(f).then(fr => fr.ok && fonts.put(f, fr)).catch(() => {})));
         }
       } catch (e) {}
+      // Heart for notes, if downloaded: this version's engine files (dropping the old ones), so it works offline
+      try {
+        if (await caches.has(HEART_CACHE)) {
+          const heart = await caches.open(HEART_CACHE);
+          for (const r of await heart.keys()) if (!HEART.includes(new URL(r.url).pathname)) await heart.delete(r);
+          for (const u of HEART) if (!(await heart.match(u))) await heart.add(u);
+        }
+      } catch (e) {}
       await self.skipWaiting();
     })(),
   );
@@ -44,7 +54,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     (async () => {
-      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE, AUDIO_CACHE];
+      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE, AUDIO_CACHE, HEART_CACHE];
       for (const k of await caches.keys()) if (k.startsWith('vb-') && !keep.includes(k)) await caches.delete(k);
       await self.clients.claim();
     })(),
@@ -81,7 +91,24 @@ self.addEventListener('fetch', event => {
   // Pages: the newest from the server, or the saved app when there's no connection (or it's very slow)
   if (req.mode === 'navigate') {
     event.respondWith(
-      timeout(fetch(req), 5000).catch(async () => (await caches.match(SCOPE + 'index.html', { ignoreVary: true })) || Response.error()),
+      timeout(fetch(req), 5000)
+        .catch(async () => (await caches.match(SCOPE + 'index.html', { ignoreVary: true })) || Response.error())
+        .then(isolated),
+    );
+    return;
+  }
+  // Heart for notes' engine: from the phone once kept
+  if (HEART.includes(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        const c = await caches.open(HEART_CACHE);
+        const hit = await c.match(req, { ignoreVary: true });
+        if (hit) return isolated(hit);
+        const r = await fetch(req);
+        if (r.ok) c.put(req, r.clone());
+        // An isolated page's worker has to be isolated too, or it isn't allowed to start
+        return isolated(r);
+      })(),
     );
     return;
   }
@@ -99,6 +126,18 @@ self.addEventListener('fetch', event => {
     })(),
   );
 });
+
+/**
+ * Pages served "cross-origin isolated" (GitHub Pages can't send these headers itself), which lets Heart for notes
+ * use all the phone's cores: about 2.5 times faster. "credentialless" still lets the fonts and recordings load.
+ */
+function isolated(res) {
+  if (!res || res.type === 'error' || res.type === 'opaqueredirect') return res;
+  const headers = new Headers(res.headers);
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 
 // ---- Natural voice recordings ----
 const keeping = new Set();

@@ -1,3 +1,4 @@
+import { HEART_TEXT_MB, canHeartText, loadHeartText, removeHeartText, useHeartText } from './heartText';
 import { createPortal } from 'react-dom';
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { bookName, bookNames, setBookLanguage } from './bible/books';
@@ -2455,6 +2456,41 @@ function OfflineVoice({ voice, name, book }: { voice: string; name: string; book
   );
 }
 
+/** Heart for notes: the voice model kept on the phone, so notes and chats are read in Heart too (and keep playing in the background). */
+function HeartNotes({ name }: { name: string }) {
+  const s = useHeartText();
+  const pct = s.busy?.total ? Math.round((s.busy.loaded / s.busy.total) * 100) : 0;
+  return (
+    <div className="offline-voice">
+      <h3 className="sheet-sub">{t('{name} for notes', { name })}</h3>
+      <p className="voice-help">
+        {t('Notes and chats are read by the phone’s own voice, which stops when you leave the app. Download {name} (about {size}, once) and they’re read in {name} instead, made on this phone: they keep playing with the screen off or another app open, and work offline.', { name, size: `${HEART_TEXT_MB} MB` })}
+      </p>
+      {s.busy ? (
+        <div className="offline-progress" aria-live="polite">
+          <div className="offline-bar"><span style={{ width: `${pct}%` }} /></div>
+          <p>{t('Downloading {name}… {pct}%', { name, pct })}</p>
+        </div>
+      ) : s.saved ? (
+        <>
+          <p className="voice-help">{t('Downloaded ✓ Notes and chats are read in {name} while {name} is your reading voice. A long paragraph may take a moment to start.', { name })}</p>
+          <button className="offline-remove" onClick={() => window.confirm(t('Remove {name} for notes from this phone?', { name })) && void removeHeartText()}>
+            {t('Remove {name} for notes', { name })}
+          </button>
+        </>
+      ) : (
+        <div className="offline-opts">
+          <button className="offline-opt" onClick={() => void loadHeartText().catch(() => {})}>
+            <span>{t('Download {name} for notes', { name })}</span>
+            <small>{t('about {size}', { size: `${HEART_TEXT_MB} MB` })}</small>
+          </button>
+        </div>
+      )}
+      {s.error && <p className="notice">{t(s.error)} {t('Tap again to carry on.')}</p>}
+    </div>
+  );
+}
+
 function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>; onClose: () => void }) {
   const { voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices } = reader;
   const hasMan = voices.some(v => describeVoice(v).startsWith('Man'));
@@ -2505,6 +2541,7 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
             </ul>
             <p className="voice-help">{t('Recorded voices that sound human. They stream over the internet.')}</p>
             {canSaveOffline && <OfflineVoice voice={(recordedVoice ?? RECORDED_VOICES[0]).id} name={(recordedVoice ?? RECORDED_VOICES[0]).name} book={reader.current?.book} />}
+            {canHeartText && <HeartNotes name={(recordedVoice ?? RECORDED_VOICES[0]).name} />}
           </>
         )}
 
