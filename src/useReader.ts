@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOKS, BOOKS_ES, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
+import { muteReferences } from './noteSpeech';
 import { chunks, speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
@@ -380,6 +381,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         speakRecorded(i + 1, voiceName);
       };
 
+      let muted: string[] | undefined;
       const speak = (i: number) => {
         if (id !== run.current) return;
         if (i >= verses.length) {
@@ -389,11 +391,18 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         }
         index.current = i;
         const verse = verses[i];
-        const pieces = chunks(verse.text);
+        // A note or chat with "Say the reference first" off: its references are blanked out (keeping word positions)
+        const said = text && !sayRefsRef.current ? (muted ??= muteReferences(verses.map(v => v.text)))[i] : verse.text;
+        const pieces = chunks(said).filter(c => /[\p{L}\p{N}]/u.test(c));
+        // Nothing left to say (a reference on its own line): on to the next
+        if (!pieces.length) {
+          setTimeout(() => id === run.current && speak(i + 1));
+          return;
+        }
         // Where each piece sits in the verse, so a word reported within a piece can be found in the verse
         let pos = 0;
         const offsets = pieces.map(c => {
-          const at = verse.text.indexOf(c, pos);
+          const at = said.indexOf(c, pos);
           pos = at < 0 ? pos : at + c.length;
           return Math.max(at, 0);
         });

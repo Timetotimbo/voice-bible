@@ -40,6 +40,15 @@ export function ListenBar({ reader, total }: { reader: Reader; total: number }) 
       >
         {reader.speed}×
       </button>
+      <button
+        className={`repeat ${reader.sayRefs ? 'on' : ''}`}
+        aria-pressed={reader.sayRefs}
+        aria-label={t('Read Bible references')}
+        title={t(reader.sayRefs ? 'Reading references like “John 3:16 (KJV)”' : 'Skipping references and verse numbers')}
+        onClick={() => reader.setSayRefs(!reader.sayRefs)}
+      >
+        {t('Refs')}
+      </button>
     </div>
   );
 }

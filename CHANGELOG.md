@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.14.0 — 2026-10-05
+- **Notes can be read without the Bible references.** While a note (or a chat) is being read, the play bar has a new **Refs** button. Turned off, it skips references like "John 3:16 (KJV)", "(Rom 8:28)" or "— Psalm 23:1 NIV" and the verse numbers in front of each line of an inserted passage, and reads just the words. It's the same setting as "Say the reference first" for chapters.
+
 ## v2.13.0 — 2026-10-04
 - **Drag notes to reorder them** right away: each note in the Notes tab has its ⠿ handle showing (no need to tap Edit first). The same for your verse lists in the Verse Lists tab and your chats in Chat. Deleting still needs Edit, so nothing is removed by accident.
 
