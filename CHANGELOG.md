@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.19.0 — 2026-10-06
+- **Find in a note.** Tap 🔍 in a note's toolbar and type: every match is highlighted, the count shows ("6 of 24"), and ▲ ▼ (or Enter) jump between them, scrolling each into view. It ignores capitals and accents, and finds words inside references too. ✕ closes it.
+
 ## v2.18.0 — 2026-10-06
 - **Fast scroll for long notes.** In a note several pages long, a handle appears on the right edge as you scroll. Drag it to move through the whole note quickly (it shows how far down you are, like 50%), or tap the track to jump there. It fades a moment after you let go.
 - Text pasted from Google Docs: its line breaks inside a paragraph used to show as a small box. They're now normal new lines.

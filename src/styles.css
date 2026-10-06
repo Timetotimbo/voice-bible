@@ -921,3 +921,16 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
   border: 1px solid var(--purple-bright); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center;
 }
 .fast-scroll-thumb span { font-size: 10px; font-weight: 700; color: var(--on-accent); }
+
+/* Find in a note */
+.find-bar {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 8px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.find-bar input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; }
+.find-bar button { width: 36px; height: 36px; flex: none; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
+.find-bar button:disabled { opacity: 0.4; }
+.find-count { font-size: 13px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center; }
+mark.find-hit { background: color-mix(in srgb, #ffd54a 45%, transparent); color: inherit; border-radius: 3px; }
+mark.find-hit.current { background: #ffd54a; color: #111; }
+.note-tools .undo.on { border-color: var(--purple-bright); color: var(--purple-bright); }

@@ -12,15 +12,45 @@ import { findReferences } from './noteSpeech';
  */
 export type RefPick = { label: string; rect: DOMRect; hover?: boolean; end?: number }; // end: where it ends in the note's text
 
-/** Text with its references as buttons. */
-export function RefText({ text, onPick }: { text: string; onPick: (p: RefPick) => void }) {
+/** Find-in-note matches: where each is in the text, and which one is current. */
+export type Marks = { ranges: { start: number; end: number }[]; current: number };
+
+/** Where `query` appears in `text` (ignoring case and accents), as character ranges. */
+export function findAll(text: string, query: string): { start: number; end: number }[] {
+  const q = query.trim();
+  if (!q) return [];
+  // Lower case without accents, one UTF-16 unit for one (emoji included), so positions still match the text
+  const fold = (s: string) => s.split('').map(c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()[0] ?? c).join('');
+  const hay = fold(text), needle = fold(q);
+  const out: { start: number; end: number }[] = [];
+  for (let i = hay.indexOf(needle); i >= 0 && out.length < 2000; i = hay.indexOf(needle, i + needle.length)) out.push({ start: i, end: i + needle.length });
+  return out;
+}
+
+/** Part of the text, with the find-in-note matches in it highlighted. */
+function marked(text: string, from: number, to: number, marks?: Marks): (string | JSX.Element)[] {
+  if (!marks?.ranges.length) return [text.slice(from, to)];
+  const out: (string | JSX.Element)[] = [];
+  let at = from;
+  marks.ranges.forEach((m, i) => {
+    if (m.end <= from || m.start >= to) return;
+    const s = Math.max(m.start, from), e = Math.min(m.end, to);
+    if (s > at) out.push(text.slice(at, s));
+    out.push(<mark key={`m${i}-${s}`} className={i === marks.current ? 'find-hit current' : 'find-hit'} data-hit={i}>{text.slice(s, e)}</mark>);
+    at = e;
+  });
+  if (at < to) out.push(text.slice(at, to));
+  return out;
+}
+
+/** Text with its references as buttons, and any find-in-note matches highlighted. */
+export function RefText({ text, onPick, marks }: { text: string; onPick: (p: RefPick) => void; marks?: Marks }) {
   const refs = findReferences(text);
-  if (!refs.length) return <>{text}</>;
   const out: JSX.Element[] = [];
   let at = 0;
   const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches;
   refs.forEach((r, i) => {
-    out.push(<Fragment key={`t${i}`}>{text.slice(at, r.start)}</Fragment>);
+    out.push(<Fragment key={`t${i}`}>{marked(text, at, r.start, marks)}</Fragment>);
     // A span, not a <button>: a button can't break across lines, so a reference couldn't wrap with the text
     out.push(
       <span
@@ -40,12 +70,12 @@ export function RefText({ text, onPick }: { text: string; onPick: (p: RefPick) =
         }}
         onMouseEnter={fine ? e => onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), hover: true, end: r.end }) : undefined}
       >
-        {text.slice(r.start, r.end)}
+        {marked(text, r.start, r.end, marks)}
       </span>,
     );
     at = r.end;
   });
-  out.push(<Fragment key="end">{text.slice(at)}</Fragment>);
+  out.push(<Fragment key="end">{marked(text, at, text.length, marks)}</Fragment>);
   return <>{out}</>;
 }
 

@@ -10,7 +10,7 @@ import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
-import { RefCard, RefText, textOffsetAt, type RefPick } from './NoteRefs';
+import { RefCard, RefText, findAll, textOffsetAt, type RefPick } from './NoteRefs';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -43,6 +43,18 @@ export function NoteView({
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
   const [refPick, setRefPick] = useState<RefPick | null>(null);
   const [editing, setEditing] = useState(false);
+  // Find in the note: what's typed, and which match is current
+  const [finding, setFinding] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findAt, setFindAt] = useState(0);
+  const shownText = note.text.replace(/[\u000b\u2028\u2029]/g, '\n');
+  const hits = useMemo(() => (finding ? findAll(shownText, findQuery) : []), [finding, shownText, findQuery]);
+  const findStep = (by: number) => hits.length && setFindAt(i => (i + by + hits.length) % hits.length);
+  useEffect(() => setFindAt(0), [findQuery]);
+  useEffect(() => {
+    if (!finding || !hits.length) return;
+    viewEl.current?.querySelector(`mark[data-hit="${findAt}"]`)?.scrollIntoView({ block: 'center' });
+  }, [finding, hits, findAt]);
   const viewEl = useRef<HTMLDivElement>(null);
   const startEditing = (at: number) => {
     flushSync(() => setEditing(true)); // shown before focusing, so the phone opens its keyboard
@@ -263,6 +275,19 @@ export function NoteView({
         </button>
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
+        <button
+          className={`undo ${finding ? 'on' : ''}`}
+          aria-label={t('Find in note')}
+          title={t('Find in note')}
+          aria-pressed={finding}
+          disabled={!note.text.trim()}
+          onClick={() => {
+            box.current?.blur(); // matches show in the note's text (not while typing)
+            setFinding(f => !f);
+          }}
+        >
+          <svg className="share-icon" viewBox="0 0 24 24" aria-hidden><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5.5 5.5" /></svg>
+        </button>
         <button className="undo" aria-label={t('Share')} title={t('Share')} onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
           <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
             <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
@@ -270,6 +295,26 @@ export function NoteView({
           </svg>
         </button>
       </div>
+      {finding && (
+        <form className="find-bar" role="search" onSubmit={e => { e.preventDefault(); findStep(1); }}>
+          <input
+            autoFocus
+            type="search"
+            enterKeyHint="search"
+            placeholder={t('Find in note')}
+            value={findQuery}
+            onChange={e => setFindQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Escape' && setFinding(false)}
+            aria-label={t('Find in note')}
+          />
+          <span className="find-count" aria-live="polite">
+            {findQuery.trim() ? (hits.length ? t('{i} of {n}', { i: findAt + 1, n: hits.length }) : t('None')) : ''}
+          </span>
+          <button type="button" aria-label={t('Previous')} disabled={!hits.length} onClick={() => findStep(-1)}>▲</button>
+          <button type="button" aria-label={t('Next')} disabled={!hits.length} onClick={() => findStep(1)}>▼</button>
+          <button type="button" aria-label={t('Close')} onClick={() => setFinding(false)}>✕</button>
+        </form>
+      )}
       {reading ? (
         <div className="note-text note-reading" aria-live="off">
           {paragraphs.map((p, i) => (
@@ -292,7 +337,7 @@ export function NoteView({
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
             onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
           >
-            <RefText text={note.text.replace(/[\u000b\u2028\u2029]/g, '\n')} onPick={setRefPick} />
+            <RefText text={shownText} onPick={setRefPick} marks={finding ? { ranges: hits, current: findAt } : undefined} />
           </div>
         )}
         <textarea
