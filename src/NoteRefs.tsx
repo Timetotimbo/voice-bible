@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
@@ -6,14 +6,14 @@ import { findReferences } from './noteSpeech';
 
 /**
  * Bible references in a note, like Blue Letter Bible's: each one is underlined, and tapping it (or pointing at it
- * with a mouse) shows the verses in a small card, with Listen and Open. The note stays an ordinary text box: the
- * underlines are drawn on a see-through copy of its text laid exactly over it, where only the references can be
- * tapped. They pause only while you're actually typing; ✎ on the card puts the cursor on a reference to change it.
+ * with a mouse) shows the verses in a small card, with Listen and Open. While you're not typing, the note is shown
+ * as text with the references as links; tapping anywhere else opens the text box with the cursor right there.
+ * ✎ on the card puts the cursor after a reference, to change it.
  */
 export type RefPick = { label: string; rect: DOMRect; hover?: boolean; end?: number }; // end: where it ends in the note's text
 
 /** Text with its references as buttons. */
-export function RefText({ text, onPick, hidden }: { text: string; onPick: (p: RefPick) => void; hidden?: boolean }) {
+export function RefText({ text, onPick }: { text: string; onPick: (p: RefPick) => void }) {
   const refs = findReferences(text);
   if (!refs.length) return <>{text}</>;
   const out: JSX.Element[] = [];
@@ -21,14 +21,13 @@ export function RefText({ text, onPick, hidden }: { text: string; onPick: (p: Re
   const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches;
   refs.forEach((r, i) => {
     out.push(<Fragment key={`t${i}`}>{text.slice(at, r.start)}</Fragment>);
-    // A span, not a <button>: a button can't break across lines, so a reference that wraps would move whole onto
-    // the next line and put everything after it out of step with the text box
+    // A span, not a <button>: a button can't break across lines, so a reference couldn't wrap with the text
     out.push(
       <span
         key={`r${i}`}
         role="button"
-        tabIndex={hidden ? -1 : 0}
-        className={`ref-link ${hidden ? 'see-through' : ''}`}
+        tabIndex={0}
+        className="ref-link"
         onClick={e => {
           e.stopPropagation();
           e.preventDefault();
@@ -50,33 +49,26 @@ export function RefText({ text, onPick, hidden }: { text: string; onPick: (p: Re
   return <>{out}</>;
 }
 
-/** The see-through copy over the note's text box, kept in step with its size and scrolling. */
-export function RefLayer({ text, box, onPick, editing }: { text: string; box: RefObject<HTMLTextAreaElement>; onPick: (p: RefPick) => void; editing: boolean }) {
-  const layer = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const ta = box.current, el = layer.current;
-    if (!ta || !el) return;
-    const fit = () => {
-      el.style.height = `${ta.clientHeight}px`;
-      el.style.width = `${ta.clientWidth}px`;
-      el.scrollTop = ta.scrollTop;
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(ta);
-    ta.addEventListener('scroll', fit);
-    return () => {
-      ro.disconnect();
-      ta.removeEventListener('scroll', fit);
-    };
-  }, [box, text]);
-  if (!findReferences(text).length) return null;
-  return (
-    <div ref={layer} className={`note-refs ${editing ? 'editing' : ''}`} aria-hidden={editing}>
-      {/* A trailing newline needs something after it to take up its line, as in the text box */}
-      <RefText text={text + '​'} onPick={onPick} hidden />
-    </div>
-  );
+/** Where in the text (as a character index) a tap at x, y landed, in an element showing that text. */
+export function textOffsetAt(root: HTMLElement | null, x: number, y: number): number | null {
+  if (!root) return null;
+  const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
+  let node: Node | null = null, offset = 0;
+  if (doc.caretPositionFromPoint) {
+    const p = doc.caretPositionFromPoint(x, y);
+    if (p) [node, offset] = [p.offsetNode, p.offset];
+  } else if (document.caretRangeFromPoint) {
+    const r = document.caretRangeFromPoint(x, y);
+    if (r) [node, offset] = [r.startContainer, r.startOffset];
+  }
+  if (!node || !root.contains(node)) return null;
+  let at = 0;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (n === node) return at + offset;
+    at += n.textContent?.length ?? 0;
+  }
+  return null;
 }
 
 /** The card with the verses. */

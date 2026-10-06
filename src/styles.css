@@ -527,21 +527,16 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }
 .note-text:focus { outline: 2px solid var(--purple); outline-offset: 1px; }
-/* Bible references in a note: underlined, tap for the verses (src/NoteRefs.tsx). The underlines sit on a
-   see-through copy of the text laid exactly over the text box (same font, padding and wrapping). */
+/* Bible references in a note: underlined, tap for the verses (src/NoteRefs.tsx). Shown as text with links
+   while not typing; tapping the text switches to the text box with the cursor there. */
 .note-box { position: relative; display: flex; flex-direction: column; }
-.note-refs {
-  position: absolute; top: 1px; left: 1px; box-sizing: border-box; overflow: hidden; pointer-events: none;
-  padding: 12px 14px; font: inherit; line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; color: transparent;
-}
+.note-view { white-space: pre-wrap; overflow-wrap: break-word; cursor: text; min-height: 55vh; }
 .ref-link {
   display: inline;
   color: var(--purple-bright); text-decoration: underline; text-decoration-color: var(--purple); text-decoration-thickness: 2px;
   text-underline-offset: 3px; cursor: pointer; pointer-events: auto; border-radius: 3px;
 }
-.ref-link.see-through { color: transparent; }
 .ref-link:hover, .ref-link:focus-visible { background: color-mix(in srgb, var(--purple) 18%, transparent); }
-.note-refs.editing .ref-link { pointer-events: none; text-decoration-color: color-mix(in srgb, var(--purple) 40%, transparent); }
 .ref-card-backdrop { position: fixed; inset: 0; z-index: 60; }
 .ref-card {
   position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); max-height: 55vh; display: flex; flex-direction: column;

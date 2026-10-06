@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.17.3 — 2026-10-06
+- **Fixed: underlines drifting in long notes** (for example several pages pasted from Google Docs). Notes are now shown as text with the references as real links while you're not typing, so the links always sit on their words. **Tap anywhere in the text to type**: the text box opens with the cursor right where you tapped. Tap outside the note (or close the keyboard) and the links come back.
+
 ## v2.17.2 — 2026-10-06
 - The verse card from a note's reference **stays open while it reads**: ▶ Listen turns into ■ Stop, and the verse being read is highlighted in the card.
 

@@ -8,7 +8,8 @@ import { n, t } from './i18n';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
-import { RefCard, RefLayer, RefText, type RefPick } from './NoteRefs';
+import { flushSync } from 'react-dom';
+import { RefCard, RefText, textOffsetAt, type RefPick } from './NoteRefs';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -38,16 +39,31 @@ export function NoteView({
   translation: string; // "KJV", for the verse card
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
-  // References in the note: tapped (or pointed at) to show their verses; off while typing
+  // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
   const [refPick, setRefPick] = useState<RefPick | null>(null);
-  // Underlines pause only while keys are being pressed (on Android the box stays focused after the keyboard closes)
-  const [typing, setTyping] = useState(false);
-  const typingTimer = useRef(0);
-  const typed = () => {
-    setTyping(true);
-    clearTimeout(typingTimer.current);
-    typingTimer.current = window.setTimeout(() => setTyping(false), 1500);
+  const [editing, setEditing] = useState(false);
+  const viewEl = useRef<HTMLDivElement>(null);
+  const startEditing = (at: number) => {
+    flushSync(() => setEditing(true)); // shown before focusing, so the phone opens its keyboard
+    const ta = box.current;
+    if (!ta) return;
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(at, at);
+    caret.current = at;
   };
+  // Android's back button closes the keyboard but leaves the box focused: when the keyboard goes, go back to the links
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !editing) return;
+    let tallest = window.innerHeight, keyboard = false;
+    const onResize = () => {
+      tallest = Math.max(tallest, vv.height);
+      if (vv.height < tallest * 0.75) keyboard = true;
+      else if (keyboard && vv.height > tallest * 0.9) box.current?.blur();
+    };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, [editing]);
   const [inserting, setInserting] = useState(false);
   const insertingRef = useRef(inserting);
   insertingRef.current = inserting;
@@ -261,15 +277,30 @@ export function NoteView({
         </div>
       ) : (
         <div className="note-box">
+        {!editing && note.text.trim() && (
+          <div
+            ref={viewEl}
+            className="note-text note-view"
+            role="textbox"
+            aria-readonly="false"
+            aria-label={t('Note')}
+            tabIndex={0}
+            // Keyboard: Enter on the note starts typing (a tap starts it where you tapped)
+            onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
+            onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
+          >
+            <RefText text={note.text} onPick={setRefPick} />
+          </div>
+        )}
         <textarea
           ref={box}
+          hidden={!editing && !!note.text.trim()}
           className="note-text"
           placeholder={t('Write, or tap Dictate and speak. Say “new paragraph”, “period”, “comma”…')}
           value={note.text}
           onChange={e => {
             setText(e.target.value, 'typing');
             rememberCaret();
-            typed();
           }}
           onKeyDown={e => {
             // Ctrl/Cmd+Z undoes, Ctrl+Y or Ctrl/Cmd+Shift+Z redoes (the browser's own undo can't see inserts)
@@ -289,11 +320,11 @@ export function NoteView({
           // Tapping Insert moves the focus away; the cursor's place is still known at that moment
           onBlur={() => {
             rememberCaret();
-            setTyping(false);
+            setEditing(false);
           }}
+          onFocus={() => setEditing(true)}
           aria-label={t('Note')}
         />
-        <RefLayer text={note.text} box={box} onPick={setRefPick} editing={typing} />
         </div>
       )}
       {refPick && (
@@ -306,13 +337,7 @@ export function NoteView({
           reading={reader.playing && reader.current && reader.current.book >= 0 ? reader.current : null}
           onStop={reader.stop}
           onOpen={onOpenRef}
-          onEdit={end => {
-            const ta = box.current;
-            if (!ta) return;
-            ta.focus();
-            ta.setSelectionRange(end, end);
-            typed();
-          }}
+          onEdit={startEditing}
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
