@@ -804,6 +804,25 @@ export default function App() {
                   : ''
               }
               versesText={verses => versesAsText(verses, abbrev)}
+              refVerses={label => {
+                // "Philemon 1:9-10" or "Rom 8:28,31": the first part is a normal reference, then more verses of that chapter
+                if (!bible) return [];
+                const [head, ...more] = label.split(',');
+                const ref = parseReference(head, bible);
+                if (!ref) return [];
+                const chapter = bible[ref.book][ref.chapter - 1];
+                const want = new Set<number>();
+                const add = (a: number, b = a) => { for (let v = a; v <= Math.min(b, chapter.length); v++) want.add(v); };
+                if (ref.verseStart) add(ref.verseStart, ref.verseEnd ?? ref.verseStart);
+                else add(1, chapter.length);
+                for (const m of more) {
+                  const [a, b] = m.split(/[-–]/).map(x => Number(x.trim()));
+                  if (a) add(a, b || a);
+                }
+                return [...want].sort((a, b) => a - b).map(v => ({ book: ref.book, chapter: ref.chapter, verse: v, text: chapter[v - 1] }));
+              }}
+              onOpenRef={label => run(label.split(',')[0])}
+              translation={abbrev}
               chapterOf={(book, chapter) => (bible?.[book]?.[chapter - 1] ?? []).map((text, i) => ({ book, chapter, verse: i + 1, text }))}
               findVerses={q => {
                 if (!bible || !index) return { verses: [], picked: [] };

@@ -8,11 +8,13 @@ import { n, t } from './i18n';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
+import { RefCard, RefLayer, RefText, type RefPick } from './NoteRefs';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
   note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
+  refVerses, onOpenRef, translation,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -31,8 +33,14 @@ export function NoteView({
   reader: Reader;
   listen: Listen;
   onTeleprompter: (title: string, text: string) => void; // opens it over the whole app, so a recording carries on elsewhere
+  refVerses: (label: string) => VerseHit[]; // the verses a reference in the note names ("Philemon 1:9-10")
+  onOpenRef: (label: string) => void; // shows that reference's chapter
+  translation: string; // "KJV", for the verse card
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
+  // References in the note: tapped (or pointed at) to show their verses; off while typing
+  const [refPick, setRefPick] = useState<RefPick | null>(null);
+  const [typing, setTyping] = useState(false);
   const [inserting, setInserting] = useState(false);
   const insertingRef = useRef(inserting);
   insertingRef.current = inserting;
@@ -240,11 +248,12 @@ export function NoteView({
         <div className="note-text note-reading" aria-live="off">
           {paragraphs.map((p, i) => (
             <p key={i} ref={i === reader.textAt ? readingEl : undefined} className={i === reader.textAt ? 'reading' : ''} onClick={() => readFrom(i)}>
-              {i === reader.textAt && reader.word ? <ReadingText text={p} word={reader.word} /> : p}
+              {i === reader.textAt && reader.word ? <ReadingText text={p} word={reader.word} /> : <RefText text={p} onPick={setRefPick} />}
             </p>
           ))}
         </div>
       ) : (
+        <div className="note-box">
         <textarea
           ref={box}
           className="note-text"
@@ -270,8 +279,24 @@ export function NoteView({
           onKeyUp={rememberCaret}
           onClick={rememberCaret}
           // Tapping Insert moves the focus away; the cursor's place is still known at that moment
-          onBlur={rememberCaret}
+          onBlur={() => {
+            rememberCaret();
+            setTyping(false);
+          }}
+          onFocus={() => setTyping(true)}
           aria-label={t('Note')}
+        />
+        <RefLayer text={note.text} box={box} onPick={setRefPick} editing={typing} />
+        </div>
+      )}
+      {refPick && (
+        <RefCard
+          pick={refPick}
+          verses={refVerses(refPick.label)}
+          translation={translation}
+          onClose={() => setRefPick(null)}
+          onListen={verses => reader.play(verses)}
+          onOpen={onOpenRef}
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}

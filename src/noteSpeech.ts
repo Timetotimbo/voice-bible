@@ -34,3 +34,9 @@ export function muteReferences(paragraphs: string[]): string[] {
     return out;
   });
 }
+
+/** Bible references in a note, for tapping: "Proverbs 11:14", "Philemon 1:9-10", "Rom 8:28,31" (not the brackets). */
+const LINK = new RegExp(String.raw`(?<![\p{L}\d])(?:${NAMES})\.?\s?${VERSES}`, 'giu');
+export function findReferences(text: string): { start: number; end: number; label: string }[] {
+  return [...text.matchAll(LINK)].map(m => ({ start: m.index!, end: m.index! + m[0].length, label: m[0] }));
+}

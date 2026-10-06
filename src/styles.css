@@ -527,6 +527,36 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }
 .note-text:focus { outline: 2px solid var(--purple); outline-offset: 1px; }
+/* Bible references in a note: underlined, tap for the verses (src/NoteRefs.tsx). The underlines sit on a
+   see-through copy of the text laid exactly over the text box (same font, padding and wrapping). */
+.note-box { position: relative; display: flex; flex-direction: column; }
+.note-refs {
+  position: absolute; top: 1px; left: 1px; box-sizing: border-box; overflow: hidden; pointer-events: none;
+  padding: 12px 14px; font: inherit; line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; color: transparent;
+}
+.ref-link {
+  display: inline; padding: 0; margin: 0; border: 0; background: none; font: inherit; line-height: inherit; letter-spacing: inherit;
+  color: var(--purple-bright); text-decoration: underline; text-decoration-color: var(--purple); text-decoration-thickness: 2px;
+  text-underline-offset: 3px; cursor: pointer; pointer-events: auto; border-radius: 3px;
+}
+.ref-link.see-through { color: transparent; }
+.ref-link:hover, .ref-link:focus-visible { background: color-mix(in srgb, var(--purple) 18%, transparent); }
+.note-refs.editing .ref-link { pointer-events: none; text-decoration-color: color-mix(in srgb, var(--purple) 40%, transparent); }
+.ref-card-backdrop { position: fixed; inset: 0; z-index: 60; }
+.ref-card {
+  position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); max-height: 55vh; display: flex; flex-direction: column;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.ref-card-head { display: flex; align-items: center; gap: 6px; padding: 10px 8px 6px 14px; }
+.ref-card-head small { color: var(--muted); }
+.ref-card-head .sheet-close { margin-left: auto; }
+.ref-card-text { overflow-y: auto; padding: 0 14px; line-height: 1.55; }
+.ref-card-text p { margin: 0 0 8px; }
+.ref-card-text sup { color: var(--purple-bright); font-weight: 700; margin-right: 3px; }
+.ref-card-actions { display: flex; gap: 8px; padding: 8px 14px 12px; }
+.ref-card-actions button {
+  flex: 1; padding: 9px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; font-weight: 600; cursor: pointer;
+}
 .live-line { margin: 0; color: var(--muted); font-style: italic; }
 /* Draggable Lists / Notes / ChatGPT sections */
 .section + .section { margin-top: 6px; }

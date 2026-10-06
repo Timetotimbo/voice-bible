@@ -17,3 +17,13 @@ describe('muteReferences', () => {
     expect(said(['Song of Solomon 2:4, Romans 8:28,29'])).toEqual([',']);
   });
 });
+
+import { findReferences } from './noteSpeech';
+describe('findReferences', () => {
+  it('finds each reference, without its brackets', () => {
+    const t = '6. Requires Quality Time. (Genesis 29:27-28; Proverbs 19:2) and 1 John 4:8, Rom 8:28,31 at 9:30';
+    expect(findReferences(t).map(r => r.label)).toEqual(['Genesis 29:27-28', 'Proverbs 19:2', '1 John 4:8', 'Rom 8:28,31']);
+    const r = findReferences(t)[0];
+    expect(t.slice(r.start, r.end)).toBe('Genesis 29:27-28');
+  });
+});

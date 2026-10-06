@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.17.0 — 2026-10-06
+- **Bible references in notes pop up their verses**, like Blue Letter Bible. Paste or type references such as "(Proverbs 11:14)", "Philemon 1:9-10", "Genesis 29:27-28; Proverbs 19:2" or "Rom 8:28,31" and they're underlined. Tap one (or point at it with a mouse on a computer) and a card shows the verses in your translation, with **▶ Listen** and **Open chapter**.
+- The note is still edited as usual: tap anywhere else in it to type. While you're typing, the underlines dim and don't respond, so tapping places the cursor even on a reference.
+- They also work while a note is being read aloud.
+
 ## v2.16.1 — 2026-10-06
 - **Fixed: Heart stalling on chapters and verse lists.** Since v2.15.0 the Heart recordings were blocked from loading (a side effect of the change that makes Heart for notes faster), so reading paused on the first verse, retried, then switched to the phone's voice. They load again, and reading carries on verse after verse and into the next chapter.
 
