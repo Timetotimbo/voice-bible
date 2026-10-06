@@ -8,9 +8,9 @@ import { findReferences } from './noteSpeech';
  * Bible references in a note, like Blue Letter Bible's: each one is underlined, and tapping it (or pointing at it
  * with a mouse) shows the verses in a small card, with Listen and Open. The note stays an ordinary text box: the
  * underlines are drawn on a see-through copy of its text laid exactly over it, where only the references can be
- * tapped. While you're typing in the note they're switched off, so a tap there places the cursor as usual.
+ * tapped. They pause only while you're actually typing; ✎ on the card puts the cursor on a reference to change it.
  */
-export type RefPick = { label: string; rect: DOMRect; hover?: boolean };
+export type RefPick = { label: string; rect: DOMRect; hover?: boolean; end?: number }; // end: where it ends in the note's text
 
 /** Text with its references as buttons. */
 export function RefText({ text, onPick, hidden }: { text: string; onPick: (p: RefPick) => void; hidden?: boolean }) {
@@ -21,19 +21,28 @@ export function RefText({ text, onPick, hidden }: { text: string; onPick: (p: Re
   const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches;
   refs.forEach((r, i) => {
     out.push(<Fragment key={`t${i}`}>{text.slice(at, r.start)}</Fragment>);
+    // A span, not a <button>: a button can't break across lines, so a reference that wraps would move whole onto
+    // the next line and put everything after it out of step with the text box
     out.push(
-      <button
+      <span
         key={`r${i}`}
-        type="button"
+        role="button"
+        tabIndex={hidden ? -1 : 0}
         className={`ref-link ${hidden ? 'see-through' : ''}`}
         onClick={e => {
           e.stopPropagation();
-          onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect() });
+          e.preventDefault();
+          onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), end: r.end });
         }}
-        onMouseEnter={fine ? e => onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), hover: true }) : undefined}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), end: r.end });
+        }}
+        onMouseEnter={fine ? e => onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), hover: true, end: r.end }) : undefined}
       >
         {text.slice(r.start, r.end)}
-      </button>,
+      </span>,
     );
     at = r.end;
   });
@@ -71,13 +80,14 @@ export function RefLayer({ text, box, onPick, editing }: { text: string; box: Re
 }
 
 /** The card with the verses. */
-export function RefCard({ pick, verses, translation, onClose, onListen, onOpen }: {
+export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit }: {
   pick: RefPick;
   verses: VerseHit[];
   translation: string;
   onClose: () => void;
   onListen: (verses: VerseHit[]) => void;
   onOpen: (label: string) => void;
+  onEdit?: (end: number) => void; // puts the cursor after the reference, to change it
 }) {
   const card = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -133,6 +143,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen }
           <div className="ref-card-actions">
             <button onClick={() => { onListen(verses); onClose(); }}>▶ {t('Listen')}</button>
             <button onClick={() => { onOpen(pick.label); onClose(); }}>{t('Open chapter')}</button>
+            {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
           </div>
         )}
       </div>

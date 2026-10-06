@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.17.1 — 2026-10-06
+- **Fixed: tapping a reference in a note stopped working.** After you'd tapped into the note to type, the underlines switched off and stayed off (on Android the note stays in typing mode after the keyboard closes). Now they pause only while you're actually typing and work again a moment after you stop.
+- **Fixed: underlines out of line.** A reference that wraps onto two lines (like "Proverbs 19:2") was moved whole to the next line in the tap layer, so everything below was a line off. They now wrap with the text.
+- ✎ on a verse card puts the cursor right after that reference, to change it.
+
 ## v2.17.0 — 2026-10-06
 - **Bible references in notes pop up their verses**, like Blue Letter Bible. Paste or type references such as "(Proverbs 11:14)", "Philemon 1:9-10", "Genesis 29:27-28; Proverbs 19:2" or "Rom 8:28,31" and they're underlined. Tap one (or point at it with a mouse on a computer) and a card shows the verses in your translation, with **▶ Listen** and **Open chapter**.
 - The note is still edited as usual: tap anywhere else in it to type. While you're typing, the underlines dim and don't respond, so tapping places the cursor even on a reference.

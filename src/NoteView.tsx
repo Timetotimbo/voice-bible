@@ -40,7 +40,14 @@ export function NoteView({
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note: tapped (or pointed at) to show their verses; off while typing
   const [refPick, setRefPick] = useState<RefPick | null>(null);
+  // Underlines pause only while keys are being pressed (on Android the box stays focused after the keyboard closes)
   const [typing, setTyping] = useState(false);
+  const typingTimer = useRef(0);
+  const typed = () => {
+    setTyping(true);
+    clearTimeout(typingTimer.current);
+    typingTimer.current = window.setTimeout(() => setTyping(false), 1500);
+  };
   const [inserting, setInserting] = useState(false);
   const insertingRef = useRef(inserting);
   insertingRef.current = inserting;
@@ -262,6 +269,7 @@ export function NoteView({
           onChange={e => {
             setText(e.target.value, 'typing');
             rememberCaret();
+            typed();
           }}
           onKeyDown={e => {
             // Ctrl/Cmd+Z undoes, Ctrl+Y or Ctrl/Cmd+Shift+Z redoes (the browser's own undo can't see inserts)
@@ -283,7 +291,6 @@ export function NoteView({
             rememberCaret();
             setTyping(false);
           }}
-          onFocus={() => setTyping(true)}
           aria-label={t('Note')}
         />
         <RefLayer text={note.text} box={box} onPick={setRefPick} editing={typing} />
@@ -297,6 +304,13 @@ export function NoteView({
           onClose={() => setRefPick(null)}
           onListen={verses => reader.play(verses)}
           onOpen={onOpenRef}
+          onEdit={end => {
+            const ta = box.current;
+            if (!ta) return;
+            ta.focus();
+            ta.setSelectionRange(end, end);
+            typed();
+          }}
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
