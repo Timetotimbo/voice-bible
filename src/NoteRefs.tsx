@@ -80,7 +80,7 @@ export function RefLayer({ text, box, onPick, editing }: { text: string; box: Re
 }
 
 /** The card with the verses. */
-export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit }: {
+export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit, reading, onStop }: {
   pick: RefPick;
   verses: VerseHit[];
   translation: string;
@@ -88,6 +88,8 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
   onListen: (verses: VerseHit[]) => void;
   onOpen: (label: string) => void;
   onEdit?: (end: number) => void; // puts the cursor after the reference, to change it
+  reading?: VerseHit | null; // the verse being read aloud, if it's one of these (the card stays open and marks it)
+  onStop?: () => void;
 }) {
   const card = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -111,6 +113,8 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
       window.removeEventListener('scroll', onScroll, { capture: true });
     };
   }, [onClose]);
+  const here = (v: VerseHit) => !!reading && reading.book === v.book && reading.chapter === v.chapter && reading.verse === v.verse;
+  const playingHere = verses.some(here);
   const title = verses.length ? `${bookName(verses[0].book)} ${verses[0].chapter}:${verses[0].verse}${verses.length > 1 ? `-${verses[verses.length - 1].verse}` : ''}` : pick.label;
   return (
     <>
@@ -130,7 +134,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
         <div className="ref-card-text">
           {verses.length ? (
             verses.map(v => (
-              <p key={v.verse}>
+              <p key={v.verse} className={here(v) ? 'reading' : ''}>
                 {verses.length > 1 && <sup>{v.verse}</sup>}
                 {v.text}
               </p>
@@ -141,7 +145,11 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
         </div>
         {verses.length > 0 && (
           <div className="ref-card-actions">
-            <button onClick={() => { onListen(verses); onClose(); }}>▶ {t('Listen')}</button>
+            {playingHere ? (
+              <button className="on" onClick={onStop}>■ {t('Stop')}</button>
+            ) : (
+              <button onClick={() => onListen(verses)}>▶ {t('Listen')}</button>
+            )}
             <button onClick={() => { onOpen(pick.label); onClose(); }}>{t('Open chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
           </div>

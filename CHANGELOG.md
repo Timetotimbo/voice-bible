@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.17.2 — 2026-10-06
+- The verse card from a note's reference **stays open while it reads**: ▶ Listen turns into ■ Stop, and the verse being read is highlighted in the card.
+
 ## v2.17.1 — 2026-10-06
 - **Fixed: tapping a reference in a note stopped working.** After you'd tapped into the note to type, the underlines switched off and stayed off (on Android the note stays in typing mode after the keyboard closes). Now they pause only while you're actually typing and work again a moment after you stop.
 - **Fixed: underlines out of line.** A reference that wraps onto two lines (like "Proverbs 19:2") was moved whole to the next line in the tap layer, so everything below was a line off. They now wrap with the text.

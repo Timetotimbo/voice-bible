@@ -303,6 +303,8 @@ export function NoteView({
           translation={translation}
           onClose={() => setRefPick(null)}
           onListen={verses => reader.play(verses)}
+          reading={reader.playing && reader.current && reader.current.book >= 0 ? reader.current : null}
+          onStop={reader.stop}
           onOpen={onOpenRef}
           onEdit={end => {
             const ta = box.current;
