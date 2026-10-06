@@ -161,6 +161,7 @@ const ES: Record<string, string> = {
   // Go to
   'Go to': 'Ir a',
   'Close': 'Cerrar',
+  'Fast scroll': 'Desplazamiento rápido',
   'Listen': 'Escuchar',
   'Open chapter': 'Abrir capítulo',
   'Couldn’t find that reference.': 'No se encontró esa cita.',

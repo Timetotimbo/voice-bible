@@ -9,6 +9,7 @@ import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { flushSync } from 'react-dom';
+import { FastScroll } from './FastScroll';
 import { RefCard, RefText, textOffsetAt, type RefPick } from './NoteRefs';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
@@ -96,7 +97,9 @@ export function NoteView({
   // Undo / redo: every change to the text goes through setText, which remembers what it was
   const history = historyFor(note.id);
   const [, redraw] = useState(0); // the buttons follow whether there's anything to undo or redo
-  const setText = (next: string, kind: 'typing' | 'edit') => {
+  const setText = (raw: string, kind: 'typing' | 'edit') => {
+    // Google Docs copies a line break inside a paragraph as a "vertical tab", shown as a box: make it a new line
+    const next = raw.replace(/[\u000b\u2028\u2029]/g, '\n');
     if (next === textRef.current) return;
     history.record(textRef.current, kind);
     textRef.current = next;
@@ -289,7 +292,7 @@ export function NoteView({
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
             onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
           >
-            <RefText text={note.text} onPick={setRefPick} />
+            <RefText text={note.text.replace(/[\u000b\u2028\u2029]/g, '\n')} onPick={setRefPick} />
           </div>
         )}
         <textarea
@@ -341,6 +344,7 @@ export function NoteView({
         />
       )}
       {reading && <ListenBar reader={reader} total={paragraphs.length} />}
+      <FastScroll />
       {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : t('Listening…')}</p>}
 
       {inserting && (

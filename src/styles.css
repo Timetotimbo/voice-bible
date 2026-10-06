@@ -911,3 +911,13 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .quiet-times > span { flex: 0 0 auto; }
 .quiet-times input[type="time"] { flex: 1; min-width: 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 6px 8px; font: inherit; color-scheme: light dark; }
 .set-row:disabled { opacity: 0.5; }
+
+/* Fast scroll for long notes (src/FastScroll.tsx): a handle on the right edge */
+.fast-scroll { position: fixed; right: 0; width: 44px; z-index: 40; touch-action: none; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.fast-scroll.shown { opacity: 1; pointer-events: auto; }
+.fast-scroll::before { content: ''; position: absolute; right: 8px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: color-mix(in srgb, var(--purple) 25%, transparent); }
+.fast-scroll-thumb {
+  position: absolute; right: 2px; width: 30px; height: 52px; border-radius: 16px; background: var(--purple-deep);
+  border: 1px solid var(--purple-bright); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center;
+}
+.fast-scroll-thumb span { font-size: 10px; font-weight: 700; color: var(--on-accent); }
