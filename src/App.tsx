@@ -1,3 +1,5 @@
+import { VerseNotifySheet, intervalLabel } from './VerseNotifySheet';
+import { loadSettings, syncVersePush } from './versePush';
 import { HEART_TEXT_MB, canHeartText, loadHeartText, removeHeartText, useHeartText } from './heartText';
 import { createPortal } from 'react-dom';
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
@@ -184,6 +186,7 @@ export default function App() {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [gotoOpen, setGotoOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [verseOpen, setVerseOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemeId>(savedTheme);
   // Instructions on screen ("Tap the mic…", "Say a word…"); the switch under the title hides them, per device
   const [hints, setHintsState] = useState(() => {
@@ -409,6 +412,36 @@ export default function App() {
       setView({ ...view, hits: searchVerses(index, view.query, mode) });
     }
   };
+
+  // A verse notification was tapped: open that verse (?ref=John+3:16 when the app opens, or a message when it's open)
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const ref = new URLSearchParams(location.search).get('ref');
+    if (ref) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      runRef.current(ref);
+    }
+    const onMessage = (e: MessageEvent) => e.data?.type === 'open-ref' && typeof e.data.ref === 'string' && runRef.current(e.data.ref);
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
+  }, []);
+
+  // Verse notifications: a list's verses with their text, and keeping the server up to date (the list may have changed)
+  const [verseNotify, setVerseNotify] = useState(loadSettings);
+  const listVerses = useCallback(
+    (id: string) =>
+      (library.lists.find(l => l.id === id)?.verses ?? [])
+        .map(([b, c, v]) => ({ ref: `${bookName(b)} ${c}:${v}`, text: bible?.[b]?.[c - 1]?.[v - 1] ?? '' }))
+        .filter(x => x.text),
+    [library.lists, bible],
+  );
+  useEffect(() => {
+    if (!bible || !verseNotify.on || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const id = verseNotify.source.startsWith('list:') ? verseNotify.source.slice(5) : '';
+    const t = setTimeout(() => void syncVersePush(verseNotify, language, id ? listVerses(id) : null, false).catch(() => {}), 3000);
+    return () => clearTimeout(t);
+  }, [bible, verseNotify, language, listVerses]);
 
   useEffect(() => {
     if (index && pending.current) {
@@ -918,6 +951,13 @@ export default function App() {
               <span>{t('Colours')}</span>
               <small>{t(THEMES.find(th => th.id === theme)?.name ?? '')} ›</small>
             </button>
+            <button className="set-row" onClick={() => {
+              setSettingsOpen(false);
+              setVerseOpen(true);
+            }}>
+              <span>{t('Verse notifications')}</span>
+              <small>{verseNotify.on ? intervalLabel(verseNotify.interval) : t('Off')} ›</small>
+            </button>
             <label className="set-row">
               <span>{t('Hints')}<small className="set-sub">{t('Short instructions on each screen')}</small></span>
               <input type="checkbox" role="switch" className="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
@@ -934,6 +974,18 @@ export default function App() {
             <p className="voice-help">Voice Bible v{__APP_VERSION__}{PREVIEW && ` · ${t('Test version')}`}</p>
           </div>
         </div>
+      )}
+
+      {verseOpen && (
+        <VerseNotifySheet
+          lists={library.lists}
+          listVerses={listVerses}
+          language={language}
+          onClose={() => {
+            setVerseOpen(false);
+            setVerseNotify(loadSettings());
+          }}
+        />
       )}
 
       {sheet && (

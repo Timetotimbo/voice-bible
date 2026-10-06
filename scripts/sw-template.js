@@ -183,3 +183,43 @@ async function part(req, res) {
     },
   });
 }
+
+// ---- Verse notifications (sent by the verse-push function on the timer chosen in Settings) ----
+self.addEventListener('push', event => {
+  let d = {};
+  try {
+    d = event.data ? event.data.json() : {};
+  } catch (e) {
+    d = { title: 'Voice Bible', body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(d.title || 'Voice Bible', {
+      body: d.body || '',
+      icon: SCOPE + 'icon-192.png',
+      badge: SCOPE + 'icon-192.png',
+      tag: d.tag || 'verse', // a new verse replaces the last one instead of piling up
+      renotify: true,
+      data: { url: d.url || SCOPE },
+    }),
+  );
+});
+
+// Tapping it opens that verse: in the app if it's open (it's told which verse), else in a new window
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || SCOPE, self.location.origin);
+  const ref = url.searchParams.get('ref');
+  const target = new URL(SCOPE, self.location.origin);
+  if (ref) target.searchParams.set('ref', ref);
+  event.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const mine = wins.find(w => new URL(w.url).pathname.startsWith(SCOPE) && !new URL(w.url).pathname.startsWith(SCOPE + 'clipforge'));
+      if (mine) {
+        if (ref) mine.postMessage({ type: 'open-ref', ref });
+        return mine.focus();
+      }
+      return self.clients.openWindow(target.href);
+    })(),
+  );
+});

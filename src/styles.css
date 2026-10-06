@@ -876,3 +876,10 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 .offline-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .offline-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-bright)); transition: width 0.3s; }
 .offline-progress button, .offline-remove { justify-self: start; border: 1px solid var(--border); background: none; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 0.85rem; cursor: pointer; margin-top: 6px; }
+
+/* Verse notifications sheet */
+.set-select { max-width: 55%; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 6px 8px; font: inherit; }
+.quiet-times { gap: 8px; }
+.quiet-times > span { flex: 0 0 auto; }
+.quiet-times input[type="time"] { flex: 1; min-width: 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 6px 8px; font: inherit; color-scheme: light dark; }
+.set-row:disabled { opacity: 0.5; }

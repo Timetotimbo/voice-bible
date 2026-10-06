@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.16.0 — 2026-10-06
+- **Verse notifications.** Settings → **Verse notifications**: a Bible verse on your lock screen on a timer, every hour by default (or every 30 minutes, 2, 3, 4, 6 or 12 hours, or once a day). **Quiet hours** (10 PM to 7 AM to start with, or your own times) keep the night free. Verses come from well-known **popular verses**, **anywhere in the Bible**, or one of **your verse lists**. Tap a notification to open that verse in the app. "Send one now" tries it straight away.
+- On iPhone, add Voice Bible to the home screen first; notifications from websites only work from there.
+- A link like voicebible.eefavorbooks.com/?ref=John+3:16 opens that verse.
+
 ## v2.15.0 — 2026-10-05
 - **Heart reads your notes, and keeps going when you leave the app.** Settings → Reading voice → **Heart for notes** → Download (about 160 MB, once). After that, with Heart as your reading voice, notes and chats are read in Heart's own voice, made on the phone, as real audio: they keep playing with the screen off or another app open, like Bible chapters, and work offline. A long paragraph may take a moment to start. "Remove Heart for notes" frees the space; without it, notes are read by the phone's voice as before.
 - The app now runs "cross-origin isolated" (set by its offline helper), which lets Heart use several of the phone's cores: about 2.5 times faster.
