@@ -10,7 +10,14 @@ const synth: SpeechSynthesis | undefined = window.speechSynthesis;
 
 // Audio elements for recorded voices: the chapter being read, and the two reference clip files.
 // iPhone only lets an element play later if it was first started from a tap (see unlockAudio).
-const makeAudio = () => (typeof Audio === 'undefined' ? null : new Audio());
+// Asked for with CORS: the app is cross-origin isolated (for Heart for notes), which blocks the recordings'
+// address otherwise; its bucket allows this site
+const makeAudio = () => {
+  if (typeof Audio === 'undefined') return null;
+  const el = new Audio();
+  el.crossOrigin = 'anonymous';
+  return el;
+};
 const mainEl = makeAudio();
 const refEls = [makeAudio(), makeAudio()];
 const allEls = [mainEl, ...refEls].filter((el): el is HTMLAudioElement => !!el);

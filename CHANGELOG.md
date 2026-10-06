@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.16.1 — 2026-10-06
+- **Fixed: Heart stalling on chapters and verse lists.** Since v2.15.0 the Heart recordings were blocked from loading (a side effect of the change that makes Heart for notes faster), so reading paused on the first verse, retried, then switched to the phone's voice. They load again, and reading carries on verse after verse and into the next chapter.
+
 ## v2.16.0 — 2026-10-06
 - **Verse notifications.** Settings → **Verse notifications**: a Bible verse on your lock screen on a timer, every hour by default (or every 30 minutes, 2, 3, 4, 6 or 12 hours, or once a day). **Quiet hours** (10 PM to 7 AM to start with, or your own times) keep the night free. Verses come from well-known **popular verses**, **anywhere in the Bible**, or one of **your verse lists**. Tap a notification to open that verse in the app. "Send one now" tries it straight away.
 - On iPhone, add Voice Bible to the home screen first; notifications from websites only work from there.
