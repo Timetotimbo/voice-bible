@@ -23,7 +23,7 @@ import { noteTitle, useNotes, type Note } from './useNotes';
 import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
-import { describeBackup, makeBackup, restoreBackup } from './backup';
+import { combineBackup, describeBackup, makeBackup, readBackup, restoreBackup } from './backup';
 import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
@@ -2450,18 +2450,32 @@ function Backup() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
+  // A picked backup, waiting for Combine or Replace
+  const [pending, setPending] = useState<{ text: string; what: string } | null>(null);
   const restore = async (picked: File | undefined) => {
     if (!picked) return;
     const text = await picked.text();
+    if (file.current) file.current.value = '';
     try {
-      const what = describeBackup(text);
-      if (!confirm(t('Restore this backup{what}? It replaces the lists, notes and chats on this device.', { what: what ? ` (${what})` : '' }))) return;
-      restoreBackup(text, localStorage);
+      readBackup(text); // throws if it isn't a backup
+      setPending({ text, what: describeBackup(text) });
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+  const apply = (how: 'combine' | 'replace') => {
+    if (!pending) return;
+    try {
+      if (how === 'replace') {
+        if (!confirm(t('Replace the lists, notes and chats on this device with the backup’s? What’s only on this device will be gone.'))) return;
+        restoreBackup(pending.text, localStorage);
+      } else {
+        const a = combineBackup(pending.text, localStorage);
+        alert(t('Combined. Added {lists}, {verses} verses, {notes} and {chats}.', { lists: n('{n} list', '{n} lists', a.lists), verses: a.verses, notes: n('{n} note', '{n} notes', a.notes), chats: n('{n} chat', '{n} chats', a.chats) }));
+      }
       location.reload();
     } catch (e) {
       alert((e as Error).message);
-    } finally {
-      if (file.current) file.current.value = '';
     }
   };
   return (
@@ -2473,6 +2487,26 @@ function Backup() {
         <button className="sheet-item" onClick={() => file.current?.click()}>{t('⇧ Restore from a backup')}</button>
       </div>
       <input ref={file} type="file" accept=".json,application/json" hidden onChange={e => restore(e.target.files?.[0])} />
+      {pending && createPortal(
+        <div className="sheet-backdrop" onClick={() => setPending(null)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Restore from a backup')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Restore from a backup')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setPending(null)}>✕</button>
+            </div>
+            {pending.what && <p className="voice-help">{t('This backup has {what}.', { what: pending.what })}</p>}
+            <button className="set-row" onClick={() => apply('combine')}>
+              <span>{t('Combine with what’s here')}<small className="set-sub">{t('Keeps everything from both: lists with the same name get the verses from both, and notes and chats on only one side are added. Settings stay as they are.')}</small></span>
+              <small>›</small>
+            </button>
+            <button className="set-row" onClick={() => apply('replace')}>
+              <span>{t('Replace what’s here')}<small className="set-sub">{t('This device gets exactly the backup’s lists, notes, chats and settings.')}</small></span>
+              <small>›</small>
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

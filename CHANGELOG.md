@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.20.0 — 2026-10-06
+- **Combine a backup with what's on this device.** Settings → ⇧ Restore from a backup now asks **Combine with what's here** or **Replace what's here**. Combine keeps everything from both: lists with the same name get every verse from both (no doubles), lists, notes and chats that are on only one device are added, and a note changed on both devices is kept in both versions ("(other copy)"). Settings stay as they are on this device. Afterwards it says what was added.
+
 ## v2.19.0 — 2026-10-06
 - **Find in a note.** Tap 🔍 in a note's toolbar and type: every match is highlighted, the count shows ("6 of 24"), and ▲ ▼ (or Enter) jump between them, scrolling each into view. It ignores capitals and accents, and finds words inside references too. ✕ closes it.
 
