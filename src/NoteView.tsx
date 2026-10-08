@@ -384,6 +384,8 @@ export function NoteView({
           onListen={verses => reader.play(verses)}
           reading={reader.playing && reader.current && reader.current.book >= 0 ? reader.current : null}
           onStop={reader.stop}
+          repeat={reader.repeat}
+          onRepeat={on => reader.setRepeat(on)}
           onOpen={onOpenRef}
           onEdit={startEditing}
         />

@@ -102,7 +102,7 @@ export function textOffsetAt(root: HTMLElement | null, x: number, y: number): nu
 }
 
 /** The card with the verses. */
-export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit, reading, onStop }: {
+export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit, reading, onStop, repeat, onRepeat }: {
   pick: RefPick;
   verses: VerseHit[];
   translation: string;
@@ -112,6 +112,8 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
   onEdit?: (end: number) => void; // puts the cursor after the reference, to change it
   reading?: VerseHit | null; // the verse being read aloud, if it's one of these (the card stays open and marks it)
   onStop?: () => void;
+  repeat?: boolean; // keep replaying the verses until stopped
+  onRepeat?: (on: boolean) => void;
 }) {
   const card = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -171,6 +173,17 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
               <button className="on" onClick={onStop}>■ {t('Stop')}</button>
             ) : (
               <button onClick={() => onListen(verses)}>▶ {t('Listen')}</button>
+            )}
+            {onRepeat && (
+              <button
+                className={`ref-repeat ${repeat ? 'on' : ''}`}
+                aria-pressed={!!repeat}
+                aria-label={t('Loop')}
+                title={t(repeat ? 'Looping: starts again at the end' : 'Loop is off')}
+                onClick={() => onRepeat(!repeat)}
+              >
+                {t('⟳ Loop')}
+              </button>
             )}
             <button onClick={() => { onOpen(pick.label); onClose(); }}>{t('Open chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
