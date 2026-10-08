@@ -514,6 +514,8 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .note-title { font-size: 1.15rem; font-weight: 600; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 8px 2px; color: var(--purple-bright); }
 .note-title:focus { outline: none; border-bottom-color: var(--purple); }
 .note-tools { display: flex; gap: 6px; }
+/* The note's buttons stay at the top of the screen while you scroll a long note */
+.note-tools { position: sticky; top: 0; z-index: 32; background: var(--bg); padding: 8px 0; margin: -8px 0 0; box-shadow: 0 6px 10px -8px rgba(0, 0, 0, 0.6); }
 .note-tools button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
 .note-tools .dictate { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
 .note-tools .dictate span { overflow: hidden; text-overflow: ellipsis; }
@@ -924,7 +926,7 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 
 /* Find in a note */
 .find-bar {
-  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 8px;
+  position: sticky; top: 58px; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 8px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 .find-bar input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; }

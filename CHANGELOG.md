@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.20.1 — 2026-10-07
+- **A note's buttons follow you down.** In a long note, the toolbar (Dictate, Listen, Insert, camera, undo/redo, find, share) stays at the top of the screen as you scroll, and the find bar sits just under it.
+
 ## v2.20.0 — 2026-10-06
 - **Combine a backup with what's on this device.** Settings → ⇧ Restore from a backup now asks **Combine with what's here** or **Replace what's here**. Combine keeps everything from both: lists with the same name get every verse from both (no doubles), lists, notes and chats that are on only one device are added, and a note changed on both devices is kept in both versions ("(other copy)"). Settings stay as they are on this device. Afterwards it says what was added.
 
