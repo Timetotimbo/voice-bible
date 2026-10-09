@@ -267,6 +267,8 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 
 .more { display: block; width: 100%; margin-top: 14px; }
 .back { margin-bottom: 14px; }
+.back-row { display: flex; gap: 8px; }
+.back-row .forward { margin-left: auto; }
 
 .chapter { list-style: none; margin: 0; padding: 0; }
 .chapter li { padding: 4px 8px; border-radius: 8px; }

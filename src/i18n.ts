@@ -43,6 +43,7 @@ const ES: Record<string, string> = {
   'All words': 'Todas las palabras',
   'Exact phrase': 'Frase exacta',
   '← Back': '← Atrás',
+  'Forward →': 'Adelante →',
   '{error}. Check your connection and reload.': '{error}. Revisa tu conexión y vuelve a cargar.',
   'Loading the {bible} Bible…': 'Cargando la Biblia {bible}…',
   'Say a word or phrase like': 'Di una palabra o frase como',

@@ -310,6 +310,18 @@ export default function App() {
   shownRef.current = shown;
   const backStack = useRef<{ view: View; shown: number; scrollY: number }[]>([]);
   const [canGoBack, setCanGoBack] = useState(false);
+  // Screens gone back from, newest last, for Forward (opening something new clears them, as in a browser)
+  const forwardStack = useRef<{ view: View; shown: number; scrollY: number }[]>([]);
+  const [canGoForward, setCanGoForward] = useState(false);
+  /** The screen showing now, to come back to (a chapter page may have been swiped to another chapter). */
+  const hereEntry = () => {
+    let here = viewRef.current;
+    if (here.kind === 'chapter' && shownChapter.current &&
+        (shownChapter.current.book !== here.ref.book || shownChapter.current.chapter !== here.ref.chapter)) {
+      here = { kind: 'chapter', ref: { ...shownChapter.current } };
+    }
+    return { view: here, shown: shownRef.current, scrollY: window.scrollY };
+  };
   const restoreScroll = useRef<number | null>(null);
   useEffect(() => {
     history.scrollRestoration = 'manual';
@@ -317,6 +329,8 @@ export default function App() {
       const entry = backStack.current.pop();
       setCanGoBack(backStack.current.length > 0);
       if (!entry) return;
+      forwardStack.current.push(hereEntry());
+      setCanGoForward(true);
       setSelected(new Set());
       reader.stop();
       setShown(entry.shown);
@@ -335,15 +349,11 @@ export default function App() {
   /** Shows `next`, remembering this screen for Back. Resets paging, selection and playback. */
   const openView = useCallback(
     (next: View) => {
-      let here = viewRef.current;
-      // A chapter page may have been swiped to another chapter; come back to the one on screen
-      if (here.kind === 'chapter' && shownChapter.current &&
-          (shownChapter.current.book !== here.ref.book || shownChapter.current.chapter !== here.ref.chapter)) {
-        here = { kind: 'chapter', ref: { ...shownChapter.current } };
-      }
-      backStack.current.push({ view: here, shown: shownRef.current, scrollY: window.scrollY });
+      backStack.current.push(hereEntry());
       history.pushState({ voiceBible: backStack.current.length }, '');
       setCanGoBack(true);
+      forwardStack.current = [];
+      setCanGoForward(false);
       setShown(PAGE);
       setSelected(new Set());
       reader.stop();
@@ -352,6 +362,21 @@ export default function App() {
     },
     [reader.stop],
   );
+
+  /** Back to the screen last gone back from (it goes on the Back list again). */
+  const goForward = () => {
+    const entry = forwardStack.current.pop();
+    setCanGoForward(forwardStack.current.length > 0);
+    if (!entry) return;
+    backStack.current.push(hereEntry());
+    history.pushState({ voiceBible: backStack.current.length }, '');
+    setCanGoBack(true);
+    setSelected(new Set());
+    reader.stop();
+    setShown(entry.shown);
+    setView(entry.view);
+    restoreScroll.current = entry.scrollY;
+  };
 
   const setClassic = (on: boolean) => {
     setClassicState(on);
@@ -654,11 +679,17 @@ export default function App() {
       )}
 
       <main>
-        {canGoBack && (classic
-          ? view.kind !== 'home'
-          : view.kind === 'list' || view.kind === 'note' || view.kind === 'chat' || (view.kind === 'chapter' && !!view.fromList)) && (
-          <button className="back" onClick={() => history.back()}>{t('← Back')}</button>
-        )}
+        {(() => {
+          const back = canGoBack && (classic
+            ? view.kind !== 'home'
+            : view.kind === 'list' || view.kind === 'note' || view.kind === 'chat' || (view.kind === 'chapter' && !!view.fromList));
+          return (back || canGoForward) && (
+            <div className="back-row">
+              {back && <button className="back" onClick={() => history.back()}>{t('← Back')}</button>}
+              {canGoForward && <button className="back forward" onClick={goForward}>{t('Forward →')}</button>}
+            </div>
+          );
+        })()}
         {loadError && <p className="notice error">{t('{error}. Check your connection and reload.', { error: loadError })}</p>}
         {!bible && !loadError && <p className="notice">{t('Loading the {bible} Bible…', { bible: abbrev })}</p>}
 
