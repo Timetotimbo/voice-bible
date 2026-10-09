@@ -937,3 +937,8 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 mark.find-hit { background: color-mix(in srgb, #ffd54a 45%, transparent); color: inherit; border-radius: 3px; }
 mark.find-hit.current { background: #ffd54a; color: #111; }
 .note-tools .undo.on { border-color: var(--purple-bright); color: var(--purple-bright); }
+
+/* Tidy spacing offer in a note */
+.tidy-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin: 6px 0; border-radius: 12px; border: 1px solid var(--purple); background: color-mix(in srgb, var(--purple) 12%, transparent); font-size: 0.9rem; }
+.tidy-bar span { flex: 1; }
+.tidy-bar button { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--purple-bright); background: var(--purple-deep); color: var(--on-accent); font: inherit; font-weight: 600; cursor: pointer; }

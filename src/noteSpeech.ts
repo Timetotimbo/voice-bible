@@ -40,3 +40,21 @@ const LINK = new RegExp(String.raw`(?<![\p{L}\d])(?:${NAMES})\.?\s?${VERSES}`, '
 export function findReferences(text: string): { start: number; end: number; label: string }[] {
   return [...text.matchAll(LINK)].map(m => ({ start: m.index!, end: m.index! + m[0].length, label: m[0] }));
 }
+
+/**
+ * Tidies a note's spacing (often pasted from a document): lines of only spaces become empty, runs of empty lines
+ * become one, tabs and runs of spaces become one space, and spaces at the start and end of lines go. Words stay.
+ */
+export function tidySpacing(text: string): string {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u000b\u2028\u2029]/g, '\n')
+    .replace(/[\u00a0\t ]+/g, ' ')
+    .split('\n')
+    .map(l => l.trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+/** Whether a note would look different after tidySpacing (worth offering). */
+export const needsTidy = (text: string) => /\n[ \t\u00a0]*\n[ \t\u00a0]*\n/.test(text) || /[ \t\u00a0]{3,}|\t/.test(text);

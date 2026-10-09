@@ -161,6 +161,8 @@ const ES: Record<string, string> = {
   // Go to
   'Go to': 'Ir a',
   'Close': 'Cerrar',
+  'This note has lots of empty lines and spaces.': 'Esta nota tiene muchas líneas y espacios vacíos.',
+  'Tidy spacing': 'Ordenar espacios',
   'Restore from a backup': 'Restaurar una copia',
   'This backup has {what}.': 'Esta copia tiene {what}.',
   'Combine with what’s here': 'Combinar con lo que hay aquí',

@@ -11,6 +11,7 @@ import { noteTitle, type Note } from './useNotes';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, textOffsetAt, type RefPick } from './NoteRefs';
+import { needsTidy, tidySpacing } from './noteSpeech';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -295,6 +296,13 @@ export function NoteView({
           </svg>
         </button>
       </div>
+      {/* Lots of empty lines or pasted gaps: offer to tidy them (Undo puts them back) */}
+      {!reading && needsTidy(note.text) && (
+        <div className="tidy-bar">
+          <span>{t('This note has lots of empty lines and spaces.')}</span>
+          <button onClick={() => setText(tidySpacing(note.text), 'edit')}>{t('Tidy spacing')}</button>
+        </div>
+      )}
       {finding && (
         <form className="find-bar" role="search" onSubmit={e => { e.preventDefault(); findStep(1); }}>
           <input

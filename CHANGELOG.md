@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.22.0 — 2026-10-08
+- **Tidy spacing for notes.** A note with lots of empty lines or pasted gaps (common when copying from Google Docs) shows "This note has lots of empty lines and spaces" with a **Tidy spacing** button: runs of empty lines become one, tabs and extra spaces become single spaces, and stray spaces at the start and end of lines go. The words stay the same, and ↶ Undo puts the old spacing back.
+
 ## v2.21.0 — 2026-10-08
 - **Loop on the verse pop-up.** Tap a reference in a note, then **⟳ Loop**: ▶ Listen keeps replaying the verse (or verses) until you tap ■ Stop, good for memorizing. It's the same Loop as on the note's play bar, so it's remembered there too.
 

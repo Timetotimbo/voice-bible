@@ -27,3 +27,13 @@ describe('findReferences', () => {
     expect(t.slice(r.start, r.end)).toBe('Genesis 29:27-28');
   });
 });
+
+import { needsTidy, tidySpacing } from './noteSpeech';
+describe('tidySpacing', () => {
+  it('collapses extra lines and spaces, keeping the words', () => {
+    const messy = '  Title   here \n\n\n\n 1.\tFirst point   (John 3:16)\n   \n\n\n2.  Second\u00a0point\n\n';
+    expect(needsTidy(messy)).toBe(true);
+    expect(tidySpacing(messy)).toBe('Title here\n\n1. First point (John 3:16)\n\n2. Second point');
+    expect(needsTidy(tidySpacing(messy))).toBe(false);
+  });
+});
