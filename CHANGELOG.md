@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.23.1 — 2026-10-08
+- The verse pop-up's buttons are smaller and fit on one line: ▶ Listen · ⟳ Loop · 📋 · Chapter · ✎ ("Open chapter" is now just "Chapter").
+
 ## v2.23.0 — 2026-10-08
 - **Copy buttons for verses.** Select verses in a chapter or in search results and tap **Copy** (next to Share): they're copied with their reference ("John 3:16-17 (KJV)", then each verse) to paste anywhere. And on the verse pop-up from a reference in a note, **📋** copies that verse with its reference (it turns ✓ when done).
 

@@ -198,7 +198,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
             >
               {copied ? '✓' : '📋'}
             </button>
-            <button onClick={() => { onOpen(pick.label); onClose(); }}>{t('Open chapter')}</button>
+            <button onClick={() => { onOpen(pick.label); onClose(); }} title={t('Open chapter')}>{t('Chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
           </div>
         )}
