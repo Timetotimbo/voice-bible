@@ -515,7 +515,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .note-title:focus { outline: none; border-bottom-color: var(--purple); }
 .note-tools { display: flex; gap: 6px; }
 /* The note's buttons stay at the top of the screen while you scroll a long note */
-.note-tools { position: sticky; top: 0; z-index: 32; background: var(--bg); padding: 8px 0; margin: -8px 0 0; box-shadow: 0 6px 10px -8px rgba(0, 0, 0, 0.6); }
+.note-head { position: sticky; top: 0; z-index: 32; background: var(--bg); padding: 8px 0; margin: -8px 0 0; box-shadow: 0 6px 10px -8px rgba(0, 0, 0, 0.6); }
 .note-tools button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
 .note-tools .dictate { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
 .note-tools .dictate span { overflow: hidden; text-overflow: ellipsis; }
@@ -930,7 +930,7 @@ input.switch:focus-visible { outline: 2px solid var(--purple); outline-offset: 2
 
 /* Find in a note */
 .find-bar {
-  position: sticky; top: 58px; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 8px;
+  margin-top: 8px; display: flex; align-items: center; gap: 6px; padding: 8px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 .find-bar input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; }
@@ -947,7 +947,7 @@ mark.find-hit.current { background: #ffd54a; color: #111; }
 .tidy-bar button { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--purple-bright); background: var(--purple-deep); color: var(--on-accent); font: inherit; font-weight: 600; cursor: pointer; }
 
 /* Picks for a video: the bar under the note's tools, and the picked bits highlighted */
-.pick-bar { position: sticky; top: 58px; z-index: 31; display: flex; align-items: center; gap: 6px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--accent, #8b5cf6); }
+.pick-bar { display: flex; align-items: center; gap: 6px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--accent, #8b5cf6); }
 .pick-bar button { padding: 6px 10px; font-size: 0.85rem; white-space: nowrap; }
 .pick-bar .pick-count { flex: 1; font-size: 0.82rem; opacity: 0.8; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-bar .pick-send { font-weight: 700; }

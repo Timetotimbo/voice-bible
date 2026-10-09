@@ -265,6 +265,8 @@ export function NoteView({
   return (
     <section className={`note ${reading ? 'has-player' : ''}`}>
       <input className="note-title" placeholder={t('Title')} value={note.title} onChange={e => onChange({ title: e.target.value })} aria-label={t('Title')} />
+      {/* The buttons, the picks bar and the find bar stay at the top together while you scroll */}
+      <div className="note-head">
       <div className="note-tools">
         <button
           className={`dictate ${listening ? 'on' : ''}`}
@@ -333,13 +335,6 @@ export function NoteView({
           </svg>
         </button>
       </div>
-      {/* Lots of empty lines or pasted gaps: offer to tidy them (Undo puts them back) */}
-      {!reading && needsTidy(note.text) && (
-        <div className="tidy-bar">
-          <span>{t('This note has broken lines or extra spaces.')}</span>
-          <button onClick={() => setText(tidySpacing(note.text), 'edit')}>{t('Tidy spacing')}</button>
-        </div>
-      )}
       {!reading && (sel || picks.length > 0) && (
         <div className="pick-bar" onPointerDown={e => (e.target as HTMLElement).closest('button') && e.preventDefault()}>
           <button className="pick-add" disabled={!sel} onClick={addPick}>{t('+ Add')}</button>
@@ -367,6 +362,14 @@ export function NoteView({
           <button type="button" aria-label={t('Next')} disabled={!hits.length} onClick={() => findStep(1)}>▼</button>
           <button type="button" aria-label={t('Close')} onClick={() => setFinding(false)}>✕</button>
         </form>
+      )}
+      </div>
+      {/* Lots of empty lines or pasted gaps: offer to tidy them (Undo puts them back) */}
+      {!reading && needsTidy(note.text) && (
+        <div className="tidy-bar">
+          <span>{t('This note has broken lines or extra spaces.')}</span>
+          <button onClick={() => setText(tidySpacing(note.text), 'edit')}>{t('Tidy spacing')}</button>
+        </div>
       )}
       {reading ? (
         <div className="note-text note-reading" aria-live="off">
