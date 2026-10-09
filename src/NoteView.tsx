@@ -10,7 +10,7 @@ import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
-import { RefCard, RefText, findAll, textOffsetAt, type RefPick } from './NoteRefs';
+import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
 import { needsTidy, tidySpacing } from './noteSpeech';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
@@ -57,6 +57,43 @@ export function NoteView({
     viewEl.current?.querySelector(`mark[data-hit="${findAt}"]`)?.scrollIntoView({ block: 'center' });
   }, [finding, hits, findAt]);
   const viewEl = useRef<HTMLDivElement>(null);
+  // Picks for a video: bits of the note selected one at a time (anywhere in it), sent together to ClipForge's
+  // Text Video, each its own screen. `sel` is the latest selection in the note, waiting for + Add.
+  const [picks, setPicks] = useState<{ start: number; end: number; text: string }[]>([]);
+  const [sel, setSel] = useState<{ start: number; end: number } | null>(null);
+  useEffect(() => { setPicks([]); setSel(null); }, [note.id]);
+  useEffect(() => {
+    const onSel = () => {
+      const ta = box.current;
+      if (ta && document.activeElement === ta) {
+        if (ta.selectionEnd > ta.selectionStart) setSel({ start: ta.selectionStart, end: ta.selectionEnd });
+        return;
+      }
+      const s = window.getSelection();
+      if (!s || s.isCollapsed || !s.rangeCount) return; // keep the last one: tapping + Add can clear the selection first
+      const r = rangeOffsets(viewEl.current, s.getRangeAt(0));
+      if (r) setSel(r);
+    };
+    document.addEventListener('selectionchange', onSel);
+    return () => document.removeEventListener('selectionchange', onSel);
+  }, []);
+  const addPick = () => {
+    if (!sel) return;
+    const text = note.text.slice(sel.start, sel.end).replace(/\s+/g, ' ').trim();
+    if (text) setPicks(p => [...p.filter(x => x.end <= sel.start || x.start >= sel.end), { ...sel, text }].sort((a, b) => a.start - b.start));
+    setSel(null);
+    window.getSelection()?.removeAllRanges();
+  };
+  // Shown highlighted while the note hasn't changed under them
+  const pickMarks = picks.filter(p => note.text.slice(p.start, p.end).replace(/\s+/g, ' ').trim() === p.text);
+  const sendPicks = () => {
+    try {
+      localStorage.setItem('cf_tv_in', JSON.stringify({ text: picks.map(p => p.text).join('\n\n'), at: Date.now() }));
+    } catch {
+      return;
+    }
+    location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=tv`);
+  };
   const startEditing = (at: number) => {
     flushSync(() => setEditing(true)); // shown before focusing, so the phone opens its keyboard
     const ta = box.current;
@@ -303,6 +340,14 @@ export function NoteView({
           <button onClick={() => setText(tidySpacing(note.text), 'edit')}>{t('Tidy spacing')}</button>
         </div>
       )}
+      {!reading && (sel || picks.length > 0) && (
+        <div className="pick-bar" onPointerDown={e => (e.target as HTMLElement).closest('button') && e.preventDefault()}>
+          <button className="pick-add" disabled={!sel} onClick={addPick}>{t('+ Add')}</button>
+          <span className="pick-count">{picks.length ? n('{n} picked', '{n} picked', picks.length) : t('Select text, then + Add')}</span>
+          {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
+          <button aria-label={t('Clear picks')} onClick={() => { setPicks([]); setSel(null); }}>✕</button>
+        </div>
+      )}
       {finding && (
         <form className="find-bar" role="search" onSubmit={e => { e.preventDefault(); findStep(1); }}>
           <input
@@ -345,7 +390,7 @@ export function NoteView({
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
             onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
           >
-            <RefText text={shownText} onPick={setRefPick} marks={finding ? { ranges: hits, current: findAt } : undefined} />
+            <RefText text={shownText} onPick={setRefPick} marks={finding ? { ranges: hits, current: findAt } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : undefined} />
           </div>
         )}
         <textarea

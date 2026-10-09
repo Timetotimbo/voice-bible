@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.25.0 — 2026-10-09
+- **Pick bits of a note for a video.** Select some text in a note and tap **+ Add**; select more anywhere else (a sentence or two apart is fine) and **+ Add** again. Picks are highlighted. **Make video ▸** sends them to ClipForge's **Text Video**, each pick its own screen (choose one video or separate videos there). ✕ clears the picks.
+
 ## v2.24.1 — 2026-10-09
 - More voice commands for ClipForge: "text video" / "video text" / "make a text video" opens its **Text Video** maker; "local video" and "YouTube video" open those tabs. "Open the video editor" now works (it searched instead).
 

@@ -14,7 +14,7 @@ import { versesAsText } from './shareVerses';
 export type RefPick = { label: string; rect: DOMRect; hover?: boolean; end?: number }; // end: where it ends in the note's text
 
 /** Find-in-note matches: where each is in the text, and which one is current. */
-export type Marks = { ranges: { start: number; end: number }[]; current: number };
+export type Marks = { ranges: { start: number; end: number }[]; current: number; cls?: string };
 
 /** Where `query` appears in `text` (ignoring case and accents), as character ranges. */
 export function findAll(text: string, query: string): { start: number; end: number }[] {
@@ -37,7 +37,7 @@ function marked(text: string, from: number, to: number, marks?: Marks): (string 
     if (m.end <= from || m.start >= to) return;
     const s = Math.max(m.start, from), e = Math.min(m.end, to);
     if (s > at) out.push(text.slice(at, s));
-    out.push(<mark key={`m${i}-${s}`} className={i === marks.current ? 'find-hit current' : 'find-hit'} data-hit={i}>{text.slice(s, e)}</mark>);
+    out.push(<mark key={`m${i}-${s}`} className={marks.cls ?? (i === marks.current ? 'find-hit current' : 'find-hit')} data-hit={i}>{text.slice(s, e)}</mark>);
     at = e;
   });
   if (at < to) out.push(text.slice(at, to));
@@ -81,6 +81,19 @@ export function RefText({ text, onPick, marks }: { text: string; onPick: (p: Ref
 }
 
 /** Where in the text (as a character index) a tap at x, y landed, in an element showing that text. */
+/** Where a selection starts and ends in the text shown in root (counting its characters), or null if it isn't in root. */
+export function rangeOffsets(root: HTMLElement | null, range: Range): { start: number; end: number } | null {
+  if (!root || !root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+  let at = 0, start = -1, end = -1;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (n === range.startContainer) start = at + range.startOffset;
+    if (n === range.endContainer) { end = at + range.endOffset; break; }
+    at += n.textContent?.length ?? 0;
+  }
+  return start >= 0 && end > start ? { start, end } : null;
+}
+
 export function textOffsetAt(root: HTMLElement | null, x: number, y: number): number | null {
   if (!root) return null;
   const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
