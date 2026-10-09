@@ -62,6 +62,13 @@ export function NoteView({
   const [picks, setPicks] = useState<{ start: number; end: number; text: string }[]>([]);
   const [sel, setSel] = useState<{ start: number; end: number } | null>(null);
   useEffect(() => { setPicks([]); setSel(null); }, [note.id]);
+  // Opening a note: a brand-new, empty one starts listening (to dictate straight in); one with words in it doesn't
+  // (the mic, if it was on, stops), so it doesn't pick up talking while you read
+  useEffect(() => {
+    const empty = !note.text.trim();
+    if (empty && !listening) onDictate(true);
+    else if (!empty && listening) onDictate(false);
+  }, [note.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onSel = () => {
       const ta = box.current;

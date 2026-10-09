@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.27.1 — 2026-10-09
+- Opening a note with words in it no longer listens (the mic turns off); only a brand-new, empty note starts listening so you can dictate straight in.
+
 ## v2.27.0 — 2026-10-09
 - Forward → button: after going back, it returns to the screen you came back from (opening something new clears it, like a browser).
 
