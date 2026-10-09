@@ -384,6 +384,8 @@ export default function App() {
     (raw: string) => {
       const input = raw.trim().replace(FILLER, '');
       if (!input) return;
+      // "Open the video editor", "video editor", "video": open ClipForge
+      if (VIDEO_EDITOR.test(input)) return location.assign(`${import.meta.env.BASE_URL}clipforge/`);
       if (!bible || !index) {
         pending.current = input; // run once the text finishes loading
         return;
@@ -1252,6 +1254,10 @@ function useNewVersion() {
 }
 
 /** Classic layout: the big mic. Without hints, only what it hears and problems (blocked, unsupported) show beneath it. */
+/** Spoken (or typed) ways to open ClipForge, the video editor, allowing for common mishearings. */
+const VIDEO_EDITOR =
+  /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|abre|abrir)\s+(?:up\s+)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+)?)?(?:(?:video|videos)(?:\s+(?:edit|edits|editor|editors|editer|editing|edit\s+her|edited))?|(?:editor|edici[oó]n)\s+de\s+v[ií]deo|clip\s?forge)[.!?]*$/i;
+
 function ClassicMicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
   const { status, interim, start, stop } = speech;
   const listening = status === 'listening';

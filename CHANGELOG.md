@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.24.0 — 2026-10-09
+- **Open the video editor by voice.** Say "video editor", "open video edit", "open the video editor" or just "video" (Spanish: "abrir editor de video") and ClipForge opens. Typing it in the search box works too.
+
 ## v2.23.1 — 2026-10-08
 - The verse pop-up's buttons are smaller and fit on one line: ▶ Listen · ⟳ Loop · 📋 · Chapter · ✎ ("Open chapter" is now just "Chapter").
 
