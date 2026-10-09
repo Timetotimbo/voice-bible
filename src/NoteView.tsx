@@ -299,7 +299,7 @@ export function NoteView({
       {/* Lots of empty lines or pasted gaps: offer to tidy them (Undo puts them back) */}
       {!reading && needsTidy(note.text) && (
         <div className="tidy-bar">
-          <span>{t('This note has lots of empty lines and spaces.')}</span>
+          <span>{t('This note has broken lines or extra spaces.')}</span>
           <button onClick={() => setText(tidySpacing(note.text), 'edit')}>{t('Tidy spacing')}</button>
         </div>
       )}

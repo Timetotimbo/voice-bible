@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.22.1 — 2026-10-08
+- **Tidy spacing also joins broken lines.** Text copied from a document often has line breaks in the middle of sentences ("Who Is Capable / Of Greatly Blessing…", "Jonah 3:4- / 10"). Tidy now joins a line to the next when it doesn't finish a sentence, so each point or quotation is one flowing paragraph, and split references are whole again (Jonah 3:4-10, 2 Chronicles 9:22). Numbered points, "~" items and lines ending with . ? ! ) or : stay on their own lines. Undo puts it all back.
+
 ## v2.22.0 — 2026-10-08
 - **Tidy spacing for notes.** A note with lots of empty lines or pasted gaps (common when copying from Google Docs) shows "This note has lots of empty lines and spaces" with a **Tidy spacing** button: runs of empty lines become one, tabs and extra spaces become single spaces, and stray spaces at the start and end of lines go. The words stay the same, and ↶ Undo puts the old spacing back.
 

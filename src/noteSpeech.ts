@@ -46,7 +46,7 @@ export function findReferences(text: string): { start: number; end: number; labe
  * become one, tabs and runs of spaces become one space, and spaces at the start and end of lines go. Words stay.
  */
 export function tidySpacing(text: string): string {
-  return text
+  const spaced = text
     .replace(/\r\n?/g, '\n')
     .replace(/[\u000b\u2028\u2029]/g, '\n')
     .replace(/[\u00a0\t ]+/g, ' ')
@@ -55,6 +55,36 @@ export function tidySpacing(text: string): string {
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+  return joinBrokenLines(spaced);
 }
+
+// A line that starts something of its own: a numbered point, a "~" or "-" item, a bullet
+const STARTS_ITEM = /^(?:\d{1,3}[.)]\s|[~•*–—-]\s?\S|[A-Za-z][.)]\s)/;
+// A line that ends a thought: a full stop, ? !, a closing bracket or quote, or a colon (a list follows)
+const ENDS_THOUGHT = /[.!?)\]"”’:]$/;
+/** Whether line b (after line a) is the same sentence, broken in two by copying from a document. */
+const continues = (a: string, b: string) => !!a && !!b && !ENDS_THOUGHT.test(a) && !STARTS_ITEM.test(b);
+
+/**
+ * Puts back lines a document broke mid-sentence: "Who Is Capable" + "Of Greatly Blessing…" become one line, and
+ * "Jonah 3:4-" + "10" becomes "Jonah 3:4-10". Numbered points, "~" items and finished sentences stay on their own lines.
+ */
+export function joinBrokenLines(text: string): string {
+  const out: string[] = [];
+  for (const line of text.split('\n')) {
+    const prev = out[out.length - 1];
+    if (prev !== undefined && continues(prev, line)) out[out.length - 1] = /[-–]$/.test(prev) && /^\d/.test(line) ? prev + line : `${prev} ${line}`;
+    else out.push(line);
+  }
+  return out.join('\n');
+}
+
 /** Whether a note would look different after tidySpacing (worth offering). */
-export const needsTidy = (text: string) => /\n[ \t\u00a0]*\n[ \t\u00a0]*\n/.test(text) || /[ \t\u00a0]{3,}|\t/.test(text);
+export const needsTidy = (text: string) => {
+  if (/\n[ \t\u00a0]*\n[ \t\u00a0]*\n/.test(text) || /[ \t\u00a0]{3,}|\t/.test(text)) return true;
+  // Several sentences broken across lines
+  const lines = text.split('\n').map(l => l.trim());
+  let broken = 0;
+  for (let i = 1; i < lines.length; i++) if (continues(lines[i - 1], lines[i])) broken++;
+  return broken >= 3;
+};

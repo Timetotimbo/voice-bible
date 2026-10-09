@@ -37,3 +37,11 @@ describe('tidySpacing', () => {
     expect(needsTidy(tidySpacing(messy))).toBe(false);
   });
 });
+
+describe('joinBrokenLines', () => {
+  it('joins sentences a document broke, keeping points and references whole', () => {
+    const pasted = '26. Someone Is Always Observing You\nWho Is Capable\nOf Greatly Blessing You In Your\nAssignment.\n(Proverbs 22:29; Ruth 2:6-7, 11; Galatians 6:9;\nGenesis 24:19-20; Acts 28:2, 6)\n27. Your Assignment May Require Unusual\nAnd\nUnwavering Trust.\n(2 Chronicles 20:20; Jonah 3:4-\n10)\nFrugality Habits:\n~4 Bids On Anything Over $200.\n~3 Options';
+    expect(needsTidy(pasted)).toBe(true);
+    expect(tidySpacing(pasted)).toBe('26. Someone Is Always Observing You Who Is Capable Of Greatly Blessing You In Your Assignment.\n(Proverbs 22:29; Ruth 2:6-7, 11; Galatians 6:9; Genesis 24:19-20; Acts 28:2, 6)\n27. Your Assignment May Require Unusual And Unwavering Trust.\n(2 Chronicles 20:20; Jonah 3:4-10)\nFrugality Habits:\n~4 Bids On Anything Over $200.\n~3 Options');
+  });
+});
