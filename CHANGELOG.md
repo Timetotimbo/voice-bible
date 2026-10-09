@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.24.1 — 2026-10-09
+- More voice commands for ClipForge: "text video" / "video text" / "make a text video" opens its **Text Video** maker; "local video" and "YouTube video" open those tabs. "Open the video editor" now works (it searched instead).
+
 ## v2.24.0 — 2026-10-09
 - **Open the video editor by voice.** Say "video editor", "open video edit", "open the video editor" or just "video" (Spanish: "abrir editor de video") and ClipForge opens. Typing it in the search box works too.
 

@@ -385,7 +385,8 @@ export default function App() {
       const input = raw.trim().replace(FILLER, '');
       if (!input) return;
       // "Open the video editor", "video editor", "video": open ClipForge
-      if (VIDEO_EDITOR.test(input)) return location.assign(`${import.meta.env.BASE_URL}clipforge/`);
+      const tab = TEXT_VIDEO.test(input) ? 'tv' : LOCAL_VIDEO.test(input) ? 'lc' : YOUTUBE_CLIP.test(input) ? 'yt' : VIDEO_EDITOR.test(input) ? '-' : '';
+      if (tab) return location.assign(`${import.meta.env.BASE_URL}clipforge/${tab === '-' ? '' : `?tab=${tab}`}`);
       if (!bible || !index) {
         pending.current = input; // run once the text finishes loading
         return;
@@ -1254,9 +1255,13 @@ function useNewVersion() {
 }
 
 /** Classic layout: the big mic. Without hints, only what it hears and problems (blocked, unsupported) show beneath it. */
+/** ClipForge on one of its tabs: a text video, a video from the phone, a YouTube video. */
+const TEXT_VIDEO = /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|make|new|create|abre|abrir|crear?|hacer)\s+(?:up\s+)?)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+|un\s+)?(?:(?:text|texts|tex|test)\s+(?:video|videos)|(?:video|videos)\s+(?:text|texts|tex)|v[ií]deo\s+de\s+texto)[.!?]*$/i;
+const LOCAL_VIDEO = /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|make|new|create|abre|abrir|crear?|hacer)\s+(?:up\s+)?)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+|un\s+)?(?:local\s+(?:video|videos)|(?:upload|pick|choose)\s+(?:a\s+)?video)[.!?]*$/i;
+const YOUTUBE_CLIP = /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|make|new|create|abre|abrir|crear?|hacer)\s+(?:up\s+)?)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+|un\s+)?(?:youtube|you\s+tube)\s+(?:video|url|link|clip)s?[.!?]*$/i;
 /** Spoken (or typed) ways to open ClipForge, the video editor, allowing for common mishearings. */
 const VIDEO_EDITOR =
-  /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|abre|abrir)\s+(?:up\s+)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+)?)?(?:(?:video|videos)(?:\s+(?:edit|edits|editor|editors|editer|editing|edit\s+her|edited))?|(?:editor|edici[oó]n)\s+de\s+v[ií]deo|clip\s?forge)[.!?]*$/i;
+  /^(?:(?:please|ok(?:ay)?|now)\s+)?(?:(?:open|opened|opens|go\s+to|show|start|launch|abre|abrir)\s+(?:up\s+)?)?(?:the\s+|my\s+|a\s+|el\s+|mi\s+)?(?:(?:video|videos)(?:\s+(?:edit|edits|editor|editors|editer|editing|edit\s+her|edited))?|(?:editor|edici[oó]n)\s+de\s+v[ií]deo|clip\s?forge)[.!?]*$/i;
 
 function ClassicMicPanel({ speech, hints }: { speech: ReturnType<typeof useSpeech>; hints: boolean }) {
   const { status, interim, start, stop } = speech;
