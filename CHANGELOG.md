@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.26.0 — 2026-10-09
+- In a chapter, with verses tapped, Play ▾ opens a pop-up: Selected verse, Selected verse and repeat, Begin with (that verse, reading on to the end of the chapter and beyond), or Whole chapter.
+
 ## v2.25.1 — 2026-10-09
 - The picks bar (+ Add · Make video) and the find bar now stay at the top with the note's buttons while you scroll a long note.
 

@@ -155,6 +155,12 @@ const ES: Record<string, string> = {
   'Add around {ref}': 'Añadir junto a {ref}',
   'Save to list': 'Guardar en lista',
   'Play {n}': 'Leer {n}',
+  'Selected verse': 'Versículo elegido',
+  'Selected verses ({n})': 'Versículos elegidos ({n})',
+  'Selected verse and repeat': 'Versículo elegido y repetir',
+  'Selected verses and repeat': 'Versículos elegidos y repetir',
+  '{ref} and repeat': '{ref} y repetir',
+  'Begin with {ref}': 'Empezar en {ref}',
   'Whole chapter': 'Todo el capítulo',
   'Play chapter': 'Leer capítulo',
 

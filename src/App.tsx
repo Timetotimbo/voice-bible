@@ -1772,6 +1772,16 @@ function Chapter({
   const picked = all.filter(h => selected.has(hitKey(h))); // always in chapter order
   /** A chapter and everything after it, so reading carries on (just the chapter while Repeat is on). */
   const onward = (i: number) => (reader.repeat ? versesOf(i) : chapters.slice(i).flatMap((_, j) => versesOf(i + j)));
+  // The first verse chosen (or asked for): play from it to the end of the chapter and on
+  const fromVerse = (picked[0] ?? asked[0])?.verse ?? 1;
+  const chosen = picked.length ? picked : asked;
+  // Play ▾ with verses chosen: a pop-up for just those (once or on repeat), from the first one on, or the chapter
+  const [playMenu, setPlayMenu] = useState(false);
+  const playChoice = (verses: VerseHit[], repeat?: boolean) => {
+    setPlayMenu(false);
+    if (repeat !== undefined) reader.setRepeat(repeat);
+    readAloud(verses);
+  };
 
   const readingKey = reader.current ? hitKey(reader.current) : null;
   const readingAt = reader.current ? indexOf(reader.current.book, reader.current.chapter) : -1;
@@ -1907,18 +1917,29 @@ function Chapter({
               {t('■ Stop · ')}<StopDetail reader={reader} />
             </button>
           ) : picked.length || askedLabel ? (
-            <div className="play-choice">
-              {picked.length ? (
-                <button className="player-main" onClick={() => readAloud(picked)}>▶ {t('Play {n}', { n: picked.length })}</button>
-              ) : (
-                <button className="player-main" onClick={() => readAloud(asked)}>▶ {t('Play {ref}', { ref: askedLabel })}</button>
-              )}
-              <button className="player-alt" onClick={() => readAloud(onward(shownAt))}>▶ {t('Whole chapter')}</button>
-            </div>
+            <button className="player-main" onClick={() => setPlayMenu(true)}>
+              ▶ {picked.length ? t('Play {n}', { n: picked.length }) : t('Play {ref}', { ref: askedLabel })} ▾
+            </button>
           ) : (
             <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
           )}
           <PlayerControls reader={reader} />
+        </div>
+      )}
+      {playMenu && (picked.length > 0 || !!askedLabel) && (
+        <div className="play-menu-backdrop" onClick={() => setPlayMenu(false)}>
+          <div className="play-menu" role="menu" onClick={e => e.stopPropagation()}>
+            <button role="menuitem" onClick={() => playChoice(chosen, false)}>
+              {picked.length ? (picked.length === 1 ? t('Selected verse') : t('Selected verses ({n})', { n: picked.length })) : t('Play {ref}', { ref: askedLabel })}
+            </button>
+            <button role="menuitem" onClick={() => playChoice(chosen, true)}>
+              {picked.length ? (picked.length === 1 ? t('Selected verse and repeat') : t('Selected verses and repeat')) : t('{ref} and repeat', { ref: askedLabel })}
+            </button>
+            <button role="menuitem" onClick={() => playChoice(onward(shownAt).slice(fromVerse - 1))}>
+              {t('Begin with {ref}', { ref: `${bookName(chapters[shownAt].book)} ${chapters[shownAt].chapter}:${fromVerse}` })}
+            </button>
+            <button role="menuitem" onClick={() => playChoice(onward(shownAt))}>{t('Whole chapter')}</button>
+          </div>
         </div>
       )}
     </section>
