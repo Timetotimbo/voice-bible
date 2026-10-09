@@ -10,6 +10,8 @@ applyTheme(savedTheme());
 // Works offline: the service worker keeps the app and the Bible text on the phone (built by vite.config.ts)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => {}));
+  // Asks the phone to keep the saved app and Bible text, instead of clearing them when space runs low
+  navigator.storage?.persist?.().catch(() => {});
 }
 
 createRoot(document.getElementById('root')!).render(
