@@ -43,3 +43,13 @@ export async function shareVerses(verses: VerseHit[], abbrev: string): Promise<'
     return 'failed';
   }
 }
+
+/** Copies the verses (with their reference) to paste anywhere. */
+export async function copyVerses(verses: VerseHit[], abbrev: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(versesAsText(verses, abbrev));
+    return true;
+  } catch {
+    return false;
+  }
+}

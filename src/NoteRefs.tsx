@@ -3,6 +3,7 @@ import { bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
 import { findReferences } from './noteSpeech';
+import { versesAsText } from './shareVerses';
 
 /**
  * Bible references in a note, like Blue Letter Bible's: each one is underlined, and tapping it (or pointing at it
@@ -116,6 +117,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
   onRepeat?: (on: boolean) => void;
 }) {
   const card = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   // Below the reference if there's room, else above it; never off the screen's sides
   useLayoutEffect(() => {
@@ -185,6 +187,17 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
                 {t('⟳ Loop')}
               </button>
             )}
+            <button
+              className="ref-copy"
+              aria-label={t('Copy')}
+              title={t('Copy the verse with its reference')}
+              onClick={() => {
+                navigator.clipboard?.writeText(versesAsText(verses, translation)).then(() => setCopied(true), () => {});
+                setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? '✓' : '📋'}
+            </button>
             <button onClick={() => { onOpen(pick.label); onClose(); }}>{t('Open chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
           </div>

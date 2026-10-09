@@ -16,7 +16,7 @@ import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
-import { shareVerses, versesAsText } from './shareVerses';
+import { copyVerses, shareVerses, versesAsText } from './shareVerses';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { noteTitle, useNotes, type Note } from './useNotes';
@@ -270,6 +270,10 @@ export default function App() {
     const result = await shareVerses(verses, abbrev);
     if (result === 'copied') setToast(n('Copied the verse to paste into a text or email', 'Copied {n} verses to paste into a text or email', verses.length));
     if (result === 'failed') setToast(t('Couldn’t share from this browser'));
+  };
+  const copySelected = async (verses: VerseHit[]) => {
+    const ok = await copyVerses(verses, abbrev);
+    setToast(ok ? n('Verse copied', '{n} verses copied', verses.length) : t('Couldn’t copy from this browser'));
   };
   /** Sends a list's link by the phone's share menu, or copies it. */
   const shareList = (list: VerseList) => {
@@ -686,6 +690,7 @@ export default function App() {
         {view.kind === 'search' && (
           <SearchResults
             onShare={shareSelected}
+            onCopy={copySelected}
             strongs={view.strongs}
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={
@@ -732,6 +737,7 @@ export default function App() {
         {view.kind === 'list' && bible && savedList && (
           <SearchResults
             onShare={shareSelected}
+            onCopy={copySelected}
             title={
               <span className="list-title">
                 <ListName name={savedList.name} onRename={name => library.renameList(savedList.id, name)} />
@@ -896,6 +902,7 @@ export default function App() {
         {view.kind === 'chapter' && bible && (
           <Chapter
             onShare={shareSelected}
+            onCopy={copySelected}
             aroundList={(() => {
               const from = view.fromList && library.lists.find(l => l.id === view.fromList!.id);
               if (!from) return undefined;
@@ -1488,13 +1495,14 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onMoveVerse,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onCopy, onMoveVerse,
 }: {
   onMoveVerse?: (hit: VerseHit, to: number) => void; // a saved list: drag a verse by its handle to reorder
   title: ReactNode;
   strongs?: string; // a Strong's number search: mark the words that translate it
   tagsFor?: (hit: VerseHit) => Tag[] | undefined;
   onShare: (verses: VerseHit[]) => void; // text or email the selected verses
+  onCopy: (verses: VerseHit[]) => void; // copy them to paste anywhere
   hits: VerseHit[];
   query?: string;
   shown: number;
@@ -1664,6 +1672,7 @@ function SearchResults({
             <div className="selection-bar">
               <span>{t('{n} selected', { n: picked.length })}</span>
               {selectionActions(picked)}
+              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -1690,7 +1699,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, aroundList, hints,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, onCopy, aroundList, hints,
 }: {
   hints: boolean; // show the "Tap a word… Swipe…" line
   bible: BibleText;
@@ -1707,6 +1716,7 @@ function Chapter({
   onPick: () => void;
   onWord: (word: string, code: string, verse: VerseHit) => void;
   onShare: (verses: VerseHit[]) => void;
+  onCopy: (verses: VerseHit[]) => void;
   // Opened from a list: add the chosen verses beside the verse opened (verses already in the list are marked)
   aroundList?: { name: string; label: string; inList: Set<number>; onAdd: (picked: VerseHit[]) => void };
 }) {
@@ -1876,6 +1886,7 @@ function Chapter({
               {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>{t('Add around {ref}', { ref: aroundList.label })}</button>}
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
               <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
+              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>

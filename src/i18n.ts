@@ -161,6 +161,11 @@ const ES: Record<string, string> = {
   // Go to
   'Go to': 'Ir a',
   'Close': 'Cerrar',
+  'Copy the verse with its reference': 'Copiar el versículo con su cita',
+  'Verse copied': 'Versículo copiado',
+  '{n} verses copied': '{n} versículos copiados',
+  'Couldn’t copy from this browser': 'No se pudo copiar desde este navegador',
+  'Copy': 'Copiar',
   'This note has broken lines or extra spaces.': 'Esta nota tiene líneas cortadas o espacios de más.',
   'Tidy spacing': 'Ordenar espacios',
   'Restore from a backup': 'Restaurar una copia',
