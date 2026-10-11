@@ -960,3 +960,12 @@ mark.pick-hit { background: rgba(250, 204, 21, 0.35); color: inherit; border-rad
 .play-menu { background: var(--surface-2); border-radius: 24px; padding: 10px; width: min(360px, 100%); display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
 .play-menu button { background: none; border: 0; color: var(--text); font-size: 1.1rem; padding: 16px 12px; border-radius: 14px; }
 .play-menu button:active, .play-menu button:hover { background: var(--surface); }
+
+/* A note's table of contents: each title links to its heading further down; ↑ Contents goes back */
+.toc-link { color: var(--purple-bright, #a78bfa); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.toc-link:hover, .toc-link:focus-visible { background: color-mix(in srgb, var(--purple, #8b5cf6) 18%, transparent); }
+mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow: 0 0 0 3px rgba(255, 213, 74, 0.45); }
+.toc-back { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h, 64px) + 12px + env(safe-area-inset-bottom)); z-index: 15;
+  padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: var(--purple, #8b5cf6); color: #fff; border: 0; }
+.classic .toc-back { bottom: calc(16px + env(safe-area-inset-bottom)); }

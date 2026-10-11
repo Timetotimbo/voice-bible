@@ -44,18 +44,46 @@ function marked(text: string, from: number, to: number, marks?: Marks): (string 
   return out;
 }
 
-/** Text with its references as buttons, and any find-in-note matches highlighted. */
-export function RefText({ text, onPick, marks }: { text: string; onPick: (p: RefPick) => void; marks?: Marks }) {
-  const refs = findReferences(text);
+/** Text with its references as buttons, contents links (`jumps`, to elsewhere in the note), and any find-in-note matches highlighted. */
+export function RefText({ text, onPick, marks, jumps, onJump }: {
+  text: string;
+  onPick: (p: RefPick) => void;
+  marks?: Marks;
+  jumps?: { start: number; end: number }[];
+  onJump?: (i: number) => void;
+}) {
+  // References inside a contents link stay part of that link
+  const refs = findReferences(text).filter(r => !jumps?.some(j => r.start < j.end && r.end > j.start));
+  const items = [...refs.map(r => ({ kind: 'ref' as const, start: r.start, end: r.end, r })), ...(jumps ?? []).map((j, i) => ({ kind: 'jump' as const, start: j.start, end: j.end, i }))]
+    .sort((a, b) => a.start - b.start);
   const out: JSX.Element[] = [];
   let at = 0;
   const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches;
-  refs.forEach((r, i) => {
-    out.push(<Fragment key={`t${i}`}>{marked(text, at, r.start, marks)}</Fragment>);
+  items.forEach((it, k) => {
+    out.push(<Fragment key={`t${k}`}>{marked(text, at, it.start, marks)}</Fragment>);
+    if (it.kind === 'jump') {
+      const go = () => onJump?.(it.i);
+      out.push(
+        <span
+          key={`j${k}`}
+          role="link"
+          tabIndex={0}
+          className="toc-link"
+          data-toc={it.i}
+          onClick={e => { e.stopPropagation(); e.preventDefault(); go(); }}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
+        >
+          {marked(text, it.start, it.end, marks)}
+        </span>,
+      );
+      at = it.end;
+      return;
+    }
+    const r = it.r;
     // A span, not a <button>: a button can't break across lines, so a reference couldn't wrap with the text
     out.push(
       <span
-        key={`r${i}`}
+        key={`r${k}`}
         role="button"
         tabIndex={0}
         className="ref-link"

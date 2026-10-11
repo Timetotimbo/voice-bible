@@ -12,6 +12,7 @@ import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
 import { needsTidy, tidySpacing } from './noteSpeech';
+import { tocLinks } from './noteToc';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -58,6 +59,28 @@ export function NoteView({
     viewEl.current?.querySelector(`mark[data-hit="${findAt}"]`)?.scrollIntoView({ block: 'center' });
   }, [finding, hits, findAt]);
   const viewEl = useRef<HTMLDivElement>(null);
+  // A table of contents in the note: its titles link to their headings further down; ↑ Contents comes back
+  const toc = useMemo(() => (editing ? [] : tocLinks(shownText)), [editing, shownText]);
+  const [jumpMark, setJumpMark] = useState<{ start: number; end: number } | null>(null);
+  const [backTo, setBackTo] = useState<number | null>(null); // which contents link to go back to
+  useEffect(() => { setJumpMark(null); setBackTo(null); }, [note.id]);
+  useEffect(() => {
+    if (!jumpMark) return;
+    viewEl.current?.querySelector('mark.jump-hit')?.scrollIntoView({ block: 'center' });
+    const t = setTimeout(() => setJumpMark(null), 2500);
+    return () => clearTimeout(t);
+  }, [jumpMark]);
+  const jumpTo = (i: number) => {
+    const l = toc[i];
+    if (!l) return;
+    setBackTo(i);
+    setJumpMark({ start: l.target, end: l.targetEnd });
+  };
+  const backToContents = () => {
+    if (backTo === null) return;
+    viewEl.current?.querySelector(`[data-toc="${backTo}"]`)?.scrollIntoView({ block: 'center' });
+    setBackTo(null);
+  };
   // Picks for a video: bits of the note selected one at a time (anywhere in it), sent together to ClipForge's
   // Text Video, each its own screen. `sel` is the latest selection in the note, waiting for + Add.
   const [picks, setPicks] = useState<{ start: number; end: number; text: string }[]>([]);
@@ -411,8 +434,17 @@ export function NoteView({
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
             onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
           >
-            <RefText text={shownText} onPick={setRefPick} marks={finding ? { ranges: hits, current: findAt } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : undefined} />
+            <RefText
+              text={shownText}
+              onPick={setRefPick}
+              jumps={toc}
+              onJump={jumpTo}
+              marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : undefined}
+            />
           </div>
+        )}
+        {!editing && backTo !== null && (
+          <button className="toc-back" onClick={backToContents}>{t('↑ Contents')}</button>
         )}
         <textarea
           ref={box}

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.29.0 — 2026-10-11
+- **Clickable table of contents in a note.** A note with a "TABLE OF CONTENTS" (pasted from a book or PDF, even all on one line with page numbers mixed in) shows each title as a link. Tap one to jump to that heading further down in the same note; it's highlighted for a moment, and **↑ Contents** takes you back to the list.
+
 ## v2.28.0 — 2026-10-11
 - **To note… inside a note.** Select words in a note (or several bits with + Add), then **To note…** copies them to the end of another note or a new one, like To note… on verses. Open › in the message goes to that note.
 

@@ -186,6 +186,7 @@ const ES: Record<string, string> = {
   'Combined. Added {lists}, {verses} verses, {notes} and {chats}.': 'Combinado. Se añadieron {lists}, {verses} versículos, {notes} y {chats}.',
   '(other copy)': '(otra copia)',
   'Find in note': 'Buscar en la nota',
+  '↑ Contents': '↑ Índice',
   '+ Add': '+ Añadir',
   '{n} picked': '{n} elegidos',
   'Select text, then + Add': 'Selecciona texto y toca + Añadir',
