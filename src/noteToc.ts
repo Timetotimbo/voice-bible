@@ -73,21 +73,31 @@ export function tocLinks(text: string): TocLink[] {
     const same = (a: string, b: string) => (caps ? a === b : a.toLowerCase() === b.toLowerCase());
     const cands = (caps ? exact.get(first) : loose.get(first.toLowerCase())) ?? [];
     const tries = cands.map(c => {
-      let p = i, q = c, words = 0, chars = 0, lastP = i, lastQ = c, skipped = false;
-      while (p < toc.length && q < body.length && p - i < 60) {
-        if (same(toc[p].w, body[q].w)) {
-          // After a page number, a number in both is the next entry's ("…GUIDES 69 | 1 3 REASONS…"): this title ended
-          if (skipped && isNum(toc[p].w)) break;
-          if (!isNum(toc[p].w)) { words++; chars += toc[p].w.length; }
-          lastP = p; lastQ = q; p++; q++; skipped = false;
-        } else if (isNum(toc[p].w)) { p++; skipped = true; } // a page or entry number in the contents
-        else if (isNum(body[q].w) && words) q++; // a number in the heading that the contents leave out
+      let p = i, q = c, words = 0, chars = 0, nums = 0;
+      let best = { tier: -1, words: 0, chars: 0, p: i, q: c, c };
+      while (p < toc.length && q < body.length && words < 30) {
+        if (!isNum(toc[p].w) && same(toc[p].w, body[q].w)) {
+          words++; chars += toc[p].w.length; nums = 0;
+          // How well the heading ends here: ordinary sentences next (2), a new line (1), or more of a list (0)
+          const next = body[q + 1];
+          const tier = !next || hasLower(next.w) ? 2 : /\n/.test(text.slice(body[q].end, next.start)) ? 1 : 0;
+          if (tier > best.tier || (tier === best.tier && words > best.words)) best = { tier, words, chars, p, q, c };
+          p++; q++;
+        } else if (isNum(toc[p].w)) {
+          // A page number inside a title is one number; a page number and the next entry's number are two
+          if (++nums >= 2 && words) break;
+          // The same number at the same place: a copy of the contents, not a heading
+          if (words && toc[p].w === body[q].w) break;
+          p++;
+        } else if (isNum(body[q].w) && words) q++; // a number in the heading that the contents leave out
         else break;
       }
-      return { words, chars, p: lastP, q: lastQ, c };
+      return best;
     });
-    const most = Math.max(0, ...tries.map(x => x.words));
-    const top = tries.filter(x => x.words === most);
+    // The best heading: ends well, then the longest; a copy of the contents or a list of titles loses to the real heading
+    const rank = (x: { tier: number; words: number }) => x.tier * 1000 + x.words;
+    const most = Math.max(0, ...tries.map(rank));
+    const top = tries.filter(x => rank(x) === most && x.words > 0);
     const ties = top.length;
     const best = top.find(x => x.c > after) ?? top[0] ?? { words: 0, chars: 0, p: i, q: -1, c: -1 };
     // At least two words (and not just "THE BIBLE"), not a line printed at the top of every page

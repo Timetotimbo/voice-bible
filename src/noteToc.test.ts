@@ -56,3 +56,35 @@ describe('tocLinks', () => {
     expect(tocLinks('Just a sermon about FAITH AND HOPE and more FAITH AND HOPE.')).toEqual([]);
   });
 });
+
+describe('tocLinks with the titles listed again in the note', () => {
+  const toc = 'TABLE OF CONTENTS 67 31 SECRETS TO CAREER SUCCESS 137 68 7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL 140 WORLD 69 HOW TO SUCCEED ON YOUR JOB 141 70 3 KEYS TO FINANCIAL AUTHORITY 142 71 WHAT TO KNOW TO BECOME A WORLD-CLASS 143 PROBLEM-SOLVER 72 HOW TO BREAK THE FINANCIAL RUT 144 Unless otherwise indicated, all Scripture quotations are taken from the King James Version.';
+  const copy = '\n\nCONTENTS 67 31 SECRETS TO CAREER SUCCESS 137 68 7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL 140 WORLD 69 HOW TO SUCCEED ON YOUR JOB 141 70 3 KEYS TO FINANCIAL AUTHORITY 142 71 WHAT TO KNOW TO BECOME A WORLD-CLASS 143 PROBLEM-SOLVER 72 HOW TO BREAK THE FINANCIAL RUT 144\n\n';
+  const list = '31 SECRETS TO CAREER SUCCESS\n7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL WORLD\nHOW TO SUCCEED ON YOUR JOB\n3 KEYS TO FINANCIAL AUTHORITY\nWHAT TO KNOW TO BECOME A WORLD-CLASS PROBLEM-SOLVER\nHOW TO BREAK THE FINANCIAL RUT\n\n';
+  const flat = '31 SECRETS TO CAREER SUCCESS 7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL WORLD HOW TO SUCCEED ON YOUR JOB 3 KEYS TO FINANCIAL AUTHORITY WHAT TO KNOW TO BECOME A WORLD-CLASS PROBLEM-SOLVER HOW TO BREAK THE FINANCIAL RUT\n\n';
+  const chapters = [
+    '67\n31 SECRETS TO CAREER SUCCESS\nSuccess is a journey.',
+    '68\n7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL WORLD\nDecisions decide wealth.',
+    '69\nHOW TO SUCCEED ON YOUR JOB\nBe on time.',
+    '70\n3 KEYS TO FINANCIAL AUTHORITY\nAuthority comes.',
+    '71\nWHAT TO KNOW TO BECOME A WORLD-CLASS PROBLEM-SOLVER\nSolve problems.',
+    '72\nHOW TO BREAK THE FINANCIAL RUT\nBreak it.',
+  ].join('\n\n');
+  for (const [name, extra] of [['a copy of the contents', copy], ['a list, one title a line', list], ['a list on one line', flat]]) {
+    it(`one link per title, landing on the chapter (with ${name})`, () => {
+      const note = `${toc}\n\n${extra}${chapters}`;
+      const links = tocLinks(note);
+      const linked = links.map(l => note.slice(l.start, l.end));
+      expect(linked).toEqual([
+        '31 SECRETS TO CAREER SUCCESS',
+        '7 DECISIONS THAT WILL DECIDE YOUR FINANCIAL 140 WORLD',
+        '69 HOW TO SUCCEED ON YOUR JOB',
+        '3 KEYS TO FINANCIAL AUTHORITY',
+        '71 WHAT TO KNOW TO BECOME A WORLD-CLASS 143 PROBLEM-SOLVER',
+        '72 HOW TO BREAK THE FINANCIAL RUT',
+      ]);
+      const start = note.indexOf('67\n31 SECRETS');
+      for (const l of links) expect(l.target).toBeGreaterThanOrEqual(start);
+    });
+  }
+});
