@@ -141,6 +141,7 @@ const ES: Record<string, string> = {
   'Added to “{list}”': 'Añadido a “{list}”',
   'Added “{list}”': 'Añadida “{list}”',
   'Added the verse to “{note}”': 'Versículo añadido a “{note}”',
+  'Added to “{note}”': 'Añadido a “{note}”',
   'Added {n} verses to “{note}”': '{n} versículos añadidos a “{note}”',
   'Imported {n} chat': '{n} chat importado',
   'Imported {n} chats': '{n} chats importados',

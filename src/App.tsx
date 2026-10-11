@@ -207,6 +207,8 @@ export default function App() {
   // Brief message near the top; one about a list can be tapped to open it
   // Verses on their way into a note, while the note picker is open
   const [toNote, setToNote] = useState<{ verses: VerseHit[]; title: string } | null>(null);
+  // Words chosen in a note, going into another note
+  const [noteToNote, setNoteToNote] = useState<{ text: string; from: string; title: string } | null>(null);
   const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
@@ -825,6 +827,7 @@ export default function App() {
             <NoteView
               key={note.id}
               onTeleprompter={(title, text) => setPrompter({ title, text, at: Date.now() })}
+              onToNote={text => setNoteToNote({ text, from: note.id, title: noteTitle(note) })}
               note={note}
               onChange={noteChanger(note.id)}
               reader={reader}
@@ -1140,6 +1143,25 @@ export default function App() {
             setToNote(null);
             setSelected(new Set());
             setToast(n('Added the verse to “{note}”', 'Added {n} verses to “{note}”', toNote.verses.length, { note: title }), undefined, id);
+          }}
+        />
+      )}
+      {noteToNote && (
+        <NotePicker
+          heading={t('Add to a note')}
+          notes={notes.notes.filter(x => x.id !== noteToNote.from)}
+          onClose={() => setNoteToNote(null)}
+          onPick={noteId => {
+            // At the end of the note, as its own paragraph
+            const id = noteId ?? notes.newNote();
+            const current = notes.notes.find(x => x.id === id);
+            const title = current ? noteTitle(current) : noteToNote.title;
+            notes.updateNote(id, {
+              ...(noteId ? {} : { title }),
+              text: [current?.text.trimEnd(), noteToNote.text].filter(Boolean).join('\n\n'),
+            });
+            setNoteToNote(null);
+            setToast(t('Added to “{note}”', { note: title }), undefined, id);
           }}
         />
       )}
@@ -2483,8 +2505,9 @@ function ListName({ name, onRename }: { name: string; onRename: (name: string) =
 }
 
 /** Picks the note that chosen verses go into, or a new one. */
-function NotePicker({ count, notes, onPick, onClose }: {
-  count: number;
+function NotePicker({ count = 0, heading, notes, onPick, onClose }: {
+  count?: number;
+  heading?: string; // instead of "Add {n} verses to a note"
   notes: Note[];
   onPick: (noteId: string | null) => void; // null = a new note
   onClose: () => void;
@@ -2493,7 +2516,7 @@ function NotePicker({ count, notes, onPick, onClose }: {
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Add to a note')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>{n('Add the verse to a note', 'Add {n} verses to a note', count)}</h2>
+          <h2>{heading ?? n('Add the verse to a note', 'Add {n} verses to a note', count)}</h2>
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         <ul className="sheet-list">

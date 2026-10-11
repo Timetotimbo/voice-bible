@@ -17,7 +17,7 @@ import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from '.
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
   note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
-  refVerses, onOpenRef, translation,
+  refVerses, onOpenRef, translation, onToNote,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -39,6 +39,7 @@ export function NoteView({
   refVerses: (label: string) => VerseHit[]; // the verses a reference in the note names ("Philemon 1:9-10")
   onOpenRef: (label: string) => void; // shows that reference's chapter
   translation: string; // "KJV", for the verse card
+  onToNote: (text: string) => void; // copies the chosen words into another note (or a new one)
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
@@ -100,6 +101,15 @@ export function NoteView({
       return;
     }
     location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=tv`);
+  };
+  // To note: the picked bits (or the selection, when nothing is picked yet), each its own paragraph
+  const toNote = () => {
+    const text = picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end).trim() : '';
+    if (!text) return;
+    onToNote(text);
+    setPicks([]);
+    setSel(null);
+    window.getSelection()?.removeAllRanges();
   };
   const startEditing = (at: number) => {
     flushSync(() => setEditing(true)); // shown before focusing, so the phone opens its keyboard
@@ -346,6 +356,7 @@ export function NoteView({
         <div className="pick-bar" onPointerDown={e => (e.target as HTMLElement).closest('button') && e.preventDefault()}>
           <button className="pick-add" disabled={!sel} onClick={addPick}>{t('+ Add')}</button>
           <span className="pick-count">{picks.length ? n('{n} picked', '{n} picked', picks.length) : t('Select text, then + Add')}</span>
+          <button className="pick-note" disabled={!sel && !picks.length} onClick={toNote}>{t('To note…')}</button>
           {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
           <button aria-label={t('Clear picks')} onClick={() => { setPicks([]); setSel(null); }}>✕</button>
         </div>

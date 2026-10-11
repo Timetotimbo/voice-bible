@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.28.0 — 2026-10-11
+- **To note… inside a note.** Select words in a note (or several bits with + Add), then **To note…** copies them to the end of another note or a new one, like To note… on verses. Open › in the message goes to that note.
+
 ## v2.27.1 — 2026-10-09
 - Opening a note with words in it no longer listens (the mic turns off); only a brand-new, empty note starts listening so you can dictate straight in.
 
