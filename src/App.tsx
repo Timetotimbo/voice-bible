@@ -269,12 +269,12 @@ export default function App() {
     return f;
   };
   const shareSelected = async (verses: VerseHit[]) => {
-    const result = await shareVerses(verses, abbrev);
+    const result = await shareVerses(verses);
     if (result === 'copied') setToast(n('Copied the verse to paste into a text or email', 'Copied {n} verses to paste into a text or email', verses.length));
     if (result === 'failed') setToast(t('Couldn’t share from this browser'));
   };
   const copySelected = async (verses: VerseHit[]) => {
-    const ok = await copyVerses(verses, abbrev);
+    const ok = await copyVerses(verses);
     setToast(ok ? n('Verse copied', '{n} verses copied', verses.length) : t('Couldn’t copy from this browser'));
   };
   /** Sends a list's link by the phone's share menu, or copies it. */
@@ -842,11 +842,10 @@ export default function App() {
                 bible
                   ? versesAsText(
                       list.verses.flatMap(([b, c, v]) => (bible[b]?.[c - 1]?.[v - 1] ? [{ book: b, chapter: c, verse: v, text: bible[b][c - 1][v - 1] }] : [])),
-                      abbrev,
                     )
                   : ''
               }
-              versesText={verses => versesAsText(verses, abbrev)}
+              versesText={verses => versesAsText(verses)}
               refVerses={label => {
                 // "Philemon 1:9-10" or "Rom 8:28,31": the first part is a normal reference, then more verses of that chapter
                 if (!bible) return [];
@@ -1138,7 +1137,7 @@ export default function App() {
             const title = current ? noteTitle(current) : toNote.title;
             notes.updateNote(id, {
               ...(noteId ? {} : { title }),
-              text: [current?.text.trimEnd(), versesAsText(toNote.verses, abbrev)].filter(Boolean).join('\n\n'),
+              text: [current?.text.trimEnd(), versesAsText(toNote.verses)].filter(Boolean).join('\n\n'),
             });
             setToNote(null);
             setSelected(new Set());

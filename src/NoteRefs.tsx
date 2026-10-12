@@ -233,7 +233,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
               aria-label={t('Copy')}
               title={t('Copy the verse with its reference')}
               onClick={() => {
-                navigator.clipboard?.writeText(versesAsText(verses, translation)).then(() => setCopied(true), () => {});
+                navigator.clipboard?.writeText(versesAsText(verses)).then(() => setCopied(true), () => {});
                 setTimeout(() => setCopied(false), 1500);
               }}
             >

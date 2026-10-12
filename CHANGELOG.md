@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.30.0 — 2026-10-11
+- **No more "(KJV)" on verses.** Verses you put in a note (To note…), copy or share now start with just the reference, like "John 3:16", without the translation's name after it.
+
 ## v2.29.1 — 2026-10-11
 - **Fixed: the contents turned into one long link.** When the titles were listed again in the note (a second list or a copy of the contents), links ran from one title into the next. Each title is now its own link, and it goes to the chapter heading (the one followed by ordinary sentences), not to another list.
 
