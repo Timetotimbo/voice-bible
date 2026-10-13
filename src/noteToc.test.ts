@@ -109,6 +109,11 @@ Some more sentences here to end the list properly.
 Financial Harvest
 1. Because they do not.
 `;
+  it('finds a heading that has the chapter number before the title on the same line', () => {
+    const n2 = note.replace('\n12\n7 Laws of Wealth', '\n12 7 Laws of Wealth');
+    const l = tocLinks(n2).map(x => n2.slice(x.target, x.targetEnd));
+    expect(l).toContain('7 Laws of Wealth');
+  });
   it('links each capitals title to its whole heading line, number and wrapped line included, with no copy of the contents', () => {
     const links = tocLinks(note);
     expect(links.map(l => note.slice(l.target, l.targetEnd))).toEqual(['4 Facts About Offerings', '7 Laws of Wealth', '31 Reasons People Do Not Receive Their\nFinancial Harvest']);

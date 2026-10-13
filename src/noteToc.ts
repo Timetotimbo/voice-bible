@@ -72,7 +72,8 @@ export function tocLinks(text: string): TocLink[] {
     // headings in Title Case, the same words alone on their own line
     const caps = isCaps(first);
     const newLine = (c: number) => c === 0 || /\n/.test(text.slice(body[c - 1].end, body[c].start));
-    const lineStart = (c: number) => newLine(c) || (isNum(body[c - 1].w) && newLine(c - 1)); // "7 Laws of Wealth": the number is part of the heading
+    // "7 Laws of Wealth", or "12 7 Laws of Wealth" (chapter number first): the numbers are part of the line
+    const lineStart = (c: number) => { let k = c; for (let n = 0; n < 2 && k > 0 && isNum(body[k - 1].w) && !newLine(k); n++) k--; return newLine(k); };
     const exactAt = new Set(exact.get(first) ?? []);
     const cands = caps
       ? [...new Set([...(exact.get(first) ?? []), ...(loose.get(first.toLowerCase()) ?? []).filter(lineStart)])]
