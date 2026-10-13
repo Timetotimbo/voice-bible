@@ -1,4 +1,5 @@
 import { bookName } from './bible/books';
+import { socialBloomLinked, videoSendOn } from './socialBloom';
 import type { VerseHit } from './bible/search';
 
 /**
@@ -68,7 +69,7 @@ export function versesAsVideoText(verses: VerseHit[]): string {
 /** One tap: opens ClipForge's Text Video with these verses, and it makes the video by itself. */
 export function makeVerseVideo(verses: VerseHit[]): boolean {
   try {
-    localStorage.setItem('cf_tv_in', JSON.stringify({ text: versesAsVideoText(verses), auto: true, at: Date.now() }));
+    localStorage.setItem('cf_tv_in', JSON.stringify({ text: versesAsVideoText(verses), auto: true, send: socialBloomLinked() && videoSendOn(), at: Date.now() }));
   } catch {
     return false;
   }

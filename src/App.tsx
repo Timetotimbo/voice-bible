@@ -17,6 +17,7 @@ import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, remove
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
 import { copyVerses, makeVerseVideo, shareVerses, versesAsText } from './shareVerses';
+import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { noteTitle, useNotes, type Note } from './useNotes';
@@ -189,6 +190,7 @@ export default function App() {
   const [verseOpen, setVerseOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemeId>(savedTheme);
   // Instructions on screen ("Tap the mic…", "Say a word…"); the switch under the title hides them, per device
+  const [videoSend, setVideoSendState] = useState(videoSendOn);
   const [hints, setHintsState] = useState(() => {
     try {
       return localStorage.getItem('hints') !== 'off';
@@ -1023,6 +1025,10 @@ export default function App() {
             <label className="set-row">
               <span>{t('Hints')}<small className="set-sub">{t('Short instructions on each screen')}</small></span>
               <input type="checkbox" role="switch" className="switch" checked={hints} onChange={e => setHints(e.target.checked)} />
+            </label>
+            <label className="set-row">
+              <span>{t('Send finished verse videos to Social Bloom')}<small className="set-sub">{t('Make video makes it, exports it and opens Social Bloom on it, ready to post')}</small></span>
+              <input type="checkbox" role="switch" className="switch" checked={videoSend} onChange={e => { setVideoSend(e.target.checked); setVideoSendState(e.target.checked); }} />
             </label>
             <label className="set-row">
               <span>{t('Classic layout')}<small className="set-sub">{t('The look before version 2: no tabs, the big mic, and the bookmark menu')}</small></span>

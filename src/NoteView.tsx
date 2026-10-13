@@ -13,6 +13,7 @@ import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
 import { needsTidy, tidySpacing } from './noteSpeech';
 import { tocLinks } from './noteToc';
+import { socialBloomLinked, videoSendOn } from './socialBloom';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -119,7 +120,7 @@ export function NoteView({
   const pickMarks = picks.filter(p => note.text.slice(p.start, p.end).replace(/\s+/g, ' ').trim() === p.text);
   const sendPicks = () => {
     try {
-      localStorage.setItem('cf_tv_in', JSON.stringify({ text: picks.map(p => p.text).join('\n\n'), at: Date.now() }));
+      localStorage.setItem('cf_tv_in', JSON.stringify({ text: picks.map(p => p.text).join('\n\n'), auto: true, send: socialBloomLinked() && videoSendOn(), at: Date.now() }));
     } catch {
       return;
     }

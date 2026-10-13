@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.32.0 — 2026-10-13
+- **Shorter routes to a posted video.**
+  - **Post it** (after a teleprompter recording): sends the video straight to a Social Bloom draft and opens Social Bloom on it, with your last group already picked. Needs Social Bloom linked (the same link ClipForge uses).
+  - **Make video** (on verses, and on picks in a note) now makes the video, exports it and opens Social Bloom on it, ready to post, when Social Bloom is linked. Turn it off in Settings → "Send finished verse videos to Social Bloom" to land in the ClipForge editor instead.
+  - The teleprompter opens in the mode you used last (Words + face or plain camera).
+  - (Social Bloom: new posts and ClipForge drafts start with the group used last. ClipForge v1.86.0: the ⚡ Do it all button.)
+
 ## v2.31.0 — 2026-10-13
 - **One-tap verse video.** Tap verses, then **Make video**: ClipForge opens, makes the text video (the reference first, then the verse, word by word on a background) and drops you in the editor, ready to Export. Several separate passages become a clip each. (Needs ClipForge v1.85.0.)
 

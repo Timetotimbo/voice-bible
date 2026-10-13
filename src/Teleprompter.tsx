@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from './i18n';
 import { clipForgeUrl, leaveForClipForge } from './handoff';
+import { sendToSocialBloom, socialBloomLinked } from './socialBloom';
 import { normalMp4 } from './mp4fix';
 import { paragraphsOf } from './words';
 import { WORDS_H, WORDS_W, slidesOf, startWordsFace, type Face, type WordsFace } from './wordsFace';
@@ -13,7 +14,7 @@ import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize
  * looking at the camera. Record, watch the take, then save it or share it (to TikTok, Instagram, YouTube…).
  * The words on screen aren't in the video.
  */
-type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse'; face?: Face };
+type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse'; face?: Face; wordsMode?: boolean };
 const PREFS_KEY = 'prompter';
 const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm', browseView: 'page' };
 const MIN_WPM = 60;
@@ -159,7 +160,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const floating = useRef<{ close: () => void } | null>(null);
 
   // ---- Words + face (any device): what you're reading, large, with your face in a circle under it ----
-  const [wordsOn, setWordsOn] = useState(false);
+  const [wordsOn, setWordsOn] = useState(() => !!prefs.wordsMode); // opens in the mode used last (Words + face or plain camera)
   const wordsRef = useRef<WordsFace | null>(null);
   const [wordsFace, setWordsFace] = useState<WordsFace | null>(null);
   const guide = useRef<HTMLDivElement>(null);
@@ -269,6 +270,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const chooseMode = (m: 'camera' | 'words' | 'screen') => {
     if (m !== 'screen' && screenRef.current) stopScreen();
     setWordsOn(m === 'words');
+    if (m !== 'screen') setPrefs({ wordsMode: m === 'words' });
     if (m === 'screen' && !screenRef.current) startScreen();
   };
   const mode = screen ? 'screen' : wordsOn ? 'words' : 'camera';
@@ -442,6 +444,27 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     } catch (e) {
       setSendState('');
       setNote(t('Couldn’t pass the video to ClipForge: {error}. Save it instead.', { error: (e as Error).message }));
+    }
+  };
+
+  // Post it: straight into a Social Bloom draft (Social Bloom opens on it), no ClipForge in between
+  const [postState, setPostState] = useState<{ phase: '' | 'sending' | 'sent'; pct: number }>({ phase: '', pct: 0 });
+  const postIt = async () => {
+    const f = file();
+    if (!f || !take) return;
+    if (!socialBloomLinked()) {
+      setNote(t('Not linked to Social Bloom yet. Send it to ClipForge, tap Post ▸ there and follow the steps once.'));
+      return;
+    }
+    setNote('');
+    setPostState({ phase: 'sending', pct: 0 });
+    try {
+      await sendToSocialBloom(f, title, title, pct => setPostState({ phase: 'sending', pct }));
+      setPostState({ phase: 'sent', pct: 100 });
+      setTake({ ...take, saved: true });
+    } catch (e) {
+      setPostState({ phase: '', pct: 0 });
+      setNote(t('Couldn’t send it to Social Bloom: {error}. Save it instead.', { error: (e as Error).message }));
     }
   };
 
@@ -643,8 +666,11 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
           <video className="prompter-take" src={take.url} controls playsInline />
           {note && <p className="prompter-error">{note}</p>}
           <div className="prompter-actions">
-            {canShare && <button className="primary" onClick={share}>{t('Share')}</button>}
-            <button className={canShare ? '' : 'primary'} onClick={save}>{t('Save video')}</button>
+            <button className="primary" onClick={postIt} disabled={postState.phase === 'sending'}>
+              {postState.phase === 'sending' ? t('Sending… {pct}%', { pct: postState.pct }) : postState.phase === 'sent' ? t('Sent ✓') : t('Post it')}
+            </button>
+            {canShare && <button onClick={share}>{t('Share')}</button>}
+            <button onClick={save}>{t('Save video')}</button>
             <button className="clipforge" onClick={sendToClipForge} disabled={sendState === 'sending'}>
               {t(sendState === 'sending' ? 'Opening ClipForge…' : 'Send to ClipForge')}
             </button>
@@ -652,7 +678,9 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             <button onClick={close}>{t('Done')}</button>
           </div>
           <p className="prompter-hint">
-            {sendState === 'sent'
+            {postState.phase === 'sent'
+              ? t('In Social Bloom as a draft. Pick the group there and post.')
+              : sendState === 'sent'
               ? t('Sent to ClipForge. Add captions there, then export.')
               : t('Share sends it to TikTok, Instagram, YouTube, WhatsApp and other apps on your phone. ClipForge adds captions and effects.')}
           </p>
