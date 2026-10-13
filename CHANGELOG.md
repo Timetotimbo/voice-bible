@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.30.4 — 2026-10-12
+- **More contents titles become links:** titles that start with a common word (like "THE MONEY FORMULA") now find their Title Case heading instead of losing to a lone "THE" elsewhere in the note.
+
 ## v2.30.3 — 2026-10-12
 - **Contents links find headings that start with the chapter number on the same line** (like "12 7 Laws of Wealth"), so far more titles in a pasted book's contents become links.
 

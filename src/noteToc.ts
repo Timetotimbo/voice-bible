@@ -90,7 +90,7 @@ export function tocLinks(text: string): TocLink[] {
           const next = body[q + 1];
           const nl = !next || /\n/.test(text.slice(body[q].end, next.start));
           // (Title Case headings are all small letters inside, so for them only the end of the line counts)
-          const tier = ci ? (nl ? 1 : 0) : !next || hasLower(next.w) ? 2 : nl ? 1 : 0;
+          const tier = ci ? (nl ? 2 : 0) : !next || hasLower(next.w) ? 2 : nl ? 1 : 0;
           if (tier > best.tier || (tier === best.tier && words > best.words)) best = { tier, words, chars, p, q, c };
           p++; q++;
         } else if (isNum(toc[p].w)) {
@@ -102,7 +102,7 @@ export function tocLinks(text: string): TocLink[] {
         } else if (isNum(body[q].w) && words) q++; // a number in the heading that the contents leave out
         else break;
       }
-      return ci && best.tier < 1 ? { ...best, words: 0 } : best;
+      return ci && best.tier < 2 ? { ...best, words: 0 } : best;
     });
     // The best heading: ends well, then the longest; a copy of the contents or a list of titles loses to the real heading
     const rank = (x: { tier: number; words: number }) => x.tier * 1000 + x.words;
