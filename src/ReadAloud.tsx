@@ -16,13 +16,23 @@ export function ReadingText({ text, word }: { text: string; word: { start: numbe
   );
 }
 
-/** The bar pinned to the bottom while a note or chat is read aloud: Stop, Loop and speed. */
+/** The bar pinned to the bottom while a note or chat is read aloud: Pause/Play and Stop (one pill split in two), Loop and speed. */
 export function ListenBar({ reader, total }: { reader: Reader; total: number }) {
   return (
     <div className="player">
-      <button className="player-main" onClick={reader.stop}>
-        {t('■ Stop')}{reader.textAt >= 0 && total > 1 ? t(' · {i} of {n}', { i: reader.textAt + 1, n: total }) : ''}
-      </button>
+      <div className="player-main player-split">
+        <button
+          className="split-pause"
+          aria-label={t(reader.paused ? 'Play' : 'Pause')}
+          title={t(reader.paused ? 'Play' : 'Pause')}
+          onClick={reader.paused ? reader.resume : reader.pause}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden>{reader.paused ? <path d="M7 4.5v15l13-7.5z" /> : <path d="M6 4h4.5v16H6zm7.5 0H18v16h-4.5z" />}</svg>
+        </button>
+        <button className="split-stop" onClick={reader.stop}>
+          {t('■ Stop')}{reader.textAt >= 0 && total > 1 ? t(' · {i} of {n}', { i: reader.textAt + 1, n: total }) : ''}
+        </button>
+      </div>
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}
         aria-pressed={reader.repeat}

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.33.0 — 2026-10-13
+- **Pause while a note or chat is read aloud.** The Stop button at the bottom is now split in two: the left half pauses (it turns into ▶ Play), the right half still stops. Play carries on from the start of the paragraph it was on. The phone's lock-screen pause and play buttons do the same.
+
 ## v2.32.3 — 2026-10-13
 - **The pinned book and chapter has a search button.** A small glowing magnifier next to JEREMIAH 43 shows that tapping it searches for another book, chapter or verse.
 

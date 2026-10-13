@@ -338,6 +338,12 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
   white-space: nowrap;
 }
 .player-main { flex: 1; max-width: 360px; background: var(--purple-deep) !important; border-color: var(--purple) !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; color: var(--on-accent); }
+/* Pause/Play and Stop share the main pill, split by a line */
+.player-split { display: flex; padding: 0 !important; border-radius: 999px; border: 1px solid; }
+.player .player-split button { border: 0; border-radius: 0; background: transparent !important; color: inherit; font: inherit; }
+.player .player-split .split-pause { flex: none; display: grid; place-items: center; padding: 0 11px 0 15px; border-right: 1px solid currentColor; }
+.player .player-split .split-pause svg { width: 20px; height: 20px; fill: currentColor; }
+.player .player-split .split-stop { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .speed { min-width: 58px; font-variant-numeric: tabular-nums; }
 .repeat.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: var(--on-accent); }
 

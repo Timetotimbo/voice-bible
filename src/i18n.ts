@@ -361,6 +361,8 @@ const ES: Record<string, string> = {
   'Reading references like “John 3:16 (KJV)”': 'Leyendo citas como “Juan 3:16 (RVR1960)”',
   'Skipping references and verse numbers': 'Omitiendo citas y números de versículo',
   '■ Stop': '■ Detener',
+  'Pause': 'Pausa',
+  'Play': 'Reproducir',
   ' · {i} of {n}': ' · {i} de {n}',
   'Read aloud': 'Leer en voz alta',
   'Stop reading aloud': 'Dejar de leer en voz alta',

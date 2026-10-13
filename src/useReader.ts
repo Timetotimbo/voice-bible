@@ -305,8 +305,16 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
 
   // When reading last moved on; the watchdog picks up again if it stalls
   const lastProgress = useRef(0);
+  // Paused: reading has stopped but keeps its place (the paragraph or verse it was on), to carry on with resume
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const setPause = useCallback((on: boolean) => {
+    pausedRef.current = on;
+    setPaused(on);
+  }, []);
 
   const finish = useCallback(() => {
+    setPause(false);
     keepAwake(false);
     queue.current = [];
     unfollow();
@@ -314,7 +322,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     setPlaying(null);
     setCurrent(null);
     onDoneRef.current();
-  }, [unfollow, showWord]);
+  }, [unfollow, showWord, setPause]);
 
   const stop = useCallback(() => {
     run.current++;
@@ -336,6 +344,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       synth?.cancel();
       endSegment?.();
       heartCancel();
+      setPause(false);
       queue.current = verses;
       setPlaying(verses);
 
@@ -569,8 +578,24 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         speak(from);
       }
     },
-    [finish, follow, unfollow, showWord],
+    [finish, follow, unfollow, showWord, setPause],
   );
+
+  /** Stops the voice but keeps the place; resume starts again at the start of the paragraph (or verse) it was on. */
+  const pause = useCallback(() => {
+    if (!queue.current.length || pausedRef.current) return;
+    run.current++;
+    synth?.cancel();
+    endSegment?.();
+    heartCancel();
+    unfollow();
+    showWord(null);
+    keepAwake(false);
+    setPause(true);
+  }, [unfollow, showWord, setPause]);
+  const resume = useCallback(() => {
+    if (pausedRef.current && queue.current.length) play(queue.current, index.current);
+  }, [play]);
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
   // All-night repeats: if nothing has moved for a while (a lost phrase, a stalled recording), carry on from this verse
@@ -581,7 +606,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       const now = allEls.map(el => el.currentTime);
       if (now.some((t, k) => t !== times[k])) lastProgress.current = Date.now();
       times = now;
-      if (queue.current.length && Date.now() - lastProgress.current > 45_000) {
+      if (queue.current.length && !pausedRef.current && Date.now() - lastProgress.current > 45_000) {
         lastProgress.current = Date.now();
         play(queue.current, index.current);
       }
@@ -591,7 +616,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
 
   // Keep the screen awake while reading, so the phone doesn't put the page to sleep partway through the night
   useEffect(() => {
-    if (!playing || !('wakeLock' in navigator)) return;
+    if (!playing || paused || !('wakeLock' in navigator)) return;
     let lock: WakeLockSentinel | null = null;
     let done = false;
     const get = () => {
@@ -613,7 +638,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       document.removeEventListener('visibilitychange', onVisible);
       lock?.release();
     };
-  }, [playing]);
+  }, [playing, paused]);
 
   // Lock-screen and notification controls, which also tell the phone this is audio meant to keep playing
   useEffect(() => {
@@ -628,15 +653,16 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       artist: 'Voice Bible',
       album: current.text.slice(0, 80),
     });
-    session.playbackState = 'playing';
-  }, [current]);
+    session.playbackState = paused ? 'paused' : 'playing';
+  }, [current, paused]);
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
-    const actions: MediaSessionAction[] = ['pause', 'stop'];
-    for (const a of actions) {
+    const handlers: [MediaSessionAction, () => void][] = [['pause', pause], ['play', resume], ['stop', stop]];
+    const actions = handlers.map(([a]) => a);
+    for (const [a, run] of handlers) {
       try {
-        session.setActionHandler(a, stop);
+        session.setActionHandler(a, run);
       } catch {
         // action not supported here
       }
@@ -648,10 +674,10 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         // ignore
       }
     });
-  }, [stop]);
+  }, [stop, pause, resume]);
 
   const restart = useCallback(() => {
-    if (queue.current.length) play(queue.current, index.current);
+    if (queue.current.length && !pausedRef.current) play(queue.current, index.current);
   }, [play]);
 
   const setSpeed = useCallback(
@@ -726,7 +752,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   }, []);
 
   return { supported: !!synth || !!mainEl, language, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
-    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop,
+    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop, pause, resume, paused,
     /** Whether a note or chat can be read aloud (it needs a device voice) */
     canReadText: !!synth || (!!recordedVoice && heartTextSaved()),
     /** The paragraph of text being read (0-based), or -1 */
