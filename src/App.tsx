@@ -1901,7 +1901,13 @@ function Chapter({
       <div key={shownAt} className={slide}>
         <div className={`chapter-pin ${headGone ? 'on' : ''}`}>
           <button type="button" tabIndex={headGone ? 0 : -1} aria-hidden={!headGone} onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
-            {name(shownAt)} <small>▾</small>
+            {name(shownAt)}
+            <small aria-hidden>
+              <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="M15.5 15.5 21 21" />
+              </svg>
+            </small>
           </button>
         </div>
         {classic ? (

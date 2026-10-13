@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.32.3 — 2026-10-13
+- **The pinned book and chapter has a search button.** A small glowing magnifier next to JEREMIAH 43 shows that tapping it searches for another book, chapter or verse.
+
 ## v2.32.2 — 2026-10-13
 - **Tap the pinned book and chapter to open the Go to wheel.** The small bar at the top (like JEREMIAH 43 ▾) is now a button: tap it to choose another book, chapter or verse without scrolling back up.
 

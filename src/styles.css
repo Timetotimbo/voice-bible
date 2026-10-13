@@ -979,5 +979,9 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   opacity: 0; transform: translateY(-6px); transition: opacity 0.18s, transform 0.18s; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); cursor: pointer; font-family: inherit;
 }
-.chapter-pin button small { font-size: 0.7em; opacity: 0.8; }
+.chapter-pin button small {
+  display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; margin-left: 0.55em; vertical-align: middle; border-radius: 50%;
+  font-size: 0.85em; line-height: 1; letter-spacing: 0; color: var(--bg); background: var(--glow-2, var(--purple-bright));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--glow-2, var(--purple-bright)) 60%, transparent);
+}
 .chapter-pin.on button { opacity: 1; transform: none; pointer-events: auto; }
