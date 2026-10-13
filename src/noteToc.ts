@@ -68,11 +68,18 @@ export function tocLinks(text: string): TocLink[] {
   for (let i = 0; i < toc.length; ) {
     const first = toc[i].w;
     if (isNum(first) || !/\p{L}/u.test(first)) { i++; continue; }
-    // A title in capitals must match in capitals (not the same words in a sentence)
+    // A title in capitals matches in capitals (not the same words in a sentence); or, when the book prints its
+    // headings in Title Case, the same words alone on their own line
     const caps = isCaps(first);
-    const same = (a: string, b: string) => (caps ? a === b : a.toLowerCase() === b.toLowerCase());
-    const cands = (caps ? exact.get(first) : loose.get(first.toLowerCase())) ?? [];
+    const newLine = (c: number) => c === 0 || /\n/.test(text.slice(body[c - 1].end, body[c].start));
+    const lineStart = (c: number) => newLine(c) || (isNum(body[c - 1].w) && newLine(c - 1)); // "7 Laws of Wealth": the number is part of the heading
+    const exactAt = new Set(exact.get(first) ?? []);
+    const cands = caps
+      ? [...new Set([...(exact.get(first) ?? []), ...(loose.get(first.toLowerCase()) ?? []).filter(lineStart)])]
+      : loose.get(first.toLowerCase()) ?? [];
     const tries = cands.map(c => {
+      const ci = !caps || !exactAt.has(c); // Title Case heading for a capitals title: any case, but only a whole line
+      const same = (a: string, b: string) => (caps && !ci ? a === b : a.toLowerCase() === b.toLowerCase());
       let p = i, q = c, words = 0, chars = 0, nums = 0;
       let best = { tier: -1, words: 0, chars: 0, p: i, q: c, c };
       while (p < toc.length && q < body.length && words < 30) {
@@ -80,7 +87,9 @@ export function tocLinks(text: string): TocLink[] {
           words++; chars += toc[p].w.length; nums = 0;
           // How well the heading ends here: ordinary sentences next (2), a new line (1), or more of a list (0)
           const next = body[q + 1];
-          const tier = !next || hasLower(next.w) ? 2 : /\n/.test(text.slice(body[q].end, next.start)) ? 1 : 0;
+          const nl = !next || /\n/.test(text.slice(body[q].end, next.start));
+          // (Title Case headings are all small letters inside, so for them only the end of the line counts)
+          const tier = ci ? (nl ? 1 : 0) : !next || hasLower(next.w) ? 2 : nl ? 1 : 0;
           if (tier > best.tier || (tier === best.tier && words > best.words)) best = { tier, words, chars, p, q, c };
           p++; q++;
         } else if (isNum(toc[p].w)) {
@@ -92,7 +101,7 @@ export function tocLinks(text: string): TocLink[] {
         } else if (isNum(body[q].w) && words) q++; // a number in the heading that the contents leave out
         else break;
       }
-      return best;
+      return ci && best.tier < 1 ? { ...best, words: 0 } : best;
     });
     // The best heading: ends well, then the longest; a copy of the contents or a list of titles loses to the real heading
     const rank = (x: { tier: number; words: number }) => x.tier * 1000 + x.words;

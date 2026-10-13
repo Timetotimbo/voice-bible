@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.30.2 — 2026-10-12
+- **Fixed: the clickable contents disappeared once the copy of the book was deleted.** Contents titles in capitals now also find headings printed in Title Case (like "7 Laws of Wealth" on its own line), so a note no longer needs a second copy of the contents to have links. Each link covers the whole title, including its number and wrapped second line.
+
 ## v2.30.1 — 2026-10-12
 - **Bigger book name.** The book's name above the chapter number (like ISAIAH) is a little larger and easier to read.
 

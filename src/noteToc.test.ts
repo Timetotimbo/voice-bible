@@ -88,3 +88,29 @@ describe('tocLinks with the titles listed again in the note', () => {
     });
   }
 });
+
+describe('tocLinks when the book prints its headings in Title Case', () => {
+  const note = `TABLE OF CONTENTS
+SCRIPTURE SETTING 9
+11 4 FACTS ABOUT OFFERINGS 77
+12 7 LAWS OF WEALTH 78
+13 31 REASONS PEOPLE DO NOT RECEIVE THEIR 79
+FINANCIAL HARVEST
+Unless otherwise indicated, all Scripture quotations are taken from the King James Version of the Bible.
+Some more sentences here to end the list properly.
+11
+4 Facts About Offerings
+1. An offering is a seed. (Mark 9)
+12
+7 Laws of Wealth
+1. The Law of Belief. (Mark 9:23)
+13
+31 Reasons People Do Not Receive Their
+Financial Harvest
+1. Because they do not.
+`;
+  it('links each capitals title to its whole heading line, number and wrapped line included, with no copy of the contents', () => {
+    const links = tocLinks(note);
+    expect(links.map(l => note.slice(l.target, l.targetEnd))).toEqual(['4 Facts About Offerings', '7 Laws of Wealth', '31 Reasons People Do Not Receive Their\nFinancial Harvest']);
+  });
+});
