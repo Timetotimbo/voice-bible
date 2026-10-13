@@ -191,6 +191,7 @@ const ES: Record<string, string> = {
   '{n} picked': '{n} elegidos',
   'Select text, then + Add': 'Selecciona texto y toca + Añadir',
   'Make video ▸': 'Hacer video ▸',
+  'Make video': 'Hacer video',
   'Clear picks': 'Borrar selección',
   'Previous': 'Anterior',
   'Next': 'Siguiente',

@@ -53,3 +53,25 @@ export async function copyVerses(verses: VerseHit[]): Promise<boolean> {
     return false;
   }
 }
+
+/** The verses as the words of a video: each run of verses is one screen, its reference first ("John 3:16 For God…"). */
+export function versesAsVideoText(verses: VerseHit[]): string {
+  return versesAsText(verses)
+    .split('\n\n')
+    .map(g => {
+      const [heading, ...body] = g.split('\n');
+      return `${heading} ${body.map(l => l.replace(/^\d+ /, '')).join(' ')}`;
+    })
+    .join('\n\n');
+}
+
+/** One tap: opens ClipForge's Text Video with these verses, and it makes the video by itself. */
+export function makeVerseVideo(verses: VerseHit[]): boolean {
+  try {
+    localStorage.setItem('cf_tv_in', JSON.stringify({ text: versesAsVideoText(verses), auto: true, at: Date.now() }));
+  } catch {
+    return false;
+  }
+  location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=tv`);
+  return true;
+}

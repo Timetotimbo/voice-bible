@@ -13,3 +13,12 @@ describe('sharing verses', () => {
     expect(text).toBe('John 3:16-17\n16 For God…\n17 For God sent…\n\nPsalms 23:1\nThe LORD is my shepherd…');
   });
 });
+
+describe('versesAsVideoText', () => {
+  it('puts the reference first on one screen per run of verses, without verse numbers', async () => {
+    const { versesAsVideoText } = await import('./shareVerses');
+    const v = (verse: number, text: string) => ({ book: 42, chapter: 3, verse, text }) as never;
+    expect(versesAsVideoText([v(16, 'For God so loved the world.')])).toBe('John 3:16 For God so loved the world.');
+    expect(versesAsVideoText([v(16, 'For God so loved.'), v(17, 'For God sent not.')])).toBe('John 3:16-17 For God so loved. For God sent not.');
+  });
+});

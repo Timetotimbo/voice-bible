@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.31.0 — 2026-10-13
+- **One-tap verse video.** Tap verses, then **Make video**: ClipForge opens, makes the text video (the reference first, then the verse, word by word on a background) and drops you in the editor, ready to Export. Several separate passages become a clip each. (Needs ClipForge v1.85.0.)
+
 ## v2.30.5 — 2026-10-12
 - **Contents titles with a number inside them become links** (like "7 KEYS TO 1000 TIMES MORE" or "THE 58 LEADERSHIP SECRETS OF JESUS").
 

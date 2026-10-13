@@ -16,7 +16,7 @@ import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
-import { copyVerses, shareVerses, versesAsText } from './shareVerses';
+import { copyVerses, makeVerseVideo, shareVerses, versesAsText } from './shareVerses';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { noteTitle, useNotes, type Note } from './useNotes';
@@ -1736,6 +1736,7 @@ function SearchResults({
               <span>{t('{n} selected', { n: picked.length })}</span>
               {selectionActions(picked)}
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
+              <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -1960,6 +1961,7 @@ function Chapter({
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
               <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
+              <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
