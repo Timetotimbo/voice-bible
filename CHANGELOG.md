@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.32.1 — 2026-10-13
+- **The book and chapter follow you as you scroll.** Once the big heading (like JEREMIAH 40) scrolls off, a small see-through bar pinned at the top keeps the book and chapter in view. It works at any text size.
+
 ## v2.32.0 — 2026-10-13
 - **Shorter routes to a posted video.**
   - **Post it** (after a teleprompter recording): sends the video straight to a Social Bloom draft and opens Social Bloom on it, with your last group already picked. Needs Social Bloom linked (the same link ClipForge uses).

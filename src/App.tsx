@@ -1804,6 +1804,16 @@ function Chapter({
   const [shownAt, setShownAt] = useState(main);
   const [slide, setSlide] = useState<'' | 'from-right' | 'from-left'>('');
   const onMain = shownAt === main;
+  // The book and chapter stay on screen once the big heading has scrolled away
+  const headRef = useRef<HTMLDivElement>(null);
+  const [headGone, setHeadGone] = useState(false);
+  useEffect(() => {
+    const el = headRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setHeadGone(!e.isIntersecting && e.boundingClientRect.top < 0), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shownAt, classic]);
   const inRange = (v: number) => onMain && verseStart !== undefined && v >= verseStart && v <= (verseEnd ?? verseStart);
 
   const show = (i: number) => {
@@ -1889,14 +1899,17 @@ function Chapter({
       className={`swipe-area ${reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}`}
     >
       <div key={shownAt} className={slide}>
+        <div className={`chapter-pin ${headGone ? 'on' : ''}`} aria-hidden={!headGone}>
+          <span>{name(shownAt)}</span>
+        </div>
         {classic ? (
-          <h2 className="result-title">
+          <h2 ref={headRef as never} className="result-title">
             <button className="title-pick" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
               {onMain ? formatReference(view.ref) : name(shownAt)} <small>{abbrev} ▾</small>
             </button>
           </h2>
         ) : (
-          <div className="book-head">
+          <div className="book-head" ref={headRef}>
             <div className="book-name">{bookName(chapters[shownAt].book)}</div>
             <div className="book-num">{chapters[shownAt].chapter}</div>
             {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}

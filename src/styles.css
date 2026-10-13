@@ -969,3 +969,14 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
   padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   background: var(--purple, #8b5cf6); color: #fff; border: 0; }
 .classic .toc-back { bottom: calc(16px + env(safe-area-inset-bottom)); }
+
+/* The book and chapter, pinned at the top once the big heading has scrolled off; barely see-through */
+.chapter-pin { position: sticky; top: 0; height: 0; z-index: 8; pointer-events: none; }
+.chapter-pin span {
+  position: absolute; left: 0; right: 0; top: 0; text-align: center; padding: calc(env(safe-area-inset-top) + 6px) 12px 6px;
+  font-size: 0.9rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright));
+  background: color-mix(in srgb, var(--bg) 78%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  opacity: 0; transform: translateY(-6px); transition: opacity 0.18s, transform 0.18s;
+}
+.chapter-pin.on span { opacity: 1; transform: none; }
