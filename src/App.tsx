@@ -1899,8 +1899,10 @@ function Chapter({
       className={`swipe-area ${reader.supported ? `has-player ${picked.length ? 'picking' : askedLabel ? 'selecting' : ''}` : ''}`}
     >
       <div key={shownAt} className={slide}>
-        <div className={`chapter-pin ${headGone ? 'on' : ''}`} aria-hidden={!headGone}>
-          <span>{name(shownAt)}</span>
+        <div className={`chapter-pin ${headGone ? 'on' : ''}`}>
+          <button type="button" tabIndex={headGone ? 0 : -1} aria-hidden={!headGone} onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
+            {name(shownAt)} <small>▾</small>
+          </button>
         </div>
         {classic ? (
           <h2 ref={headRef as never} className="result-title">

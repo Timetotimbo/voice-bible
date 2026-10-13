@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.32.2 — 2026-10-13
+- **Tap the pinned book and chapter to open the Go to wheel.** The small bar at the top (like JEREMIAH 43 ▾) is now a button: tap it to choose another book, chapter or verse without scrolling back up.
+
 ## v2.32.1 — 2026-10-13
 - **The book and chapter follow you as you scroll.** Once the big heading (like JEREMIAH 40) scrolls off, a small see-through bar pinned at the top keeps the book and chapter in view. It works at any text size.
 
