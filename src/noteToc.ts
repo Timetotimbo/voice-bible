@@ -84,7 +84,8 @@ export function tocLinks(text: string): TocLink[] {
       let p = i, q = c, words = 0, chars = 0, nums = 0;
       let best = { tier: -1, words: 0, chars: 0, p: i, q: c, c };
       while (p < toc.length && q < body.length && words < 30) {
-        if (!isNum(toc[p].w) && same(toc[p].w, body[q].w)) {
+        // (a number inside a Title Case heading, like "The 58 Leadership Secrets", is part of the title)
+        if ((!isNum(toc[p].w) || (ci && words > 0 && toc[p].w === body[q].w)) && same(toc[p].w, body[q].w)) {
           words++; chars += toc[p].w.length; nums = 0;
           // How well the heading ends here: ordinary sentences next (2), a new line (1), or more of a list (0)
           const next = body[q + 1];

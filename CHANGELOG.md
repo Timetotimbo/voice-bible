@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.30.5 — 2026-10-12
+- **Contents titles with a number inside them become links** (like "7 KEYS TO 1000 TIMES MORE" or "THE 58 LEADERSHIP SECRETS OF JESUS").
+
 ## v2.30.4 — 2026-10-12
 - **More contents titles become links:** titles that start with a common word (like "THE MONEY FORMULA") now find their Title Case heading instead of losing to a lone "THE" elsewhere in the note.
 
