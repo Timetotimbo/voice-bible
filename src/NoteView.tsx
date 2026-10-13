@@ -294,7 +294,19 @@ export function NoteView({
   // Reading aloud: the note shows as paragraphs, with the word being said marked; tap one to read from there
   const paragraphs = useMemo(() => paragraphsOf(note.text), [note.text]);
   const reading = reader.readingText;
-  const readFrom = (i: number) => listen(paragraphs, noteTitle(note), i);
+  // Looping picks: only the picked bits are read (each its own paragraph), over and over, until Stop
+  const [loopList, setLoopList] = useState<string[] | null>(null);
+  useEffect(() => { if (!reading) setLoopList(null); }, [reading]);
+  const shownParagraphs = loopList ?? paragraphs;
+  const readFrom = (i: number) => listen(shownParagraphs, noteTitle(note), i);
+  const loopPicks = () => {
+    const list = picks.length ? picks.map(p => p.text) : sel ? [note.text.slice(sel.start, sel.end).replace(/\s+/g, ' ').trim()].filter(Boolean) : [];
+    if (!list.length) return;
+    window.getSelection()?.removeAllRanges();
+    reader.setRepeat(true);
+    setLoopList(list);
+    listen(list, noteTitle(note), 0);
+  };
   const readingEl = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     readingEl.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -380,9 +392,11 @@ export function NoteView({
         <div className="pick-bar" onPointerDown={e => (e.target as HTMLElement).closest('button') && e.preventDefault()}>
           <button className="pick-add" disabled={!sel} onClick={addPick}>{t('+ Add')}</button>
           <span className="pick-count">{picks.length ? n('{n} picked', '{n} picked', picks.length) : t('Select text, then + Add')}</span>
+          <button className="pick-x" aria-label={t('Clear picks')} onClick={() => { setPicks([]); setSel(null); }}>✕</button>
+          <span className="pick-break" aria-hidden />
           <button className="pick-note" disabled={!sel && !picks.length} onClick={toNote}>{t('To note…')}</button>
+          <button className="pick-loop" disabled={(!sel && !picks.length) || !reader.canReadText} onClick={loopPicks} title={t('Read the picks aloud over and over')}>{t('⟳ Loop')}</button>
           {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
-          <button aria-label={t('Clear picks')} onClick={() => { setPicks([]); setSel(null); }}>✕</button>
         </div>
       )}
       {finding && (
@@ -415,7 +429,7 @@ export function NoteView({
       )}
       {reading ? (
         <div className="note-text note-reading" aria-live="off">
-          {paragraphs.map((p, i) => (
+          {shownParagraphs.map((p, i) => (
             <p key={i} ref={i === reader.textAt ? readingEl : undefined} className={i === reader.textAt ? 'reading' : ''} onClick={() => readFrom(i)}>
               {i === reader.textAt && reader.word ? <ReadingText text={p} word={reader.word} /> : <RefText text={p} onPick={setRefPick} />}
             </p>
@@ -497,7 +511,7 @@ export function NoteView({
           onEdit={startEditing}
         />
       )}
-      {reading && <ListenBar reader={reader} total={paragraphs.length} />}
+      {reading && <ListenBar reader={reader} total={shownParagraphs.length} />}
       <FastScroll />
       {listening && <p className="live-line" aria-live="polite">{interim ? `…${interim}` : t('Listening…')}</p>}
 

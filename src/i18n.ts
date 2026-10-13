@@ -363,6 +363,7 @@ const ES: Record<string, string> = {
   '■ Stop': '■ Detener',
   'Pause': 'Pausa',
   'Play': 'Reproducir',
+  'Read the picks aloud over and over': 'Leer en voz alta lo elegido una y otra vez',
   ' · {i} of {n}': ' · {i} de {n}',
   'Read aloud': 'Leer en voz alta',
   'Stop reading aloud': 'Dejar de leer en voz alta',

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.34.0 — 2026-10-13
+- **Loop picked phrases in a note.** Select a thought or phrase, tap + Add (pick as many as you like, from anywhere in the note), then tap ⟳ Loop in the picks bar. Only your picks are read, one after another, over and over until you tap Stop. Your picks stay afterwards. On phones the picks bar now has two rows so nothing gets cut off.
+
 ## v2.33.0 — 2026-10-13
 - **Pause while a note or chat is read aloud.** The Stop button at the bottom is now split in two: the left half pauses (it turns into ▶ Play), the right half still stops. Play carries on from the start of the paragraph it was on. The phone's lock-screen pause and play buttons do the same.
 

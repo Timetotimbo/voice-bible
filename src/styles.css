@@ -955,10 +955,16 @@ mark.find-hit.current { background: #ffd54a; color: #111; }
 .tidy-bar button { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--purple-bright); background: var(--purple-deep); color: var(--on-accent); font: inherit; font-weight: 600; cursor: pointer; }
 
 /* Picks for a video: the bar under the note's tools, and the picked bits highlighted */
-.pick-bar { display: flex; align-items: center; gap: 6px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--accent, #8b5cf6); }
+.pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--accent, #8b5cf6); }
 .pick-bar button { padding: 6px 10px; font-size: 0.85rem; white-space: nowrap; }
 .pick-bar .pick-count { flex: 1; font-size: 0.82rem; opacity: 0.8; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-bar .pick-send { font-weight: 700; }
+/* The actions get their own row under "+ Add · 2 picked · ✕" on phones (wide screens keep one row) */
+.pick-bar .pick-break { display: none; }
+@media (max-width: 560px) {
+  .pick-bar .pick-break { display: block; flex-basis: 100%; height: 0; }
+  .pick-bar .pick-note, .pick-bar .pick-loop, .pick-bar .pick-send { flex: 1; }
+}
 mark.pick-hit { background: rgba(250, 204, 21, 0.35); color: inherit; border-radius: 3px; box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6); }
 
 /* Play ▾ in a chapter with verses chosen: what to play */
