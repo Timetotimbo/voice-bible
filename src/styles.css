@@ -772,7 +772,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 
 /* The Read tab: a chapter set like an open book */
 .v2 .book-head { text-align: center; margin: 4px 0 14px; }
-.v2 .book-name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright)); }
+.v2 .book-name { font-size: 0.9rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright)); }
 .v2 .book-num { font-family: var(--read); font-size: 3.2rem; line-height: 1.05; font-weight: 600; text-shadow: 0 0 18px color-mix(in srgb, var(--purple) 40%, transparent); }
 .v2 .book-sub { font-family: var(--read); font-style: italic; color: var(--muted); }
 .v2 .goto-chip { margin-top: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: none; color: var(--muted); font-size: 0.82rem; font-weight: 700; }

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.30.1 — 2026-10-12
+- **Bigger book name.** The book's name above the chapter number (like ISAIAH) is a little larger and easier to read.
+
 ## v2.30.0 — 2026-10-11
 - **No more "(KJV)" on verses.** Verses you put in a note (To note…), copy or share now start with just the reference, like "John 3:16", without the translation's name after it.
 
