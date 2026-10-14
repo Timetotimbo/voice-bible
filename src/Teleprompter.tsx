@@ -8,13 +8,14 @@ import { paragraphsOf } from './words';
 import { WORDS_H, WORDS_W, slidesOf, startWordsFace, type Face, type WordsFace } from './wordsFace';
 import { readOnScreen, readScreenPage, type OnScreen, type Page } from './pageWords';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
+import { startDualCam, type DualCam, type DualLook } from './dualCam';
 
 /**
  * Teleprompter: the camera full screen with the note scrolling near the lens, so you can read it while
  * looking at the camera. Record, watch the take, then save it or share it (to TikTok, Instagram, YouTube…).
  * The words on screen aren't in the video.
  */
-type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse'; face?: Face; wordsMode?: boolean };
+type Prefs = { wpm: number; size: number; mirror: boolean; countdown: boolean; facing: 'user' | 'environment'; corner: Corner; bubble: BubbleSize; browseView: 'page' | 'verse'; face?: Face; wordsMode?: boolean; dualLook?: DualLook };
 const PREFS_KEY = 'prompter';
 const DEFAULTS: Prefs = { wpm: 130, size: 34, mirror: false, countdown: true, facing: 'user', corner: 'br', bubble: 'm', browseView: 'page' };
 const MIN_WPM = 60;
@@ -69,6 +70,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   const stream = useRef<MediaStream | null>(null);
   const [camError, setCamError] = useState('');
   const [camReady, setCamReady] = useState(false);
+  const [camKey, setCamKey] = useState(0); // bumped to open the camera again (after Both cameras let go of it)
   useEffect(() => {
     let cancelled = false;
     setCamReady(false);
@@ -101,7 +103,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     return () => {
       cancelled = true;
     };
-  }, [prefs.facing]);
+  }, [prefs.facing, camKey]);
   useEffect(() => () => stream.current?.getTracks().forEach(tr => tr.stop()), []);
 
   // Keep the screen on while the teleprompter is open
@@ -158,6 +160,47 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   }, [screen, prefs.corner, prefs.bubble, prefs.facing]);
   useEffect(() => () => screenRef.current?.stop(), []);
   const floating = useRef<{ close: () => void } | null>(null);
+
+  // ---- Both cameras (phones): the back camera and you together, split in half or you in a bubble ----
+  const [dual, setDual] = useState<DualCam | null>(null);
+  const dualRef = useRef<DualCam | null>(null);
+  dualRef.current = dual;
+  const [dualBusy, setDualBusy] = useState(false);
+  const dualLayout = () => ({ look: prefsRef.current.dualLook ?? 'split', corner: prefsRef.current.corner, size: prefsRef.current.bubble });
+  const startDual = async () => {
+    if (!stream.current) return;
+    setNote('');
+    setDualBusy(true);
+    try {
+      const d = await startDualCam(stream.current, prefsRef.current.facing, dualLayout());
+      setDual(d);
+      if (!d.both) setNote(t('This phone can’t use both cameras at the same time, so it’s one at a time: tap ⟲ while you record to switch between them, all in one video.'));
+    } catch (e) {
+      setNote((e as Error).message === 'only-one-camera' ? t('This device has only one camera.') : t('The other camera couldn’t start: {error}', { error: (e as Error).message }));
+    } finally {
+      setDualBusy(false);
+    }
+  };
+  const stopDual = () => {
+    const d = dualRef.current;
+    if (!d) return;
+    d.stop();
+    setDual(null);
+    // One at a time may have stopped the teleprompter's own camera: open it again
+    if (!stream.current?.getVideoTracks().some(tr => tr.readyState === 'live')) setCamKey(k => k + 1);
+  };
+  useEffect(() => {
+    dual?.setLayout(dualLayout());
+  }, [dual, prefs.dualLook, prefs.corner, prefs.bubble]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => dualRef.current?.stop(), []);
+  const pic = screen ?? dual; // the drawn picture shown instead of the camera (Screen + face, Both cameras)
+  useEffect(() => {
+    const box = screenBox.current;
+    if (!dual || !box) return;
+    dual.canvas.className = 'prompter-screen';
+    box.replaceChildren(dual.canvas);
+    return () => dual.canvas.remove();
+  }, [dual]);
 
   // ---- Words + face (any device): what you're reading, large, with your face in a circle under it ----
   const [wordsOn, setWordsOn] = useState(() => !!prefs.wordsMode); // opens in the mode used last (Words + face or plain camera)
@@ -267,13 +310,15 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       )}
     </div>
   );
-  const chooseMode = (m: 'camera' | 'words' | 'screen') => {
+  const chooseMode = (m: 'camera' | 'words' | 'screen' | 'both') => {
     if (m !== 'screen' && screenRef.current) stopScreen();
+    if (m !== 'both' && dualRef.current) stopDual();
     setWordsOn(m === 'words');
-    if (m !== 'screen') setPrefs({ wordsMode: m === 'words' });
+    if (m === 'camera' || m === 'words') setPrefs({ wordsMode: m === 'words' });
     if (m === 'screen' && !screenRef.current) startScreen();
+    if (m === 'both' && !dualRef.current) startDual();
   };
-  const mode = screen ? 'screen' : wordsOn ? 'words' : 'camera';
+  const mode = screen ? 'screen' : dual ? 'both' : wordsOn ? 'words' : 'camera';
 
   // ---- Scrolling ----
   const scroller = useRef<HTMLDivElement>(null);
@@ -330,12 +375,12 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   }, [recording]);
 
   const begin = () => {
-    const s = screenRef.current?.stream ?? wordsRef.current?.stream ?? stream.current;
+    const s = screenRef.current?.stream ?? dualRef.current?.stream ?? wordsRef.current?.stream ?? stream.current;
     if (!s) return;
     const chunks: Blob[] = [];
     let rec: MediaRecorder;
     try {
-      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: screenRef.current || wordsRef.current ? 8_000_000 : 6_000_000 });
+      rec = new MediaRecorder(s, { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: screenRef.current || dualRef.current || wordsRef.current ? 8_000_000 : 6_000_000 });
     } catch (e) {
       setNote(t('This browser can’t record video: {error}', { error: (e as Error).message }));
       floating.current?.close();
@@ -440,6 +485,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       setSendState('sent');
       stream.current?.getTracks().forEach(tr => tr.stop());
       screenRef.current?.stop();
+      dualRef.current?.stop();
       location.assign(clipForgeUrl());
     } catch (e) {
       setSendState('');
@@ -508,8 +554,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     <>
     {miniBar}
     <div className="prompter" role="dialog" aria-modal="true" aria-label={t('Teleprompter')} hidden={minimized}>
-      <video ref={video} className={`prompter-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay hidden={!!screen && !take} />
-      {screen && !take && <div ref={screenBox} className="prompter-cam prompter-screen-box" />}
+      <video ref={video} className={`prompter-cam ${prefs.facing === 'user' ? 'selfie' : ''}`} playsInline muted autoPlay hidden={!!pic && !take} />
+      {pic && !take && <div ref={screenBox} className="prompter-cam prompter-screen-box" />}
       {camError && <p className="prompter-error">{camError}</p>}
 
       {!take && (
@@ -556,6 +602,9 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               <button className="prompter-mode" onClick={() => chooseMode('words')} disabled={recording || !camReady} aria-pressed={mode === 'words'}>
                 {t('Words + face')}
               </button>
+              <button className="prompter-mode" onClick={() => chooseMode('both')} disabled={recording || !camReady || dualBusy} aria-pressed={mode === 'both'}>
+                {t('Both cameras')}
+              </button>
               {showScreenOption && (
                 <button className="prompter-mode" onClick={() => chooseMode('screen')} disabled={recording || !camReady} aria-pressed={mode === 'screen'}>
                   {t('Screen + face')}
@@ -582,7 +631,16 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
                   </select>
                 </label>
               )}
-              {screen && (
+              {dual?.both && (
+                <label>
+                  {t('Both cameras')}
+                  <select value={prefs.dualLook ?? 'split'} onChange={e => setPrefs({ dualLook: e.target.value as DualLook })}>
+                    <option value="split">{t('Split screen, half and half')}</option>
+                    <option value="bubble">{t('Back camera, you in a bubble')}</option>
+                  </select>
+                </label>
+              )}
+              {(screen || (dual?.both && prefs.dualLook === 'bubble')) && (
                 <>
                   <label>
                     {t('Face bubble')}
@@ -644,8 +702,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               <button
                 className="prompter-icon"
                 aria-label={t('Switch camera')}
-                onClick={() => setPrefs({ facing: prefs.facing === 'user' ? 'environment' : 'user' })}
-                disabled={recording || !!screen}
+                onClick={() => (dual ? void dual.swap() : setPrefs({ facing: prefs.facing === 'user' ? 'environment' : 'user' }))}
+                disabled={dual ? false : recording || !!screen}
               >
                 ⟲
               </button>
@@ -653,6 +711,8 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
             <p className="prompter-hint">
               {wordsOn && !screen
                 ? t(recording ? 'The video shows the words at the ▶ line. Tap the text to pause it.' : 'The video shows the words you’re reading at the ▶ line, large, with your face. Tap the preview on the right to make it bigger and drag your face where you want it.')
+                : dual
+                ? t(dual.both ? (recording ? 'Recording both cameras. ⟲ swaps which one is on top.' : 'Both cameras: what’s in front of you and your face together. ⟲ swaps them; ⚙ chooses split screen or a bubble.') : (recording ? 'Tap ⟲ to switch camera; it stays one video.' : 'One camera at a time here: press ● to record, then tap ⟲ to switch between them as you go.'))
                 : screen
                 ? t(recording ? 'Recording your screen and face. Stop here, in the small floating window, or with “Stop sharing”.' : 'Press ● to record your screen with your face in the corner. Switch to the window you want to show after the countdown.')
                 : t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}

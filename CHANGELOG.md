@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.35.0 — 2026-10-13
+- **Both cameras in the teleprompter.** A new "Both cameras" choice next to Camera and Words + face records the back camera and your face together, either split screen half and half (back camera on top, you underneath) or the back camera with you in a bubble (⚙ chooses; the bubble's corner and size too). ⟲ swaps which one is on top, even while recording.
+- Many phones can't run both cameras at once from a browser. Then it says so and records one camera at a time instead: tap ⟲ while recording to switch between the front and back camera, all in one video.
+
 ## v2.34.0 — 2026-10-13
 - **Loop picked phrases in a note.** Select a thought or phrase, tap + Add (pick as many as you like, from anywhere in the note), then tap ⟳ Loop in the picks bar. Only your picks are read, one after another, over and over until you tap Stop. Your picks stay afterwards. On phones the picks bar now has two rows so nothing gets cut off.
 
