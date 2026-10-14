@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.37.0 — 2026-10-13
+- **＋ Pick on a verse card.** Tap a reference in a note (like Luke 6:38), then ＋ Pick: the verse, with its reference, joins your picks, in the order it comes in the note. Loop, Make video ▸ and To note… use it with the rest.
+
 ## v2.36.0 — 2026-10-13
 - **🎞 Clip for the top** in the teleprompter's Both cameras, for phones that can't run both cameras at once: pick a video you filmed (with the back camera, say) and it goes on top (or behind your bubble) with you live underneath. Press ● and it plays from the start while you talk about it; its sound is kept under your voice. ⟲ swaps them, ✕ removes the clip.
 - The big "can't use both cameras" box is gone; the line at the bottom says it instead, so your words aren't covered.

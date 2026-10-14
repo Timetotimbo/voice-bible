@@ -84,7 +84,8 @@ export function NoteView({
   };
   // Picks for a video: bits of the note selected one at a time (anywhere in it), sent together to ClipForge's
   // Text Video, each its own screen. `sel` is the latest selection in the note, waiting for + Add.
-  const [picks, setPicks] = useState<{ start: number; end: number; text: string }[]>([]);
+  // A verse picked from its card (verse: true) isn't the note's own words: it sits where its reference is
+  const [picks, setPicks] = useState<{ start: number; end: number; text: string; verse?: boolean }[]>([]);
   const [sel, setSel] = useState<{ start: number; end: number } | null>(null);
   useEffect(() => { setPicks([]); setSel(null); }, [note.id]);
   // Opening a note: a brand-new, empty one starts listening (to dictate straight in); one with words in it doesn't
@@ -112,12 +113,16 @@ export function NoteView({
   const addPick = () => {
     if (!sel) return;
     const text = note.text.slice(sel.start, sel.end).replace(/\s+/g, ' ').trim();
-    if (text) setPicks(p => [...p.filter(x => x.end <= sel.start || x.start >= sel.end), { ...sel, text }].sort((a, b) => a.start - b.start));
+    if (text) setPicks(p => [...p.filter(x => x.verse || x.end <= sel.start || x.start >= sel.end), { ...sel, text }].sort((a, b) => a.start - b.start));
     setSel(null);
     window.getSelection()?.removeAllRanges();
   };
+  const pickVerse = (text: string, at: number) => {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (clean) setPicks(p => (p.some(x => x.text === clean) ? p : [...p, { start: at, end: at, text: clean, verse: true }].sort((a, b) => a.start - b.start)));
+  };
   // Shown highlighted while the note hasn't changed under them
-  const pickMarks = picks.filter(p => note.text.slice(p.start, p.end).replace(/\s+/g, ' ').trim() === p.text);
+  const pickMarks = picks.filter(p => !p.verse && note.text.slice(p.start, p.end).replace(/\s+/g, ' ').trim() === p.text);
   const sendPicks = () => {
     try {
       localStorage.setItem('cf_tv_in', JSON.stringify({ text: picks.map(p => p.text).join('\n\n'), auto: true, send: socialBloomLinked() && videoSendOn(), at: Date.now() }));
@@ -509,6 +514,7 @@ export function NoteView({
           onRepeat={on => reader.setRepeat(on)}
           onOpen={onOpenRef}
           onEdit={startEditing}
+          onPick={text => pickVerse(text, refPick.end ?? note.text.length)}
         />
       )}
       {reading && <ListenBar reader={reader} total={shownParagraphs.length} />}

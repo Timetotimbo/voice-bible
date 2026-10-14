@@ -144,7 +144,7 @@ export function textOffsetAt(root: HTMLElement | null, x: number, y: number): nu
 }
 
 /** The card with the verses. */
-export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit, reading, onStop, repeat, onRepeat }: {
+export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, onEdit, reading, onStop, repeat, onRepeat, onPick }: {
   pick: RefPick;
   verses: VerseHit[];
   translation: string;
@@ -156,6 +156,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
   onStop?: () => void;
   repeat?: boolean; // keep replaying the verses until stopped
   onRepeat?: (on: boolean) => void;
+  onPick?: (text: string) => void; // adds the verse (with its reference) to the note's picks
 }) {
   const card = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
@@ -239,6 +240,7 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
             >
               {copied ? '✓' : '📋'}
             </button>
+            {onPick && <button className="ref-pick" title={t('Add this verse to your picks (Loop, Make video, To note)')} onClick={() => { onPick(versesAsText(verses)); onClose(); }}>{t('+ Pick')}</button>}
             <button onClick={() => { onOpen(pick.label); onClose(); }} title={t('Open chapter')}>{t('Chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
           </div>

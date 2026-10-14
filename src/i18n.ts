@@ -364,6 +364,8 @@ const ES: Record<string, string> = {
   'Pause': 'Pausa',
   'Play': 'Reproducir',
   'Read the picks aloud over and over': 'Leer en voz alta lo elegido una y otra vez',
+  '+ Pick': '+ Elegir',
+  'Add this verse to your picks (Loop, Make video, To note)': 'Añadir este versículo a lo elegido (Bucle, Hacer video, A nota)',
   'Both cameras': 'Ambas cámaras',
   'That video couldn’t be opened. Try another one.': 'Ese video no se pudo abrir. Prueba con otro.',
   '🎞 Clip for the top': '🎞 Video para arriba',
