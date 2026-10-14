@@ -17,8 +17,10 @@ export type DualCam = {
   canvas: HTMLCanvasElement;
   /** The picture plus your microphone. */
   stream: MediaStream;
-  /** True when both cameras run at once; false when it's one at a time. */
+  /** True when both pictures show at once; false when it's one camera at a time. */
   both: boolean;
+  /** A video you picked shows instead of the second camera (it plays from the start when recording starts). */
+  clip?: { name: string; restart: () => void; pause: () => void };
   setLayout: (layout: DualLayout) => void;
   /** Both at once: swaps which camera is big (top). One at a time: switches to the other camera. */
   swap: () => Promise<void>;
@@ -51,6 +53,30 @@ function cover(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y:
   }
   ctx.drawImage(v, (vw - sw) / 2, (vh - sh) / 2, sw, sh, x, y, w, h);
   ctx.restore();
+}
+
+/** Two pictures together: split in half (`big` on top) or `big` filling the screen with `small` in a bubble. */
+function drawPair(ctx: CanvasRenderingContext2D, big: HTMLVideoElement, bigMirror: boolean, small: HTMLVideoElement, smallMirror: boolean, layout: DualLayout) {
+  if (layout.look === 'split') {
+    cover(ctx, big, 0, 0, W, H / 2, bigMirror);
+    cover(ctx, small, 0, H / 2, W, H / 2, smallMirror);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(0, H / 2 - 3, W, 6);
+    return;
+  }
+  cover(ctx, big, 0, 0, W, H, bigMirror);
+  const { x, y, d } = bubbleSpot(W, H, layout);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, d / 2, 0, Math.PI * 2);
+  ctx.clip();
+  cover(ctx, small, x - d / 2, y - d / 2, d, d, smallMirror);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(x, y, d / 2, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(3, d * 0.025);
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.stroke();
 }
 
 /**
@@ -102,27 +128,7 @@ export async function startDualCam(camera: MediaStream, facing: 'user' | 'enviro
       return;
     }
     const big = backOnTop ? backVideo : frontVideo!, small = backOnTop ? frontVideo! : backVideo;
-    const bigMirror = big === frontVideo, smallMirror = small === frontVideo;
-    if (current.look === 'split') {
-      cover(ctx, big, 0, 0, W, H / 2, bigMirror);
-      cover(ctx, small, 0, H / 2, W, H / 2, smallMirror);
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillRect(0, H / 2 - 3, W, 6);
-      return;
-    }
-    cover(ctx, big, 0, 0, W, H, bigMirror);
-    const { x, y, d } = bubbleSpot(W, H, current);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, d / 2, 0, Math.PI * 2);
-    ctx.clip();
-    cover(ctx, small, x - d / 2, y - d / 2, d, d, smallMirror);
-    ctx.restore();
-    ctx.beginPath();
-    ctx.arc(x, y, d / 2, 0, Math.PI * 2);
-    ctx.lineWidth = Math.max(3, d * 0.025);
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.stroke();
+    drawPair(ctx, big, big === frontVideo, small, small === frontVideo, current);
   };
   draw();
   const stopTicker = ticker(FPS, draw);
@@ -165,6 +171,82 @@ export async function startDualCam(camera: MediaStream, facing: 'user' | 'enviro
       backVideo.remove();
       frontVideo?.remove();
       frontVideo = null;
+    },
+  };
+}
+
+/**
+ * A video you filmed earlier (with the back camera, say) in place of the second camera, for phones that can't run
+ * both: it's on top (or behind your bubble) and you're live underneath, so you can talk about it as it plays. It
+ * waits on its first picture and starts from the beginning when recording starts; its sound is mixed under your
+ * microphone (it isn't played out loud, so the mic doesn't pick it up twice). After it ends, its last picture stays.
+ */
+export async function startClipCam(camera: MediaStream, facing: 'user' | 'environment', layout: DualLayout, file: File): Promise<DualCam> {
+  const live = hiddenVideo(new MediaStream(camera.getVideoTracks()));
+  const url = URL.createObjectURL(file);
+  const clipVideo = document.createElement('video');
+  clipVideo.playsInline = true;
+  clipVideo.preload = 'auto';
+  clipVideo.src = url;
+  clipVideo.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(clipVideo);
+  await new Promise<void>((res, rej) => {
+    clipVideo.onloadeddata = () => res();
+    clipVideo.onerror = () => rej(new Error('clip-unreadable'));
+  });
+  clipVideo.currentTime = 0;
+
+  // Sound: your microphone and the clip's own sound, mixed
+  const audio = new AudioContext();
+  const out = audio.createMediaStreamDestination();
+  const mic = camera.getAudioTracks();
+  if (mic.length) audio.createMediaStreamSource(new MediaStream(mic)).connect(out);
+  audio.createMediaElementSource(clipVideo).connect(out);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  let current = layout;
+  let clipOnTop = true;
+  const mirror = facing === 'user';
+  const draw = () => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    if (clipOnTop) drawPair(ctx, clipVideo, false, live, mirror, current);
+    else drawPair(ctx, live, mirror, clipVideo, false, current);
+  };
+  draw();
+  const stopTicker = ticker(FPS, draw);
+  const stream = new MediaStream([...canvas.captureStream(FPS).getVideoTracks(), ...out.stream.getAudioTracks()]);
+  return {
+    canvas,
+    stream,
+    both: true,
+    clip: {
+      name: file.name,
+      restart: () => {
+        audio.resume().catch(() => {});
+        clipVideo.currentTime = 0;
+        clipVideo.play().catch(() => {});
+      },
+      pause: () => clipVideo.pause(),
+    },
+    setLayout: l => {
+      current = l;
+      draw();
+    },
+    swap: async () => {
+      clipOnTop = !clipOnTop;
+    },
+    stop: () => {
+      stopTicker();
+      clipVideo.pause();
+      stream.getVideoTracks().forEach(tr => tr.stop());
+      audio.close().catch(() => {});
+      clipVideo.remove();
+      live.remove();
+      URL.revokeObjectURL(url);
     },
   };
 }

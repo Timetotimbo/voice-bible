@@ -8,7 +8,7 @@ import { paragraphsOf } from './words';
 import { WORDS_H, WORDS_W, slidesOf, startWordsFace, type Face, type WordsFace } from './wordsFace';
 import { readOnScreen, readScreenPage, type OnScreen, type Page } from './pageWords';
 import { canRecordScreen, openFloatingControls, startScreenFace, type BubbleSize, type Corner, type ScreenFace } from './screenFace';
-import { startDualCam, type DualCam, type DualLook } from './dualCam';
+import { startClipCam, startDualCam, type DualCam, type DualLook } from './dualCam';
 
 /**
  * Teleprompter: the camera full screen with the note scrolling near the lens, so you can read it while
@@ -167,20 +167,44 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
   dualRef.current = dual;
   const [dualBusy, setDualBusy] = useState(false);
   const dualLayout = () => ({ look: prefsRef.current.dualLook ?? 'split', corner: prefsRef.current.corner, size: prefsRef.current.bubble });
-  const startDual = async () => {
+  // A video you filmed before, on top in place of the second camera (for phones that can't run both)
+  const [clipFile, setClipFile] = useState<File | null>(null);
+  const pendingDual = useRef<File | null | undefined>(undefined); // waiting for the camera to open again
+  const startDual = async (clip: File | null = clipFile) => {
     if (!stream.current) return;
     setNote('');
     setDualBusy(true);
     try {
-      const d = await startDualCam(stream.current, prefsRef.current.facing, dualLayout());
+      const d = clip ? await startClipCam(stream.current, prefsRef.current.facing, dualLayout(), clip) : await startDualCam(stream.current, prefsRef.current.facing, dualLayout());
       setDual(d);
-      if (!d.both) setNote(t('This phone can’t use both cameras at the same time, so it’s one at a time: tap ⟲ while you record to switch between them, all in one video.'));
     } catch (e) {
-      setNote((e as Error).message === 'only-one-camera' ? t('This device has only one camera.') : t('The other camera couldn’t start: {error}', { error: (e as Error).message }));
+      const m = (e as Error).message;
+      if (clip) setClipFile(null);
+      setNote(m === 'only-one-camera' ? t('This device has only one camera.') : m === 'clip-unreadable' ? t('That video couldn’t be opened. Try another one.') : t('The other camera couldn’t start: {error}', { error: m }));
     } finally {
       setDualBusy(false);
     }
   };
+  /** Start Both cameras again, with this clip on top (or the second camera, for null). */
+  const restartDual = (clip: File | null) => {
+    setClipFile(clip);
+    const d = dualRef.current;
+    if (d) {
+      d.stop();
+      setDual(null);
+    }
+    if (stream.current?.getVideoTracks().some(tr => tr.readyState === 'live')) void startDual(clip);
+    else {
+      pendingDual.current = clip;
+      setCamKey(k => k + 1);
+    }
+  };
+  useEffect(() => {
+    if (!camReady || pendingDual.current === undefined) return;
+    const clip = pendingDual.current;
+    pendingDual.current = undefined;
+    void startDual(clip);
+  }, [camReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const stopDual = () => {
     const d = dualRef.current;
     if (!d) return;
@@ -397,6 +421,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
       setTake({ url: URL.createObjectURL(blob), blob, name: videoFileName(title, blobType), saved: false });
     };
     rec.start(1000);
+    dualRef.current?.clip?.restart(); // a clip on top plays from the start with the recording
     recorder.current = rec;
     setElapsed(0);
     setRecording(true);
@@ -421,6 +446,7 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
     }, 1000);
   };
   const stopRecording = () => {
+    dualRef.current?.clip?.pause();
     floating.current?.close();
     floating.current = null;
     setRunning(false);
@@ -605,6 +631,19 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               <button className="prompter-mode" onClick={() => chooseMode('both')} disabled={recording || !camReady || dualBusy} aria-pressed={mode === 'both'}>
                 {t('Both cameras')}
               </button>
+              {mode === 'both' && !recording && (
+                <span className="prompter-clip">
+                  <label className="prompter-mode" aria-pressed={!!dual?.clip}>
+                    <input type="file" accept="video/*" hidden disabled={dualBusy} onChange={e => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      if (f) restartDual(f);
+                    }} />
+                    {dual?.clip ? '🎞 ' + (dual.clip.name.length > 14 ? dual.clip.name.slice(0, 12) + '…' : dual.clip.name) : t('🎞 Clip for the top')}
+                  </label>
+                  {dual?.clip && <button className="prompter-mode" aria-label={t('Remove the clip')} onClick={() => restartDual(null)}>✕</button>}
+                </span>
+              )}
               {showScreenOption && (
                 <button className="prompter-mode" onClick={() => chooseMode('screen')} disabled={recording || !camReady} aria-pressed={mode === 'screen'}>
                   {t('Screen + face')}
@@ -712,7 +751,9 @@ export function Teleprompter({ title, text, onClose }: { title: string; text: st
               {wordsOn && !screen
                 ? t(recording ? 'The video shows the words at the ▶ line. Tap the text to pause it.' : 'The video shows the words you’re reading at the ▶ line, large, with your face. Tap the preview on the right to make it bigger and drag your face where you want it.')
                 : dual
-                ? t(dual.both ? (recording ? 'Recording both cameras. ⟲ swaps which one is on top.' : 'Both cameras: what’s in front of you and your face together. ⟲ swaps them; ⚙ chooses split screen or a bubble.') : (recording ? 'Tap ⟲ to switch camera; it stays one video.' : 'One camera at a time here: press ● to record, then tap ⟲ to switch between them as you go.'))
+                ? t(dual.clip ? (recording ? 'Your clip is playing on top. ⟲ swaps them.' : 'Your clip is on top and you’re underneath. Press ● and it plays from the start while you talk about it. ⟲ swaps them; ⚙ chooses split screen or a bubble.')
+                  : dual.both ? (recording ? 'Recording both cameras. ⟲ swaps which one is on top.' : 'Both cameras: what’s in front of you and your face together. ⟲ swaps them; ⚙ chooses split screen or a bubble.')
+                  : (recording ? 'Tap ⟲ to switch camera; it stays one video.' : 'This phone can’t run both cameras at once. Press ● and tap ⟲ to switch between them as you go, or tap 🎞 to put a video you filmed on top.'))
                 : screen
                 ? t(recording ? 'Recording your screen and face. Stop here, in the small floating window, or with “Stop sharing”.' : 'Press ● to record your screen with your face in the corner. Switch to the window you want to show after the countdown.')
                 : t(recording ? 'Tap the text to pause it. Drag it to move back or ahead.' : 'Press ● to record. ▶ scrolls the text to practise.')}

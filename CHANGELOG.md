@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.36.0 — 2026-10-13
+- **🎞 Clip for the top** in the teleprompter's Both cameras, for phones that can't run both cameras at once: pick a video you filmed (with the back camera, say) and it goes on top (or behind your bubble) with you live underneath. Press ● and it plays from the start while you talk about it; its sound is kept under your voice. ⟲ swaps them, ✕ removes the clip.
+- The big "can't use both cameras" box is gone; the line at the bottom says it instead, so your words aren't covered.
+
 ## v2.35.0 — 2026-10-13
 - **Both cameras in the teleprompter.** A new "Both cameras" choice next to Camera and Words + face records the back camera and your face together, either split screen half and half (back camera on top, you underneath) or the back camera with you in a bubble (⚙ chooses; the bubble's corner and size too). ⟲ swaps which one is on top, even while recording.
 - Many phones can't run both cameras at once from a browser. Then it says so and records one camera at a time instead: tap ⟲ while recording to switch between the front and back camera, all in one video.
