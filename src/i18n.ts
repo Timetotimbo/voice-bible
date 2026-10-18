@@ -77,7 +77,6 @@ const ES: Record<string, string> = {
   '+ New list': '+ Nueva lista',
   '+ New chat': '+ Nuevo chat',
   'Open {ref} in its chapter': 'Abrir {ref} en su capítulo',
-  'Go to ▾': 'Ir a ▾',
   'More playback options': 'Más opciones de reproducción',
   'Playback': 'Reproducción',
   'Say the reference first': 'Decir la cita primero',

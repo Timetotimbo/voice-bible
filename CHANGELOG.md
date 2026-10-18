@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.42.0 — 2026-10-18
+- **Cleaner chapter heading.** The "KJV+S · Go to ▾" button under the chapter number is gone. The heading now looks like the bar that stays at the top when you scroll: the book name with a round 🔍 beside it. Tap the name, the 🔍 or the chapter number to go to another book, chapter or verse. The Bible you're reading still shows at the top right.
+
 ## v2.41.0 — 2026-10-18
 - **Contents without a "Contents" heading are clickable.** A list of titles at the top of a note, one to a line (like "10 qualities of uncommon achievers"), now links each title to the same title further down the note, whether that heading is in capitals or not and with or without its number. A line holding two titles run together ("…bitterness The Covenant of the 58 blessings") becomes two links. ↑ Contents comes back.
 - Tidy spacing no longer joins lines that start with a number and a word ("7 keys to answered prayers") onto the line above.

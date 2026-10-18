@@ -1924,12 +1924,20 @@ function Chapter({
           </h2>
         ) : (
           <div className="book-head" ref={headRef}>
-            <div className="book-name">{bookName(chapters[shownAt].book)}</div>
-            <div className="book-num">{chapters[shownAt].chapter}</div>
-            {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}
-            <button className="goto-chip" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
-              {abbrev} · {t('Go to ▾')}
+            {/* Looks like the bar that pins on scroll: tap the name, number or 🔍 to go somewhere else */}
+            <button type="button" className="book-pick" onClick={onPick} aria-label={t('Choose another book, chapter or verse')}>
+              <span className="book-name">
+                {bookName(chapters[shownAt].book)}
+                <small aria-hidden>
+                  <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <circle cx="10.5" cy="10.5" r="6.5" />
+                    <path d="M15.5 15.5 21 21" />
+                  </svg>
+                </small>
+              </span>
+              <span className="book-num">{chapters[shownAt].chapter}</span>
             </button>
+            {onMain && verseStart !== undefined && <div className="book-sub">{formatReference(view.ref)}</div>}
           </div>
         )}
         {hints && <p className="chapter-hint">

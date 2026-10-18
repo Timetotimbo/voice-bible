@@ -781,7 +781,13 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .v2 .book-name { font-size: 0.9rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--glow-2, var(--purple-bright)); }
 .v2 .book-num { font-family: var(--read); font-size: 3.2rem; line-height: 1.05; font-weight: 600; text-shadow: 0 0 18px color-mix(in srgb, var(--purple) 40%, transparent); }
 .v2 .book-sub { font-family: var(--read); font-style: italic; color: var(--muted); }
-.v2 .goto-chip { margin-top: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: none; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+.v2 .book-pick { display: block; margin: 0 auto; padding: 4px 14px; background: none; border: 0; border-radius: 14px; color: inherit; }
+.v2 .book-pick .book-name, .v2 .book-pick .book-num { display: block; }
+.v2 .book-pick small {
+  display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; margin-left: 0.6em; vertical-align: middle; border-radius: 50%;
+  font-size: 0.95em; line-height: 1; letter-spacing: 0; color: var(--bg); background: var(--glow-2, var(--purple-bright));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--glow-2, var(--purple-bright)) 60%, transparent);
+}
 .v2 .chapter-hint { margin: 0 0 12px; text-align: center; }
 .v2 .chapter { font-family: var(--read); font-size: 1.16rem; line-height: 1.85; }
 .v2 .chapter li { display: inline; padding: 2px 3px; margin-right: 0.2em; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
