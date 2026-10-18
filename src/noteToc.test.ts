@@ -119,3 +119,40 @@ Financial Harvest
     expect(links.map(l => note.slice(l.target, l.targetEnd))).toEqual(['4 Facts About Offerings', '7 Laws of Wealth', '31 Reasons People Do Not Receive Their\nFinancial Harvest']);
   });
 });
+
+describe('tocLinks for titles one to a line, with no Contents heading', () => {
+  const titles = [
+    'WISDOM BIBLE',
+    '10 qualities of uncommon achievers ',
+    '18 facts you should know about the anointing. ',
+    '11 steps for overcoming bitterness The Covenant of the 58 blessings ',
+    '20 keys for winning at work 31 facts. You should know about wisdom ',
+    '7 facts you should know about conflict. ',
+  ].join('\n');
+  const body = [
+    '10 QUALITIES OF UNCOMMON ACHIEVERS\nThey know what they want. They hate losing.',
+    '18 Facts You Should Know About The Anointing\nThe anointing is the power of God.',
+    '11 Steps For Overcoming Bitterness\nForgive.',
+    'The Covenant Of The 58 Blessings\nBlessed.',
+    '20 Keys For Winning At Work\nBe on time.',
+    '31 Facts You Should Know About Wisdom\nWisdom is the principal thing.',
+    '7 Facts You Should Know About Conflict\nPeace.',
+  ].join('\n\n');
+  const note = `${titles}\n\n${body}`;
+  const links = tocLinks(note);
+  const pairs = links.map(l => [note.slice(l.start, l.end), note.slice(l.target, l.targetEnd)]);
+  it('links each title to its heading, splitting lines that hold two', () => {
+    expect(pairs).toEqual([
+      ['10 qualities of uncommon achievers', '10 QUALITIES OF UNCOMMON ACHIEVERS'],
+      ['18 facts you should know about the anointing', '18 Facts You Should Know About The Anointing'],
+      ['11 steps for overcoming bitterness', '11 Steps For Overcoming Bitterness'],
+      ['The Covenant of the 58 blessings', 'The Covenant Of The 58 Blessings'],
+      ['20 keys for winning at work', '20 Keys For Winning At Work'],
+      ['31 facts. You should know about wisdom', '31 Facts You Should Know About Wisdom'],
+      ['7 facts you should know about conflict', '7 Facts You Should Know About Conflict'],
+    ]);
+  });
+  it('a note with a line said twice is not contents', () => {
+    expect(tocLinks('Praise Him\nPraise Him\nHallelujah, praise Him')).toEqual([]);
+  });
+});

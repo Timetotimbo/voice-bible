@@ -39,6 +39,12 @@ function tokens(text: string, from: number, to: number, splitPageNum: boolean): 
 
 /** The contents' links, or none when the note has no table of contents. */
 export function tocLinks(text: string): TocLink[] {
+  const links = headedTocLinks(text);
+  return links.length ? links : lineTocLinks(text);
+}
+
+/** Contents under a "Contents" heading. */
+function headedTocLinks(text: string): TocLink[] {
   const head = HEAD.exec(text);
   if (!head) return [];
   const from = head.index + head[0].length;
@@ -122,4 +128,79 @@ export function tocLinks(text: string): TocLink[] {
     } else i++;
   }
   return links;
+}
+
+type LineWords = { words: { w: string; start: number; end: number }[]; start: number; end: number };
+
+/** A line's words, small letters and straight quotes, with their places in the text. */
+function lineWords(text: string, start: number, end: number): LineWords {
+  const words: LineWords['words'] = [];
+  const re = /[\p{L}\p{N}'’]+/gu;
+  re.lastIndex = start;
+  for (let m = re.exec(text); m && m.index < end; m = re.exec(text)) {
+    const w = m[0].replace(/’/g, "'").replace(/^'+|'+$/g, '').toLowerCase();
+    if (w) words.push({ w, start: m.index, end: m.index + m[0].length });
+  }
+  return { words, start, end };
+}
+// A title without the numbers in front ("10 qualities…", "Chapter 3 …"): how it's matched, so a heading can have or leave them out
+const skipNumbers = (ws: string[], from = 0) => {
+  let i = from;
+  while (i < ws.length && (isNum(ws[i]) || ws[i] === 'chapter')) i++;
+  return i;
+};
+const keyOf = (ws: string[]) => ws.slice(skipNumbers(ws)).join(' ');
+
+/**
+ * Contents without a "Contents" heading: the titles one to a line at the top ("10 qualities of uncommon achievers"),
+ * each one a line of its own again further down. The contents end where the first of their titles comes again.
+ * A line holding two titles run together is split between them.
+ */
+function lineTocLinks(text: string): TocLink[] {
+  const lines: LineWords[] = [];
+  for (let at = 0; at <= text.length; ) {
+    const nl = text.indexOf('\n', at);
+    const end = nl < 0 ? text.length : nl;
+    const l = lineWords(text, at, end);
+    if (l.words.length) lines.push(l);
+    at = end + 1;
+  }
+  const keys = lines.map(l => keyOf(l.words.map(w => w.w)));
+  const titled = (k: string) => k.split(' ').length >= 2 && k.length >= 8;
+  // Where the body starts: the first line that repeats a title above it
+  const seen = new Set<string>();
+  let body = -1;
+  for (let i = 0; i < lines.length && body < 0; i++) {
+    if (titled(keys[i]) && seen.has(keys[i])) body = i;
+    else seen.add(keys[i]);
+  }
+  if (body < 3) return [];
+  // The headings further down, by their words (numbers in front left out)
+  const heads = new Map<string, number[]>();
+  for (let j = body; j < lines.length; j++) if (titled(keys[j])) (heads.get(keys[j]) ?? heads.set(keys[j], []).get(keys[j])!).push(j);
+  const longest = Math.max(...[...heads.keys()].map(k => k.split(' ').length));
+
+  const links: TocLink[] = [];
+  let after = body - 1; // titles come in the same order as the contents
+  const target = (k: string) => {
+    const at = heads.get(k)!;
+    const j = at.find(x => x > after) ?? at[0];
+    after = j;
+    return lines[j];
+  };
+  for (let i = 0; i < body; i++) {
+    const ws = lines[i].words;
+    const plain = ws.map(w => w.w);
+    // From each place in the line: the longest run of words that is a heading further down
+    for (let p = 0; p < ws.length; ) {
+      const from = skipNumbers(plain, p);
+      let found = 0;
+      for (let n = Math.min(longest, ws.length - from); n >= 2 && !found; n--) if (heads.has(plain.slice(from, from + n).join(' '))) found = n;
+      if (!found) { p = from + 1; continue; }
+      const t = target(plain.slice(from, from + found).join(' '));
+      links.push({ start: ws[p].start, end: ws[from + found - 1].end, target: t.start + (text.slice(t.start, t.end).match(/^\s*/)![0].length), targetEnd: t.words[t.words.length - 1].end });
+      p = from + found;
+    }
+  }
+  return links.length >= 3 ? links : [];
 }

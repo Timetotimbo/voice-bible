@@ -59,7 +59,8 @@ export function tidySpacing(text: string): string {
 }
 
 // A line that starts something of its own: a numbered point, a "~" or "-" item, a bullet
-const STARTS_ITEM = /^(?:\d{1,3}[.)]\s|[~•*–—☐☑-]\s?\S|[A-Za-z][.)]\s)/;
+// ("7 keys to answered prayers": a title in a list of them, one a line)
+const STARTS_ITEM = /^(?:\d{1,3}[.)]?\s+\p{L}|[~•*–—☐☑-]\s?\S|[A-Za-z][.)]\s)/u;
 // A line that ends a thought: a full stop, ? !, a closing bracket or quote, or a colon (a list follows)
 const ENDS_THOUGHT = /[.!?)\]"”’:]$/;
 /** Whether line b (after line a) is the same sentence, broken in two by copying from a document. */
