@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.38.0 — 2026-10-18
+- **Picking several verses is easy again.** Once you pick a verse in a chapter, tapping the words of other verses picks those verses too, instead of opening Strong's. Unpick everything (or tap ✕) and tapping a word opens Strong's again.
+
 ## v2.37.0 — 2026-10-13
 - **＋ Pick on a verse card.** Tap a reference in a note (like Luke 6:38), then ＋ Pick: the verse, with its reference, joins your picks, in the order it comes in the note. Loop, Make video ▸ and To note… use it with the rest.
 

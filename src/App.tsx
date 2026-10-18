@@ -1961,7 +1961,8 @@ function Chapter({
                 {key === readingKey && reader.word ? (
                   <ReadingText text={h.text} word={reader.word} />
                 ) : tags?.[v - 1] ? (
-                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={(word, code) => onWord(word, code, h)} />
+                  // Once a verse is picked, words stop opening Strong's so tapping anywhere on the next verses picks them too
+                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={picked.length ? undefined : (word, code) => onWord(word, code, h)} />
                 ) : (
                   h.text
                 )}
