@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.39.0 — 2026-10-18
+- **Lists in notes.** While you type in a note, three buttons sit at the top: **1. Numbers**, **• Bullets** and **☐ Checklist**. They turn the line you're on (or the lines you've selected) into a list; press again to turn it back. Enter carries the list on (2., 3., a new box); Enter on an empty item ends it. Tap a box in the note to tick it ☑ (no keyboard). Read aloud skips the boxes and bullets.
+- **Search finds other forms of your words.** When nothing matches exactly as typed, each word also matches its other forms in any order: "Ethiopia hand" now finds Psalm 68:31 ("…stretch out her hands unto God").
+- **Long search results:** a handle on the right edge to drag through them quickly, and **Show all** next to Show more.
+
 ## v2.38.0 — 2026-10-18
 - **Picking several verses is easy again.** Once you pick a verse in a chapter, tapping the words of other verses picks those verses too, instead of opening Strong's. Unpick everything (or tap Clear) and tapping a word opens Strong's again.
 

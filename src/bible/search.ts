@@ -159,8 +159,25 @@ export function searchVerses(index: IndexedVerse[], query: string, mode: SearchM
         .map(v => ({ ...v, loose: true }))
     : [];
   const hits = [...whole, ...loose];
-  return hits.length ? hits : index.filter(v => v.norm.includes(q));
+  if (hits.length || mode === 'exact') return hits.length ? hits : index.filter(v => v.norm.includes(q));
+  // Nothing: let each word match its other forms ("Ethiopia hand" finds "…stretch out her hands"), any order
+  const forms = words.map(w => new RegExp(` ${formsOf(w)} `));
+  const formHits = index.filter(v => forms.every(f => f.test(v.norm))).map(v => ({ ...v, loose: true }));
+  return formHits.length ? formHits : index.filter(v => v.norm.includes(q));
 }
+
+// A word's other forms: hand, hands; bless, blessed, blesseth, blessing; love, loved, loveth
+const ENDINGS = '(?:s|es|d|ed|eth|th|est|st|ing)?';
+// The word without its ending, when that leaves a word to match ("hands" → "hand", but not "is" → "i")
+const stemOf = (w: string) => {
+  const stem = w.replace(/(?:es|s|ed|eth|est|ing)$/, '');
+  return stem.length >= 3 && stem !== w ? stem : null;
+};
+// The word as typed or its stem, then any ending ("bless" stays itself too, so it finds "blessed")
+const formsOf = (w: string, pattern = (x: string) => x) => {
+  const stem = stemOf(w);
+  return `(?:${pattern(w)}${stem ? `|${pattern(stem)}` : ''})${ENDINGS}`;
+};
 
 // A plain letter in a search also matches its accented forms in the text ("corazon" marks "corazón")
 const ACCENTED: Record<string, string> = { a: 'aáàâä', e: 'eéèêë', i: 'iíìîï', o: 'oóòôö', u: 'uúùûü', n: 'nñ', c: 'cç' };
@@ -183,5 +200,5 @@ export function highlightPattern(query: string): RegExp | null {
 export function wordsPattern(query: string): RegExp | null {
   const words = normalize(query).split(' ').filter(Boolean);
   if (!words.length) return null;
-  return new RegExp(`${START}(${words.map(wordPattern).join('|')})${END}`, 'giu');
+  return new RegExp(`${START}(${words.map(w => formsOf(w, wordPattern)).join('|')})${END}`, 'giu');
 }

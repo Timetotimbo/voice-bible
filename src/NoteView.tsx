@@ -12,6 +12,7 @@ import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
 import { needsTidy, tidySpacing } from './noteSpeech';
+import { continueList, toggleCheck, toggleList, type ListKind } from './noteLists';
 import { tocLinks } from './noteToc';
 import { socialBloomLinked, videoSendOn } from './socialBloom';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
@@ -240,6 +241,22 @@ export function NoteView({
     if (document.activeElement === box.current) box.current.setSelectionRange(at, at);
   }, [note.text]);
 
+  // After a list button or Enter in a list, put the selection where the change says (changing the text moves it to the end)
+  const placeSel = useRef<{ start: number; end: number } | null>(null);
+  useLayoutEffect(() => {
+    const at = placeSel.current;
+    placeSel.current = null;
+    if (at && box.current && document.activeElement === box.current) box.current.setSelectionRange(at.start, at.end);
+  }, [note.text]);
+  const makeList = (kind: ListKind) => {
+    const ta = box.current;
+    if (!ta) return;
+    const r = toggleList(note.text, ta.selectionStart, ta.selectionEnd, kind);
+    setText(r.text, 'edit');
+    placeSel.current = { start: r.start, end: r.end };
+    caret.current = r.start;
+  };
+
   // Keep the end in view while dictating there
   useEffect(() => {
     if (listening && box.current && caret.current === null) box.current.scrollTop = box.current.scrollHeight;
@@ -404,6 +421,14 @@ export function NoteView({
           {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
         </div>
       )}
+      {editing && !reading && (
+        // Lists while typing; pressing a button doesn't take the cursor out of the note
+        <div className="list-bar" onPointerDown={e => e.preventDefault()}>
+          <button onClick={() => makeList('number')} title={t('Numbered list')}><span aria-hidden>1.</span> {t('Numbers')}</button>
+          <button onClick={() => makeList('bullet')} title={t('Bullet list')}><span aria-hidden>•</span> {t('Bullets')}</button>
+          <button onClick={() => makeList('check')} title={t('Checklist: tap a box to tick it')}><span aria-hidden>☐</span> {t('Checklist')}</button>
+        </div>
+      )}
       {finding && (
         <form className="find-bar" role="search" onSubmit={e => { e.preventDefault(); findStep(1); }}>
           <input
@@ -452,7 +477,13 @@ export function NoteView({
             tabIndex={0}
             // Keyboard: Enter on the note starts typing (a tap starts it where you tapped)
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
-            onClick={e => startEditing(textOffsetAt(viewEl.current, e.clientX, e.clientY) ?? note.text.length)}
+            onClick={e => {
+              const at = textOffsetAt(viewEl.current, e.clientX, e.clientY);
+              // A tap on a checkbox ticks it (or unticks it) without opening the keyboard
+              const ticked = at === null ? null : toggleCheck(note.text, at);
+              if (ticked !== null) return setText(ticked, 'edit');
+              startEditing(at ?? note.text.length);
+            }}
           >
             <RefText
               text={shownText}
@@ -473,6 +504,17 @@ export function NoteView({
           placeholder={t('Write, or tap Dictate and speak. Say “new paragraph”, “period”, “comma”…')}
           value={note.text}
           onChange={e => {
+            // Enter on a list line: the new line carries the list on (an empty item ends it)
+            const prev = textRef.current, raw = e.target.value, at = e.target.selectionStart;
+            if (raw.length === prev.length + 1 && raw[at - 1] === '\n' && raw.slice(0, at - 1) + raw.slice(at) === prev) {
+              const c = continueList(prev, at - 1);
+              if (c) {
+                setText(c.text, 'typing');
+                placeSel.current = { start: c.caret, end: c.caret };
+                caret.current = c.caret;
+                return;
+              }
+            }
             setText(e.target.value, 'typing');
             rememberCaret();
           }}

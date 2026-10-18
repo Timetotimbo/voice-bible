@@ -999,3 +999,10 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
   box-shadow: 0 0 8px color-mix(in srgb, var(--glow-2, var(--purple-bright)) 60%, transparent);
 }
 .chapter-pin.on button { opacity: 1; transform: none; pointer-events: auto; }
+/* Lists in a note, while typing */
+.list-bar { display: flex; gap: 6px; margin: 6px 0 0; }
+.list-bar button { flex: 1; min-width: 0; padding: 6px 8px; font-size: 0.85rem; white-space: nowrap; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.list-bar span { font-weight: 700; color: var(--purple); }
+.more-row { display: flex; gap: 8px; margin-top: 14px; }
+.more-row .more { margin-top: 0; flex: 1; }
+.more-row .more + .more { flex: 0 0 auto; }

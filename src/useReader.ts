@@ -4,6 +4,7 @@ import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
 import { heartCancel, heartSay, heartTextSaved } from './heartText';
 import { muteReferences } from './noteSpeech';
+import { muteMarkers } from './noteLists';
 import { chunks, speakingWeight, wordAt, wordSpans, type WordSpan } from './words';
 
 const synth: SpeechSynthesis | undefined = window.speechSynthesis;
@@ -483,7 +484,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       };
       // Heart for notes: each paragraph in pieces of a few sentences, made a few pieces ahead of where it's reading
       let muted: string[] | undefined;
-      const saidText = (i: number) => (!sayRefsRef.current ? (muted ??= muteReferences(verses.map(v => v.text)))[i] : verses[i].text);
+      const saidText = (i: number) => muteMarkers(!sayRefsRef.current ? (muted ??= muteReferences(verses.map(v => v.text)))[i] : verses[i].text);
       const made = new Map<string, Promise<string>>();
       const make = (key: string, piece: string) => {
         let p = made.get(key);

@@ -54,6 +54,11 @@ describe('searchVerses', () => {
     expect(hits.every(h => /\bprincipalities\b/i.test(h.text) && /\bpowers\b/i.test(h.text))).toBe(true);
   });
 
+  it('finds other forms of the words when nothing matches as typed', () => {
+    const hits = searchVerses(index, 'Ethiopia hand');
+    expect(hits.map(h => formatReference({ ...h, verseStart: h.verse }))).toContain('Psalms 68:31');
+  });
+
   it('leaves out the any-order verses in exact mode', () => {
     expect(searchVerses(index, 'principalities powers', 'exact').some(h => h.loose)).toBe(false);
     expect(searchVerses(index, 'love your enemies', 'exact').every(h => /love your enemies/i.test(h.text))).toBe(true);

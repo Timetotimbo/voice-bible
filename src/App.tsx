@@ -11,6 +11,7 @@ import {
 import { TRANSLATIONS, loadTranslation, type TranslationId } from './bible/translations';
 import { renderingsOf, strongsCode, tagsOf, versesWithCode, type Tag } from './bible/strongs';
 import { WordSheet } from './WordSheet';
+import { FastScroll } from './FastScroll';
 import { useLibrary, type VerseList, type VerseRef } from './useLibrary';
 import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
@@ -742,7 +743,7 @@ export default function App() {
             query={view.query}
             shown={shown}
             abbrev={abbrev}
-            onMore={() => setShown(s => s + PAGE)}
+            onMore={all => setShown(s => (all ? view.hits.length : s + PAGE))}
             onOpen={hit => openView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse } })}
             reader={reader}
             readAloud={readAloud}
@@ -1576,7 +1577,7 @@ function SearchResults({
   query?: string;
   shown: number;
   abbrev: string;
-  onMore: () => void;
+  onMore: (all?: boolean) => void; // the next page, or everything
   onOpen: (hit: VerseHit) => void;
   reader: ReturnType<typeof useReader>;
   readAloud: (verses: VerseHit[]) => void;
@@ -1729,10 +1730,15 @@ function SearchResults({
         })}
       </ol>
       {shown < count && (
-        <button className="more" onClick={onMore}>
-          {t('Show more ({n} left)', { n: count - shown })}
-        </button>
+        <div className="more-row">
+          <button className="more" onClick={() => onMore()}>
+            {t('Show more ({n} left)', { n: count - shown })}
+          </button>
+          {count - shown > PAGE && <button className="more" onClick={() => onMore(true)}>{t('Show all')}</button>}
+        </div>
       )}
+      {/* A long list: a handle on the right edge to drag through it quickly */}
+      <FastScroll />
 
       {reader.supported && count > 0 && (
         <div className="player">
