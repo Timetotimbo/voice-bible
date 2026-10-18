@@ -187,6 +187,7 @@ const ES: Record<string, string> = {
   '(other copy)': '(otra copia)',
   'Find in note': 'Buscar en la nota',
   'Numbers': 'Números',
+  'Colour each sentence': 'Colorear cada frase',
   'Show all': 'Mostrar todos',
   'Bullets': 'Viñetas',
   'Checklist': 'Casillas',

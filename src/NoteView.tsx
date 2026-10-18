@@ -13,6 +13,7 @@ import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
 import { needsTidy, tidySpacing } from './noteSpeech';
 import { continueList, toggleCheck, toggleList, type ListKind } from './noteLists';
+import { colorsOn, sentenceRanges, setColorsOn } from './noteColors';
 import { tocLinks } from './noteToc';
 import { socialBloomLinked, videoSendOn } from './socialBloom';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
@@ -61,6 +62,10 @@ export function NoteView({
     viewEl.current?.querySelector(`mark[data-hit="${findAt}"]`)?.scrollIntoView({ block: 'center' });
   }, [finding, hits, findAt]);
   const viewEl = useRef<HTMLDivElement>(null);
+  // Colour by sentence (🎨): off unless turned on for this note
+  const [colored, setColored] = useState(() => colorsOn(note.id));
+  useEffect(() => setColored(colorsOn(note.id)), [note.id]);
+  const sentences = useMemo(() => (colored ? sentenceRanges(shownText) : undefined), [colored, shownText]);
   // A table of contents in the note: its titles link to their headings further down; ↑ Contents comes back
   const toc = useMemo(() => (editing ? [] : tocLinks(shownText)), [editing, shownText]);
   const [jumpMark, setJumpMark] = useState<{ start: number; end: number } | null>(null);
@@ -391,6 +396,19 @@ export function NoteView({
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
         <button
+          className={`undo ${colored ? 'on' : ''}`}
+          aria-label={t('Colour each sentence')}
+          title={t('Colour each sentence')}
+          aria-pressed={colored}
+          disabled={!note.text.trim()}
+          onClick={() => {
+            setColorsOn(note.id, !colored);
+            setColored(!colored);
+          }}
+        >
+          🎨
+        </button>
+        <button
           className={`undo ${finding ? 'on' : ''}`}
           aria-label={t('Find in note')}
           title={t('Find in note')}
@@ -490,6 +508,7 @@ export function NoteView({
               onPick={setRefPick}
               jumps={toc}
               onJump={jumpTo}
+              sentences={sentences}
               marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : undefined}
             />
           </div>

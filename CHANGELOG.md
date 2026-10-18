@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.40.0 — 2026-10-18
+- **🎨 Colour each sentence in a note.** A new 🎨 button in a note's top row turns it on for that note: each sentence shows in the next of five colours (gold, blue, pink, green, lilac, then round again), so one thought stands apart from the next when you present. It's off unless you turn it on, it's remembered for each note, and it only changes how the note looks: shared or copied text stays plain.
+
 ## v2.39.0 — 2026-10-18
 - **Lists in notes.** While you type in a note, three buttons sit at the top: **1. Numbers**, **• Bullets** and **☐ Checklist**. They turn the line you're on (or the lines you've selected) into a list; press again to turn it back. Enter carries the list on (2., 3., a new box); Enter on an empty item ends it. Tap a box in the note to tick it ☑ (no keyboard). Read aloud skips the boxes and bullets.
 - **Search finds other forms of your words.** When nothing matches exactly as typed, each word also matches its other forms in any order: "Ethiopia hand" now finds Psalm 68:31 ("…stretch out her hands unto God").
