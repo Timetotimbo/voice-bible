@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.45.0 — 2026-10-20
+- **Pause, Play and Stop while a chapter reads.** The chapter's play bar (and Search's) has ⏸ Pause / ▶ Play on the left of the pill and ■ Stop, like reading a note.
+- **Keeps reading while you look around.** Go to Notes, Verse Lists, Chat or Search, or open another chapter or verse, and the chapter keeps playing. On other screens a small bar shows what's being read (📖 Romans 12:4) with Pause and ■ Stop; tap the verse to go back to it. On another chapter the play bar does the same, and the page no longer jumps back to the reading while you look elsewhere. The Read tab takes you to the chapter being read. (Reading a note or chat out loud still stops when you leave it.)
+
 ## v2.44.0 — 2026-10-19
 - **Search all your notes.** The Notes tab has a search box: type a word and see every note with it (in the title or the words), how many times it's there, and the words around it. Tap a note to open it with Find in note already on those words, at the first one (▲ ▼ go through the rest). Back keeps your search.
 

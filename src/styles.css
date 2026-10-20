@@ -1022,3 +1022,9 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 [data-theme='light'] :is(.note-view, .note-reading), [data-theme='parchment'] :is(.note-view, .note-reading) { --sc0: #b45309; --sc1: #0369a1; --sc2: #be185d; --sc3: #15803d; --sc4: #6d28d9; }
 :is(.note-view, .note-reading) .sc0 { color: var(--sc0); } :is(.note-view, .note-reading) .sc1 { color: var(--sc1); } :is(.note-view, .note-reading) .sc2 { color: var(--sc2); }
 :is(.note-view, .note-reading) .sc3 { color: var(--sc3); } :is(.note-view, .note-reading) .sc4 { color: var(--sc4); }
+
+/* Now playing: a chapter keeps reading on other screens; pause, back to it, or stop */
+.player.now-playing { flex-wrap: nowrap; padding-top: 8px; padding-bottom: 8px; }
+.v2 .player.now-playing.over-composer { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 72px); }
+.player .np-stop { flex: none; width: 46px; padding: 0 !important; font-size: 16px; }
+.app.v2.np-on { padding-bottom: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + 90px); }

@@ -375,6 +375,7 @@ const ES: Record<string, string> = {
   'Skipping references and verse numbers': 'Omitiendo citas y números de versículo',
   '■ Stop': '■ Detener',
   'Pause': 'Pausa',
+  'Back to the chapter': 'Volver al capítulo',
   'Play': 'Reproducir',
   'Read the picks aloud over and over': 'Leer en voz alta lo elegido una y otra vez',
   '+ Pick': '+ Elegir',

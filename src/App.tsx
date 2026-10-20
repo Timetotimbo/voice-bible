@@ -26,7 +26,7 @@ import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
 import { combineBackup, describeBackup, makeBackup, readBackup, restoreBackup } from './backup';
-import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
+import { SPEEDS, TEXT_BOOK, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
@@ -256,6 +256,12 @@ export default function App() {
     pauseMic();
     reader.play(verses);
   };
+  // A chapter (or verses) being read keeps playing while you go to your notes, search or other chapters;
+  // reading a note or chat out loud stops when you leave it
+  const readingBible = !!reader.playing?.length && reader.playing[0].book !== TEXT_BOOK;
+  const keepReading = useRef(readingBible);
+  keepReading.current = readingBible;
+  const showNowPlaying = readingBible && view.kind !== 'chapter' && view.kind !== 'search' && view.kind !== 'list';
   const listen: Listen = (paragraphs, title, from) => {
     pauseMic();
     reader.playText(paragraphs, title, from);
@@ -340,7 +346,7 @@ export default function App() {
       forwardStack.current.push(hereEntry());
       setCanGoForward(true);
       setSelected(new Set());
-      reader.stop();
+      if (!keepReading.current) reader.stop();
       setShown(entry.shown);
       setView(entry.view);
       restoreScroll.current = entry.scrollY;
@@ -364,7 +370,7 @@ export default function App() {
       setCanGoForward(false);
       setShown(PAGE);
       setSelected(new Set());
-      reader.stop();
+      if (!keepReading.current) reader.stop();
       window.scrollTo({ top: 0 });
       setView(next);
     },
@@ -380,7 +386,7 @@ export default function App() {
     history.pushState({ voiceBible: backStack.current.length }, '');
     setCanGoBack(true);
     setSelected(new Set());
-    reader.stop();
+    if (!keepReading.current) reader.stop();
     setShown(entry.shown);
     setView(entry.view);
     restoreScroll.current = entry.scrollY;
@@ -403,7 +409,7 @@ export default function App() {
   const goTab = (tab: Tab) => {
     const here = tabOf(view);
     const root: View =
-      tab === 'read' ? { kind: 'chapter', ref: shownChapter.current ?? lastRead() }
+      tab === 'read' ? { kind: 'chapter', ref: keepReading.current && reader.current ? { book: reader.current.book, chapter: reader.current.chapter } : shownChapter.current ?? lastRead() }
       : tab === 'search' ? { kind: 'home' }
       : tab === 'lists' ? { kind: 'lists' }
       : tab === 'notes' ? { kind: 'notes' }
@@ -537,7 +543,7 @@ export default function App() {
 
   return (
     <ClassicContext.Provider value={classic}>
-    <div className={`app ${classic ? 'classic' : 'v2'}`}>
+    <div className={`app ${classic ? 'classic' : 'v2'}${showNowPlaying ? ' np-on' : ''}`}>
       {classic ? (
         <>
         <header className="top">
@@ -988,6 +994,18 @@ export default function App() {
 
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
+      {showNowPlaying && reader.current && (
+        <div className={`player now-playing${view.kind === 'chat' ? ' over-composer' : ''}`}>
+          <div className="player-main player-split">
+            <PauseButton reader={reader} />
+            <button className="split-stop" title={t('Back to the chapter')}
+              onClick={() => reader.current && openView({ kind: 'chapter', ref: { book: reader.current.book, chapter: reader.current.chapter } })}>
+              📖 <StopDetail reader={reader} full />
+            </button>
+          </div>
+          <button className="np-stop" aria-label={t('Stop')} title={t('Stop')} onClick={reader.stop}>■</button>
+        </div>
+      )}
       {!classic && <nav className="tabbar" aria-label={t('Sections')}>
         {TABS.map(tb => (
           <button key={tb.id} className={tabOf(view) === tb.id ? 'on' : ''} aria-current={tabOf(view) === tb.id ? 'page' : undefined} onClick={() => goTab(tb.id)}>
@@ -1816,9 +1834,10 @@ function SearchResults({
             </div>
           )}
           {reader.playing ? (
-            <button className="player-main" onClick={reader.stop}>
-              {t('■ Stop · ')}<StopDetail reader={reader} full />
-            </button>
+            <div className="player-main player-split">
+              <PauseButton reader={reader} />
+              <button className="split-stop" onClick={reader.stop}>{t('■ Stop · ')}<StopDetail reader={reader} full /></button>
+            </div>
           ) : (
             <button className="player-main" onClick={() => readAloud(queue)}>
               ▶ {picked.length ? t('Play {n} selected', { n: picked.length }) : count === 1 ? t('Play verse') : t('Play all {n}', { n: count })}
@@ -1917,9 +1936,11 @@ function Chapter({
 
   const readingKey = reader.current ? hitKey(reader.current) : null;
   const readingAt = reader.current ? indexOf(reader.current.book, reader.current.chapter) : -1;
+  const lastReadingAt = useRef(readingAt);
   useEffect(() => {
-    // Reading has moved on to the next chapter: turn the page with it
-    if (readingAt >= 0 && readingAt !== shownAt) show(readingAt);
+    // Reading has moved on to the next chapter: turn the page with it, unless you were looking at another chapter
+    if (readingAt >= 0 && readingAt !== shownAt && (lastReadingAt.current < 0 || lastReadingAt.current === shownAt)) show(readingAt);
+    lastReadingAt.current = readingAt;
   }, [readingAt]);
   const readingEl = useRef<HTMLLIElement>(null);
   useEffect(() => {
@@ -2065,10 +2086,20 @@ function Chapter({
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
           )}
-          {reader.playing ? (
-            <button className="player-main" onClick={reader.stop}>
-              {t('■ Stop · ')}<StopDetail reader={reader} />
-            </button>
+          {reader.playing && readingAt >= 0 && readingAt !== shownAt ? (
+            // Reading another chapter while you look at this one: tap to go back to it
+            <>
+              <div className="player-main player-split">
+                <PauseButton reader={reader} />
+                <button className="split-stop" title={t('Back to the chapter')} onClick={() => show(readingAt)}>📖 <StopDetail reader={reader} full /></button>
+              </div>
+              <button className="np-stop" aria-label={t('Stop')} title={t('Stop')} onClick={reader.stop}>■</button>
+            </>
+          ) : reader.playing ? (
+            <div className="player-main player-split">
+              <PauseButton reader={reader} />
+              <button className="split-stop" onClick={reader.stop}>{t('■ Stop · ')}<StopDetail reader={reader} /></button>
+            </div>
           ) : picked.length || askedLabel ? (
             <button className="player-main" onClick={() => setPlayMenu(true)}>
               ▶ {picked.length ? t('Play {n}', { n: picked.length }) : t('Play {ref}', { ref: askedLabel })} ▾
@@ -2883,6 +2914,20 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
 }
 
 /** "John 3:16" (or "3:16" within a chapter) for the verse being read. */
+/** Pause, or Play again where it paused: the left half of the main pill while reading. */
+function PauseButton({ reader }: { reader: ReturnType<typeof useReader> }) {
+  return (
+    <button
+      className="split-pause"
+      aria-label={t(reader.paused ? 'Play' : 'Pause')}
+      title={t(reader.paused ? 'Play' : 'Pause')}
+      onClick={reader.paused ? reader.resume : reader.pause}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden>{reader.paused ? <path d="M7 4.5v15l13-7.5z" /> : <path d="M6 4h4.5v16H6zm7.5 0H18v16h-4.5z" />}</svg>
+    </button>
+  );
+}
+
 function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; full?: boolean }) {
   const c = reader.current;
   if (!c) return null;
