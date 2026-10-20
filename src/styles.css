@@ -1013,7 +1013,8 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .more-row .more { margin-top: 0; flex: 1; }
 .more-row .more + .more { flex: 0 0 auto; }
 /* 🎨 Colour by sentence in a note: bright on the dark themes, deeper on the light ones */
-.note-view { --sc0: #ffd166; --sc1: #7fd4ff; --sc2: #ff8fb8; --sc3: #8ee59b; --sc4: #c7a6ff; }
-[data-theme='light'] .note-view, [data-theme='parchment'] .note-view { --sc0: #b45309; --sc1: #0369a1; --sc2: #be185d; --sc3: #15803d; --sc4: #6d28d9; }
-.note-view .sc0 { color: var(--sc0); } .note-view .sc1 { color: var(--sc1); } .note-view .sc2 { color: var(--sc2); }
-.note-view .sc3 { color: var(--sc3); } .note-view .sc4 { color: var(--sc4); }
+/* (and while it's read aloud) */
+.note-view, .note-reading { --sc0: #ffd166; --sc1: #7fd4ff; --sc2: #ff8fb8; --sc3: #8ee59b; --sc4: #c7a6ff; }
+[data-theme='light'] :is(.note-view, .note-reading), [data-theme='parchment'] :is(.note-view, .note-reading) { --sc0: #b45309; --sc1: #0369a1; --sc2: #be185d; --sc3: #15803d; --sc4: #6d28d9; }
+:is(.note-view, .note-reading) .sc0 { color: var(--sc0); } :is(.note-view, .note-reading) .sc1 { color: var(--sc1); } :is(.note-view, .note-reading) .sc2 { color: var(--sc2); }
+:is(.note-view, .note-reading) .sc3 { color: var(--sc3); } :is(.note-view, .note-reading) .sc4 { color: var(--sc4); }

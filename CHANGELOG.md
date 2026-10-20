@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.43.0 — 2026-10-19
+- **Sentence colours stay while a note is read aloud.** With 🎨 on, each sentence keeps its colour when you tap play, including the paragraph being read (the word being said is still highlighted on top). The colours carry on in the same order from one paragraph to the next.
+
 ## v2.42.0 — 2026-10-18
 - **Cleaner chapter heading.** The "KJV+S · Go to ▾" button under the chapter number is gone. The heading now looks like the bar that stays at the top when you scroll: the book name with a round 🔍 beside it. Tap the name, the 🔍 or the chapter number to go to another book, chapter or verse. The Bible you're reading still shows at the top right.
 

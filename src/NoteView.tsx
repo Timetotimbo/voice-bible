@@ -325,6 +325,16 @@ export function NoteView({
   const [loopList, setLoopList] = useState<string[] | null>(null);
   useEffect(() => { if (!reading) setLoopList(null); }, [reading]);
   const shownParagraphs = loopList ?? paragraphs;
+  // 🎨 Each paragraph's sentences while it's read aloud, with the colours carrying on from paragraph to paragraph
+  const readingSentences = useMemo(() => {
+    if (!colored) return undefined;
+    let from = 0;
+    return shownParagraphs.map(p => {
+      const ranges = sentenceRanges(p), at = from;
+      from += ranges.length;
+      return { ranges, from: at };
+    });
+  }, [colored, shownParagraphs]);
   const readFrom = (i: number) => listen(shownParagraphs, noteTitle(note), i);
   const loopPicks = () => {
     const list = picks.length ? picks.map(p => p.text) : sel ? [note.text.slice(sel.start, sel.end).replace(/\s+/g, ' ').trim()].filter(Boolean) : [];
@@ -479,7 +489,9 @@ export function NoteView({
         <div className="note-text note-reading" aria-live="off">
           {shownParagraphs.map((p, i) => (
             <p key={i} ref={i === reader.textAt ? readingEl : undefined} className={i === reader.textAt ? 'reading' : ''} onClick={() => readFrom(i)}>
-              {i === reader.textAt && reader.word ? <ReadingText text={p} word={reader.word} /> : <RefText text={p} onPick={setRefPick} />}
+              {i === reader.textAt && reader.word
+                ? <ReadingText text={p} word={reader.word} sentences={readingSentences?.[i].ranges} sentenceFrom={readingSentences?.[i].from} />
+                : <RefText text={p} onPick={setRefPick} sentences={readingSentences?.[i].ranges} sentenceFrom={readingSentences?.[i].from} />}
             </p>
           ))}
         </div>

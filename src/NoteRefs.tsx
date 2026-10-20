@@ -46,7 +46,7 @@ function marked(text: string, from: number, to: number, marks?: Marks): (string 
 }
 
 /** Like marked, with each sentence in its own colour (sc0, sc1… in turn) when `sentences` are given. */
-function painted(text: string, from: number, to: number, marks?: Marks, sentences?: { start: number; end: number }[]): (string | JSX.Element)[] {
+function painted(text: string, from: number, to: number, marks?: Marks, sentences?: { start: number; end: number }[], sentenceFrom = 0): (string | JSX.Element)[] {
   if (!sentences?.length) return marked(text, from, to, marks);
   const out: (string | JSX.Element)[] = [];
   let at = from;
@@ -54,7 +54,7 @@ function painted(text: string, from: number, to: number, marks?: Marks, sentence
     if (r.end <= from || r.start >= to) return;
     const s = Math.max(r.start, from), e = Math.min(r.end, to);
     if (s > at) out.push(...marked(text, at, s, marks));
-    out.push(<span key={`s${i}-${s}`} className={`sc${i % SENTENCE_COLORS}`}>{marked(text, s, e, marks)}</span>);
+    out.push(<span key={`s${i}-${s}`} className={`sc${(i + sentenceFrom) % SENTENCE_COLORS}`}>{marked(text, s, e, marks)}</span>);
     at = e;
   });
   if (at < to) out.push(...marked(text, at, to, marks));
@@ -62,13 +62,14 @@ function painted(text: string, from: number, to: number, marks?: Marks, sentence
 }
 
 /** Text with its references as buttons, contents links (`jumps`, to elsewhere in the note), and any find-in-note matches highlighted. */
-export function RefText({ text, onPick, marks, jumps, onJump, sentences }: {
+export function RefText({ text, onPick, marks, jumps, onJump, sentences, sentenceFrom }: {
   text: string;
   onPick: (p: RefPick) => void;
   marks?: Marks;
   jumps?: { start: number; end: number }[];
   onJump?: (i: number) => void;
   sentences?: { start: number; end: number }[]; // colour each sentence in turn
+  sentenceFrom?: number; // the colour the first sentence takes (a paragraph carries on from the ones before)
 }) {
   // References inside a contents link stay part of that link
   const refs = findReferences(text).filter(r => !jumps?.some(j => r.start < j.end && r.end > j.start));
@@ -78,7 +79,7 @@ export function RefText({ text, onPick, marks, jumps, onJump, sentences }: {
   let at = 0;
   const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches;
   items.forEach((it, k) => {
-    out.push(<Fragment key={`t${k}`}>{painted(text, at, it.start, marks, sentences)}</Fragment>);
+    out.push(<Fragment key={`t${k}`}>{painted(text, at, it.start, marks, sentences, sentenceFrom)}</Fragment>);
     if (it.kind === 'jump') {
       const go = () => onJump?.(it.i);
       out.push(
@@ -91,7 +92,7 @@ export function RefText({ text, onPick, marks, jumps, onJump, sentences }: {
           onClick={e => { e.stopPropagation(); e.preventDefault(); go(); }}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
         >
-          {painted(text, it.start, it.end, marks, sentences)}
+          {painted(text, it.start, it.end, marks, sentences, sentenceFrom)}
         </span>,
       );
       at = it.end;
@@ -117,12 +118,12 @@ export function RefText({ text, onPick, marks, jumps, onJump, sentences }: {
         }}
         onMouseEnter={fine ? e => onPick({ label: r.label, rect: e.currentTarget.getBoundingClientRect(), hover: true, end: r.end }) : undefined}
       >
-        {painted(text, r.start, r.end, marks, sentences)}
+        {painted(text, r.start, r.end, marks, sentences, sentenceFrom)}
       </span>,
     );
     at = r.end;
   });
-  out.push(<Fragment key="end">{painted(text, at, text.length, marks, sentences)}</Fragment>);
+  out.push(<Fragment key="end">{painted(text, at, text.length, marks, sentences, sentenceFrom)}</Fragment>);
   return <>{out}</>;
 }
 

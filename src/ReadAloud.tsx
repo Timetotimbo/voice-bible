@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+import { SENTENCE_COLORS } from './noteColors';
 import { SPEEDS, type useReader } from './useReader';
 import { t } from './i18n';
 
@@ -6,14 +8,27 @@ export type Reader = ReturnType<typeof useReader>;
 export type Listen = (paragraphs: string[], title: string, from?: number) => void;
 
 /** Text with the word being said marked. */
-export function ReadingText({ text, word }: { text: string; word: { start: number; end: number } }) {
-  return (
-    <>
-      {text.slice(0, word.start)}
-      <mark className="word-now">{text.slice(word.start, word.end)}</mark>
-      {text.slice(word.end)}
-    </>
-  );
+export function ReadingText({ text, word, sentences, sentenceFrom = 0 }: {
+  text: string;
+  word: { start: number; end: number };
+  sentences?: { start: number; end: number }[]; // keep each sentence's colour (🎨) while it's read
+  sentenceFrom?: number; // the colour the first sentence takes, to carry on from the paragraphs before
+}) {
+  const withWord = (from: number, to: number) => {
+    const s = Math.max(from, word.start), e = Math.min(to, word.end);
+    if (s >= e) return text.slice(from, to);
+    return <>{text.slice(from, s)}<mark className="word-now">{text.slice(s, e)}</mark>{text.slice(e, to)}</>;
+  };
+  if (!sentences?.length) return withWord(0, text.length);
+  const out: (string | JSX.Element)[] = [];
+  let at = 0;
+  sentences.forEach((r, i) => {
+    if (r.start > at) out.push(<Fragment key={`g${i}`}>{withWord(at, r.start)}</Fragment>);
+    out.push(<span key={`s${i}`} className={`sc${(i + sentenceFrom) % SENTENCE_COLORS}`}>{withWord(r.start, r.end)}</span>);
+    at = r.end;
+  });
+  if (at < text.length) out.push(<Fragment key="end">{withWord(at, text.length)}</Fragment>);
+  return <>{out}</>;
 }
 
 /** The bar pinned to the bottom while a note or chat is read aloud: Pause/Play and Stop (one pill split in two), Loop and speed. */
