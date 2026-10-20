@@ -21,7 +21,7 @@ import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from '.
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
   note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
-  refVerses, onOpenRef, translation, onToNote,
+  refVerses, onOpenRef, translation, onToNote, initialFind,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -44,14 +44,15 @@ export function NoteView({
   onOpenRef: (label: string) => void; // shows that reference's chapter
   translation: string; // "KJV", for the verse card
   onToNote: (text: string) => void; // copies the chosen words into another note (or a new one)
+  initialFind?: string; // opened from a search of all notes: those words are found in it straight away
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
   const [refPick, setRefPick] = useState<RefPick | null>(null);
   const [editing, setEditing] = useState(false);
   // Find in the note: what's typed, and which match is current
-  const [finding, setFinding] = useState(false);
-  const [findQuery, setFindQuery] = useState('');
+  const [finding, setFinding] = useState(!!initialFind);
+  const [findQuery, setFindQuery] = useState(initialFind ?? '');
   const [findAt, setFindAt] = useState(0);
   const shownText = note.text.replace(/[\u000b\u2028\u2029]/g, '\n');
   const hits = useMemo(() => (finding ? findAll(shownText, findQuery) : []), [finding, shownText, findQuery]);

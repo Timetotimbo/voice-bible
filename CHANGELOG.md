@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.44.0 — 2026-10-19
+- **Search all your notes.** The Notes tab has a search box: type a word and see every note with it (in the title or the words), how many times it's there, and the words around it. Tap a note to open it with Find in note already on those words, at the first one (▲ ▼ go through the rest). Back keeps your search.
+
 ## v2.43.0 — 2026-10-19
 - **Sentence colours stay while a note is read aloud.** With 🎨 on, each sentence keeps its colour when you tap play, including the paragraph being read (the word being said is still highlighted on top). The colours carry on in the same order from one paragraph to the next.
 

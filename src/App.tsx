@@ -30,6 +30,7 @@ import { SPEEDS, describeVoice, useReader, voiceName } from './useReader';
 import { ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
+import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 
 type View =
@@ -40,7 +41,7 @@ type View =
   // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
   | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
   | { kind: 'chat'; id: string }
-  | { kind: 'note'; id: string }
+  | { kind: 'note'; id: string; find?: string } // find: opened from a notes search, with those words found in it
   // The Verse Lists, Notes and Chat tabs' own pages
   | { kind: 'lists' }
   | { kind: 'notes' }
@@ -212,6 +213,8 @@ export default function App() {
   const [toNote, setToNote] = useState<{ verses: VerseHit[]; title: string } | null>(null);
   // Words chosen in a note, going into another note
   const [noteToNote, setNoteToNote] = useState<{ text: string; from: string; title: string } | null>(null);
+  // The Notes tab's search, kept while a found note is open (Back shows the same results)
+  const [notesQuery, setNotesQuery] = useState('');
   const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
@@ -829,6 +832,7 @@ export default function App() {
           return note ? (
             <NoteView
               key={note.id}
+              initialFind={view.find}
               onTeleprompter={(title, text) => setPrompter({ title, text, at: Date.now() })}
               onToNote={text => setNoteToNote({ text, from: note.id, title: noteTitle(note) })}
               note={note}
@@ -921,7 +925,9 @@ export default function App() {
         {view.kind === 'notes' && (
           <NotesPage
             notes={notes.notes}
-            onOpen={id => openView({ kind: 'note', id })}
+            query={notesQuery}
+            onQuery={setNotesQuery}
+            onOpen={(id, find) => openView({ kind: 'note', id, find })}
             onNew={() => openView({ kind: 'note', id: notes.newNote() })}
             onDelete={notes.deleteNote}
             onMove={notes.moveNote}
@@ -1478,10 +1484,24 @@ function ListsPage({ library, onOpen, onShare }: {
   );
 }
 
-/** The Notes tab. */
-function NotesPage({ notes, onOpen, onNew, onDelete, onMove }: {
+/** Words around the first match, with the match marked: "…Faith is the substance of things hoped…" */
+function matchSnippet(text: string, query: string) {
+  const flat = text.replace(/\s+/g, ' ').trim(), hit = findAll(flat, query)[0];
+  if (!hit) return null;
+  const from = Math.max(0, hit.start - 40), to = Math.min(flat.length, hit.end + 70);
+  return (
+    <>
+      {from > 0 && '…'}{flat.slice(from, hit.start)}<mark className="find-hit">{flat.slice(hit.start, hit.end)}</mark>{flat.slice(hit.end, to)}{to < flat.length && '…'}
+    </>
+  );
+}
+
+/** The Notes tab, with a search through every note's title and words. */
+function NotesPage({ notes, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   notes: Note[];
-  onOpen: (id: string) => void;
+  query: string;
+  onQuery: (q: string) => void;
+  onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
   onNew: () => void;
   onDelete: (id: string) => void;
   onMove: (id: string, to: number) => void;
@@ -1489,9 +1509,44 @@ function NotesPage({ notes, onOpen, onNew, onDelete, onMove }: {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const drag = useDragOrder(notes.map(n => n.id), onMove);
+  const q = query.trim();
+  const found = useMemo(
+    () => (q ? notes.map(n => ({ note: n, count: findAll(noteTitle(n), q).length + findAll(n.text, q).length })).filter(x => x.count) : []),
+    [notes, q],
+  );
   return (
     <section className="tab-page">
       <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined} />
+      {notes.length > 0 && (
+        <form className="find-bar notes-search" role="search" onSubmit={e => { e.preventDefault(); if (found.length === 1) onOpen(found[0].note.id, q); }}>
+          <input
+            type="text"
+            value={query}
+            onChange={e => onQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Escape' && onQuery('')}
+            placeholder={t('Search all notes')}
+            aria-label={t('Search all notes')}
+            enterKeyHint="search"
+          />
+          {query && <button type="button" aria-label={t('Clear')} onClick={() => onQuery('')}>✕</button>}
+        </form>
+      )}
+      {q ? (
+        <>
+          <p className="notice">{found.length ? n('{n} note has “{q}”', '{n} notes have “{q}”', found.length, { q }) : t('No notes have “{q}”.', { q })}</p>
+          <ul className="sheet-list">
+            {found.map(({ note: nt, count }) => (
+              <li key={nt.id}>
+                <button className="sheet-item note-row note-hit" onClick={() => onOpen(nt.id, q)}>
+                  <span>{noteTitle(nt)} <small className="hit-count">{n('{n} match', '{n} matches', count)}</small></span>
+                  <small>{matchSnippet(nt.text, q) ?? nt.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+      <>
       <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
       {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
       <ul className="sheet-list">
@@ -1515,6 +1570,8 @@ function NotesPage({ notes, onOpen, onNew, onDelete, onMove }: {
           </li>
         ))}
       </ul>
+      </>
+      )}
     </section>
   );
 }
