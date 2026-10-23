@@ -224,18 +224,24 @@ button { cursor: pointer; }
 .wheel:first-child { flex: 2.2; }
 .wheel-label { text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
 .wheel-scroll {
-  position: relative; height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain;
-  padding: 80px 0; scrollbar-width: none; border-radius: 12px;
-  background: linear-gradient(var(--surface-2), var(--surface-2)) center / 100% 40px no-repeat;
-  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
-  mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  position: relative; height: 240px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain;
+  padding: 96px 0; scrollbar-width: none; border-radius: 14px;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) center / 100% 48px no-repeat;
+  -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+  mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
 }
 .wheel-scroll::-webkit-scrollbar { display: none; }
 .wheel-scroll button {
-  display: block; width: 100%; height: 40px; scroll-snap-align: center; background: none; border: 0;
-  color: var(--muted); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;
+  display: block; width: 100%; height: 48px; scroll-snap-align: center; background: none; border: 0;
+  color: var(--muted); font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;
+  transform-origin: center; will-change: transform, opacity;
 }
-.wheel-scroll button.on { color: var(--strong); font-weight: 600; font-size: 1.1rem; }
+.wheel-scroll button.on { color: var(--strong); font-weight: 600; font-size: 1.45rem; }
+/* Under the wheels: All / OT / NT and Bible / A–Z */
+.goto-filters { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.seg button { border: 0; background: none; color: var(--text); font-weight: 600; font-size: 0.95rem; padding: 8px 14px; border-radius: 9px; min-width: 48px; }
+.seg button.on { background: var(--purple-deep); color: var(--on-accent); }
 .goto-open { display: block; width: 100%; margin-top: 14px; padding: 12px; border-radius: 999px; background: var(--purple-deep); border: 1px solid var(--purple); font-weight: 600; color: var(--on-accent); }
 .title-pick { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; }
 

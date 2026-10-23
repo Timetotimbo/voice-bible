@@ -227,6 +227,11 @@ const ES: Record<string, string> = {
   'Chapter': 'Capítulo',
   'Verse': 'Versículo',
   'Open {ref}': 'Abrir {ref}',
+  'OT': 'AT',
+  'NT': 'NT',
+  'Books': 'Libros',
+  'Order': 'Orden',
+  'Bible': 'Biblia',
 
   // Shared list
   'Shared list': 'Lista compartida',

@@ -2130,19 +2130,32 @@ function Chapter({
   );
 }
 
-const WHEEL_ROW = 40; // px per row in a picker wheel
+const WHEEL_ROW = 48; // px per row in a picker wheel
 
 /** A scroll wheel: spin it and the row that settles in the middle band is chosen. Tapping a row spins to it. */
 function Wheel({ label, items, index, onChange }: { label: string; items: string[]; index: number; onChange: (i: number) => void }) {
   const el = useRef<HTMLDivElement>(null);
   const settle = useRef<ReturnType<typeof setTimeout>>();
+  // The drum look: rows tip back and shrink the further they are from the middle band
+  const curve = () => {
+    const w = el.current;
+    if (!w) return;
+    const mid = w.scrollTop / WHEEL_ROW;
+    Array.from(w.children as HTMLCollectionOf<HTMLElement>).forEach((b, i) => {
+      const d = Math.max(-3, Math.min(3, i - mid));
+      b.style.transform = `perspective(400px) rotateX(${-d * 22}deg) scale(${1 - Math.abs(d) * 0.08})`;
+      b.style.opacity = String(Math.max(0.15, 1 - Math.abs(d) * 0.28));
+    });
+  };
   useLayoutEffect(() => {
     // Line the wheel up with the chosen row (on open, or when a shorter list pulls it back in range)
     const w = el.current;
     if (w && Math.round(w.scrollTop / WHEEL_ROW) !== index) w.scrollTop = index * WHEEL_ROW;
-  }, [index, items.length]);
+    curve();
+  }, [index, items]);
   useEffect(() => () => clearTimeout(settle.current), []);
   const onScroll = () => {
+    curve();
     clearTimeout(settle.current);
     settle.current = setTimeout(() => {
       const w = el.current;
@@ -2153,11 +2166,10 @@ function Wheel({ label, items, index, onChange }: { label: string; items: string
   };
   return (
     <div className="wheel">
-      <div className="wheel-label">{label}</div>
       <div className="wheel-scroll" ref={el} onScroll={onScroll} role="listbox" aria-label={label}>
         {items.map((item, i) => (
           <button
-            key={item}
+            key={item + i}
             role="option"
             aria-selected={i === index}
             className={i === index ? 'on' : ''}
@@ -2171,7 +2183,13 @@ function Wheel({ label, items, index, onChange }: { label: string; items: string
   );
 }
 
-/** Book · Chapter · Verse wheels for jumping straight to a place. Verse "All" opens the whole chapter. */
+type BookSet = 'all' | 'ot' | 'nt';
+const GOTO_PREFS = 'vb_goto'; // which books (All / OT / NT) and their order (Bible / A–Z) the go-to wheels last showed
+
+/**
+ * Book · Chapter · Verse wheels for jumping straight to a place. Verse "All" opens the whole chapter. Under them:
+ * All / OT / NT narrows the books, Bible / A–Z orders them; the choice is remembered.
+ */
 function GotoSheet({ bible, start, onClose, onGo }: {
   bible: BibleText;
   start: { book: number; chapter: number; verseStart?: number } | null;
@@ -2181,6 +2199,22 @@ function GotoSheet({ bible, start, onClose, onGo }: {
   const [book, setBook] = useState(start?.book ?? 0);
   const [chapter, setChapter] = useState(start?.chapter ?? 1);
   const [verse, setVerse] = useState(start?.verseStart ?? 0); // 0 = All
+  const [prefs, setPrefs] = useState<{ set: BookSet; az: boolean }>(() => {
+    try { return { set: 'all', az: false, ...JSON.parse(localStorage.getItem(GOTO_PREFS) || '{}') }; } catch { return { set: 'all', az: false }; }
+  });
+  const pick = (p: Partial<typeof prefs>) => {
+    const next = { ...prefs, ...p };
+    setPrefs(next);
+    try { localStorage.setItem(GOTO_PREFS, JSON.stringify(next)); } catch { /* private window: just not remembered */ }
+  };
+  // The books the wheel shows, as Bible book numbers (39 OT books, then the NT)
+  const books = useMemo(() => {
+    const names = bookNames();
+    const all = names.map((_, i) => i).filter(i => prefs.set === 'all' || (prefs.set === 'ot' ? i < 39 : i >= 39));
+    return prefs.az ? all.sort((a, b) => names[a].localeCompare(names[b])) : all;
+  }, [prefs]);
+  useEffect(() => { if (!books.includes(book)) setBook(books[0]); }, [books, book]);
+  const bookItems = useMemo(() => books.map(i => bookName(i)), [books]);
   const chapterCount = bible[book].length;
   const ch = Math.min(chapter, chapterCount);
   const verseCount = bible[book][ch - 1].length;
@@ -2203,9 +2237,20 @@ function GotoSheet({ bible, start, onClose, onGo }: {
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         <div className="wheels">
-          <Wheel label={t('Book')} items={bookNames()} index={book} onChange={setBook} />
+          <Wheel label={t('Book')} items={bookItems} index={Math.max(0, books.indexOf(book))} onChange={i => setBook(books[i])} />
           <Wheel label={t('Chapter')} items={chapterItems} index={ch - 1} onChange={i => setChapter(i + 1)} />
           <Wheel label={t('Verse')} items={verseItems} index={v} onChange={setVerse} />
+        </div>
+        <div className="goto-filters">
+          <div className="seg" role="group" aria-label={t('Books')}>
+            {([['all', t('All')], ['ot', t('OT')], ['nt', t('NT')]] as [BookSet, string][]).map(([k, label]) => (
+              <button key={k} className={prefs.set === k ? 'on' : ''} aria-pressed={prefs.set === k} onClick={() => pick({ set: k })}>{label}</button>
+            ))}
+          </div>
+          <div className="seg" role="group" aria-label={t('Order')}>
+            <button className={!prefs.az ? 'on' : ''} aria-pressed={!prefs.az} onClick={() => pick({ az: false })}>{t('Bible')}</button>
+            <button className={prefs.az ? 'on' : ''} aria-pressed={prefs.az} onClick={() => pick({ az: true })}>A–Z</button>
+          </div>
         </div>
         <button className="goto-open" onClick={() => onGo(ref)}>{t('Open {ref}', { ref: formatReference(ref) })}</button>
       </div>
