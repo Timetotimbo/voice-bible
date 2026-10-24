@@ -32,7 +32,7 @@ import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
 import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
-import { FaceBubble, LiveSheet, useLiveMode } from './LiveMode';
+import { FaceBubble, LiveSheet, useLiveMode, type BubbleShape } from './LiveMode';
 import { PresentHost, presentVerses } from './Present';
 
 type View =
@@ -221,6 +221,9 @@ export default function App() {
   const live = useLiveMode();
   const [liveSheet, setLiveSheet] = useState(false);
   const [presenting, setPresenting] = useState(false);
+  // While the Live mode sheet is open, the bubble previews what's picked there before it's saved
+  const [faceDraft, setFaceDraft] = useState<{ face: boolean; shape: BubbleShape } | null>(null);
+  const preview = liveSheet ? faceDraft : null;
   const shownNotes = useMemo(() => (live.on ? notes.notes.filter(x => live.shown.includes(x.id)) : notes.notes), [live.on, live.shown, notes.notes]);
   // Reordering a shorter list: move next to the note that's at that place in it
   // A note made during Live mode is one you're showing
@@ -1020,6 +1023,7 @@ export default function App() {
           onStart={(shown, face, shape) => { live.update({ on: true, shown, face, shape }); setLiveSheet(false); setNotesQuery(''); }}
           onEnd={() => { live.update({ on: false }); setLiveSheet(false); }}
           onClose={() => setLiveSheet(false)}
+          onPreview={setFaceDraft}
         />
       )}
       <PresentHost
@@ -1027,7 +1031,9 @@ export default function App() {
         onFace={() => live.update({ presentFace: !live.presentFace })}
         onShowing={setPresenting}
       />
-      {live.on && live.face && (live.presentFace || !presenting) && <FaceBubble shape={live.shape} onError={faceError} />}
+      {(preview ? preview.face : live.on && live.face && (live.presentFace || !presenting)) && (
+        <FaceBubble shape={preview?.shape ?? live.shape} onError={faceError} />
+      )}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
       {showNowPlaying && reader.current && (
@@ -1582,9 +1588,11 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, query, onQuer
       {live !== null && (
         <div className="live-bar">
           <span><b>{t('● Live mode')}</b> · {n('{n} note shown', '{n} notes shown', live)}</span>
-          <button className="live-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
-          <button onClick={onLive}>{t('Change')}</button>
-          <button className="live-end" onClick={onEndLive}>{t('End')}</button>
+          <div className="live-btns">
+            <button className="live-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
+            <button onClick={onLive}>{t('Change')}</button>
+            <button className="live-end" onClick={onEndLive}>{t('End')}</button>
+          </div>
         </div>
       )}
       {notes.length > 0 && (

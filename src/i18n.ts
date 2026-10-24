@@ -191,7 +191,7 @@ const ES: Record<string, string> = {
   'Live mode': 'Modo en vivo',
   'For teaching on a livestream. Only the notes you tick show in the app; the rest are hidden until you end Live mode. Set this up before your camera is on the screen.': 'Para enseñar en una transmisión en vivo. Solo las notas que marques se ven en la app; las demás quedan ocultas hasta que termines el modo en vivo. Prepáralo antes de apuntar la cámara a la pantalla.',
   'Show my face': 'Mostrar mi cara',
-  'A camera bubble over every screen. Pick its shape below. Drag it to move it, tap it to change its size.': 'Una burbuja con tu cámara sobre todas las pantallas. Elige su forma abajo. Arrástrala para moverla y tócala para cambiar su tamaño.',
+  'A camera bubble over every screen. Pick its shape below and see it right away. Drag it to move it, tap it to change its size.': 'Una burbuja con tu cámara sobre todas las pantallas. Elige su forma abajo y mírala al instante. Arrástrala para moverla y tócala para cambiar su tamaño.',
   'Notes people can see: {n}': 'Notas que se ven: {n}',
   'No notes yet.': 'Aún no hay notas.',
   'End Live mode': 'Terminar modo en vivo',

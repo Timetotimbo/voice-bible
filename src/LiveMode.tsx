@@ -34,16 +34,18 @@ export function useLiveMode() {
 }
 
 /** Picking the notes people can see, and the face bubble. Set it up before the camera is on the screen. */
-export function LiveSheet({ notes, live, onStart, onEnd, onClose }: {
+export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   notes: Note[];
   live: Live;
   onStart: (shown: string[], face: boolean, shape: BubbleShape) => void;
   onEnd: () => void;
   onClose: () => void;
+  onPreview: (draft: { face: boolean; shape: BubbleShape }) => void; // shows the bubble as picked, before Save
 }) {
   const [picked, setPicked] = useState(() => new Set(live.shown.filter(id => notes.some(n => n.id === id))));
   const [face, setFace] = useState(live.face);
   const [shape, setShape] = useState(live.shape);
+  useEffect(() => onPreview({ face, shape }), [face, shape, onPreview]);
   const toggle = (id: string) => setPicked(p => {
     const next = new Set(p);
     if (!next.delete(id)) next.add(id);
@@ -59,7 +61,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose }: {
         <p className="voice-help live-help">{t('For teaching on a livestream. Only the notes you tick show in the app; the rest are hidden until you end Live mode. Set this up before your camera is on the screen.')}</p>
 
         <label className="set-row">
-          <span>{t('Show my face')}<small className="set-sub">{t('A camera bubble over every screen. Pick its shape below. Drag it to move it, tap it to change its size.')}</small></span>
+          <span>{t('Show my face')}<small className="set-sub">{t('A camera bubble over every screen. Pick its shape below and see it right away. Drag it to move it, tap it to change its size.')}</small></span>
           <input type="checkbox" role="switch" className="switch" checked={face} onChange={e => setFace(e.target.checked)} />
         </label>
         {face && (

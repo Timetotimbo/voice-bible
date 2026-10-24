@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.50.0 — 2026-10-24
+- **See your face bubble while you set it up.** In the Live mode sheet, turning Show my face on and picking a shape shows the bubble right away, before you tap Save or Start. Close the sheet without saving and it goes back to how it was.
+- On a narrow screen the Live bar's buttons move to their own row instead of running off the edge.
+
 ## v2.49.1 — 2026-10-24
 - **End Live mode in one tap.** The red Live bar on the Notes tab has its own red **End** button, so you don't have to open Change first.
 
