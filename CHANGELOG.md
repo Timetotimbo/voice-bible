@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.52.0 — 2026-10-24
+- **Zoom in on your face.** In the Live mode sheet, under the bubble shapes, **Zoom in on my face** has 1× (no zoom), 1.5×, 2× and 2.5×. It fills the bubble with more of you and less of the room behind you, in every shape and size, and you see it in the bubble as you pick.
+
 ## v2.51.0 — 2026-10-24
 - **An extra-small face bubble.** Tapping the bubble now goes extra small → small → medium → large. Extra small is about two-thirds the old smallest, in every shape (a narrow extra-small bubble is a slim little oval).
 

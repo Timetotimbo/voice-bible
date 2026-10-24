@@ -198,6 +198,7 @@ const ES: Record<string, string> = {
   'Start Live mode': 'Empezar modo en vivo',
   'Couldn’t start the camera. Allow camera access for Voice Bible, then turn Show my face on again.': 'No se pudo abrir la cámara. Permite el acceso a la cámara para Voice Bible y vuelve a activar Mostrar mi cara.',
   'Your camera': 'Tu cámara',
+  'Zoom in on my face': 'Acercar mi cara',
   'Bubble shape': 'Forma de la burbuja',
   'Circle': 'Círculo',
   'Narrow': 'Estrecha',

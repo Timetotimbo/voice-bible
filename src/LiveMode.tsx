@@ -8,13 +8,16 @@ import { noteTitle, type Note } from './useNotes';
  * Remembered on this device, so a reload in the middle of a live doesn't show every note again.
  */
 // presentFace: whether the bubble stays on while verses are presented full screen (📷 in Present)
-export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; presentFace: boolean };
+// zoom: how far the camera is zoomed in on your face, so less of the room behind shows
+export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; presentFace: boolean };
 type BubbleSize = 'xs' | 's' | 'm' | 'l';
 /** Round, a narrower oval, or a circle with its top or bottom third cut off flat, to show less of the room */
 export type BubbleShape = 'round' | 'narrow' | 'cut-top' | 'cut-bottom';
 
 const KEY = 'liveMode';
-const OFF: Live = { on: false, shown: [], face: true, shape: 'round', presentFace: true };
+const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, presentFace: true };
+const ZOOMS = [1, 1.5, 2, 2.5];
+export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number };
 const SHAPES: { id: BubbleShape; label: string }[] = [
   { id: 'round', label: 'Circle' },
   { id: 'narrow', label: 'Narrow' },
@@ -37,15 +40,16 @@ export function useLiveMode() {
 export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   notes: Note[];
   live: Live;
-  onStart: (shown: string[], face: boolean, shape: BubbleShape) => void;
+  onStart: (shown: string[], look: FaceLook) => void;
   onEnd: () => void;
   onClose: () => void;
-  onPreview: (draft: { face: boolean; shape: BubbleShape }) => void; // shows the bubble as picked, before Save
+  onPreview: (draft: FaceLook) => void; // shows the bubble as picked, before Save
 }) {
   const [picked, setPicked] = useState(() => new Set(live.shown.filter(id => notes.some(n => n.id === id))));
   const [face, setFace] = useState(live.face);
   const [shape, setShape] = useState(live.shape);
-  useEffect(() => onPreview({ face, shape }), [face, shape, onPreview]);
+  const [zoom, setZoom] = useState(live.zoom);
+  useEffect(() => onPreview({ face, shape, zoom }), [face, shape, zoom, onPreview]);
   const toggle = (id: string) => setPicked(p => {
     const next = new Set(p);
     if (!next.delete(id)) next.add(id);
@@ -74,6 +78,16 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
             ))}
           </div>
         )}
+        {face && (
+          <div className="live-zoom" role="radiogroup" aria-label={t('Zoom in on my face')}>
+            <span>{t('Zoom in on my face')}</span>
+            {ZOOMS.map(z => (
+              <button key={z} role="radio" aria-checked={zoom === z} className={zoom === z ? 'on' : ''} onClick={() => setZoom(z)}>
+                {`${z}×`}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="import-bar">
           <span>{t('Notes people can see: {n}', { n: picked.size })}</span>
@@ -93,7 +107,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
 
         <div className="live-actions">
           {live.on && <button onClick={onEnd}>{t('End Live mode')}</button>}
-          <button className="primary" onClick={() => onStart([...picked], face, shape)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
+          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom })}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
         </div>
       </div>
     </div>
@@ -104,7 +118,7 @@ const SIZES: BubbleSize[] = ['xs', 's', 'm', 'l'];
 const POS_KEY = 'liveBubble';
 
 /** Your camera in a circle (or the shape picked), mirrored like a selfie. Drag to move; tap to go extra small → small → medium → large. */
-export function FaceBubble({ shape, onError }: { shape: BubbleShape; onError: (text: string) => void }) {
+export function FaceBubble({ shape, zoom, onError }: { shape: BubbleShape; zoom: number; onError: (text: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [spot, setSpot] = useState<{ x: number; y: number; size: BubbleSize }>(() => {
     try { return { x: 16, y: 120, size: 'm', ...JSON.parse(localStorage.getItem(POS_KEY) || '{}') }; } catch { return { x: 16, y: 120, size: 'm' }; }
@@ -169,7 +183,7 @@ export function FaceBubble({ shape, onError }: { shape: BubbleShape; onError: (t
       role="img"
       aria-label={t('Your camera')}
     >
-      <video ref={video} autoPlay muted playsInline />
+      <video ref={video} autoPlay muted playsInline style={{ transform: `scale(${-zoom}, ${zoom})` }} />
     </div>
   );
 }
