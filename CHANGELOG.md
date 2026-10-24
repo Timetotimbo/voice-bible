@@ -2,6 +2,20 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.63.0 — 2026-10-24
+**Reading aloud**
+- **⟲ Back and ⏭ Next verse** in the play pill. ⟲ goes back 10 seconds of a Heart recording (into the verse before, if that's where it lands); with a device voice it goes to the start of the verse, or the verse before if it had only just begun. ⏭ goes on to the next verse (or paragraph of a note).
+- **Tap a word to read on from there.** While a chapter is read aloud, tap any word in it and reading jumps there. (While reading, tapping no longer picks verses or opens word study; stop reading first for those.)
+- **⏮ ⏭ on the lock screen** and in the notification move back and forward the same way.
+- On a phone, the pill shows just "■ 5:1" so the new buttons fit.
+
+**Presenting**
+- **Swipe** left or right on a slide to go forward or back.
+- **Speaker notes.** In the run sheet, **🗒 Add a speaker note** under any item ("tell the Naaman story here"). Only you see it: on the phone remote, on the presenter screen when a second screen is open, or on this screen with **🗒 Notes**.
+- **Several run sheets.** Make one for each sermon or class with **+ New**, name it ("Sunday", "Bible study"), and switch between them. Things you add go to the one that's open. Your existing run sheet is kept as the first.
+- **Aa slide style**: text size (Fill, Large, Medium), colours (app colours, gold on black, white on black, white on blue, black on white), and whether a verse's reference comes before or after it. The slide shows each change as you pick it, and the second screen follows.
+- **⬛ Blank** blacks out the screen (and the second screen) while you talk. Tap the black screen or Blank again to bring the slide back. Also on the phone remote, and the B key on a computer.
+
 ## v2.62.0 — 2026-10-24
 - **Pause carries on from the word it stopped on.** Before, Play after a pause started the verse (or paragraph) over. Now the Heart recordings carry on a moment before the word where you paused, without repeating the reference. Device voices and Heart for notes carry on from the word that was highlighted.
 

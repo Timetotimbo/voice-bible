@@ -7,49 +7,82 @@ import { noteTitle, type Note } from './useNotes';
 
 /**
  * The run sheet: verses and notes (or words picked from one) lined up in the order you'll teach them, then
- * presented one after another, so nothing has to be found in the middle of a live. Remembered on this device.
+ * presented one after another, so nothing has to be found in the middle of a live. There can be several, by name
+ * ("Sunday", "Bible study"); one is open at a time. Remembered on this device.
  */
-export type RunItem = { id: string } & (
+// say: a speaker note, seen only by you (on the phone remote, the presenter view, or with 🗒 Notes)
+export type RunItem = { id: string; say?: string } & (
   | { kind: 'verses'; verses: VerseHit[] }
   | { kind: 'note'; noteId: string } // the whole note, as it is when it's presented
   | { kind: 'words'; noteId: string; text: string } // words picked from a note
 );
 type NewItem = RunItem extends infer I ? (I extends RunItem ? Omit<I, 'id'> : never) : never;
 
-const KEY = 'vb_run_sheet';
+type Sheet = { id: string; name: string; items: RunItem[] };
+type Sheets = { active: string; sheets: Sheet[] };
+const KEY = 'vb_run_sheets';
+const OLD_KEY = 'vb_run_sheet'; // before there could be more than one
 const EVENT = 'vb-run-sheet';
+const newId = () => Math.random().toString(36).slice(2, 10);
 
-function load(): RunItem[] {
+function loadAll(): Sheets {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    const all: Sheets | null = JSON.parse(localStorage.getItem(KEY) ?? 'null');
+    if (all?.sheets?.length) return all.sheets.some(s => s.id === all.active) ? all : { ...all, active: all.sheets[0].id };
+    const items: RunItem[] = JSON.parse(localStorage.getItem(OLD_KEY) ?? '[]');
+    return { active: 'main', sheets: [{ id: 'main', name: t('Run sheet'), items }] };
   } catch {
-    return [];
+    return { active: 'main', sheets: [{ id: 'main', name: t('Run sheet'), items: [] }] };
   }
 }
-function save(items: RunItem[]) {
+function saveAll(all: Sheets) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(items));
+    localStorage.setItem(KEY, JSON.stringify(all));
+    localStorage.removeItem(OLD_KEY);
   } catch {
     // not remembered; it still works for now
   }
-  window.dispatchEvent(new CustomEvent(EVENT, { detail: items }));
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: all }));
+}
+const activeOf = (all: Sheets) => all.sheets.find(s => s.id === all.active)!;
+const load = () => activeOf(loadAll()).items;
+/** Saves the open run sheet's items. */
+function save(items: RunItem[]) {
+  const all = loadAll();
+  saveAll({ ...all, sheets: all.sheets.map(s => (s.id === all.active ? { ...s, items } : s)) });
 }
 
 /** Adds to the end of the run sheet, from anywhere in the app. */
 export function addToRunSheet(item: NewItem) {
-  const items = [...load(), { ...item, id: Math.random().toString(36).slice(2, 10) } as RunItem];
+  const items = [...load(), { ...item, id: newId() } as RunItem];
   save(items);
   window.dispatchEvent(new CustomEvent(`${EVENT}-added`, { detail: items.length }));
 }
 
 export function useRunSheet() {
-  const [items, setItems] = useState(load);
+  const [all, setAll] = useState(loadAll);
   useEffect(() => {
-    const on = (e: Event) => setItems((e as CustomEvent<RunItem[]>).detail);
+    const on = (e: Event) => setAll((e as CustomEvent<Sheets>).detail);
     window.addEventListener(EVENT, on);
     return () => window.removeEventListener(EVENT, on);
   }, []);
-  return { items, set: save };
+  const sheet = activeOf(all);
+  return {
+    items: sheet.items,
+    set: save,
+    sheets: all.sheets,
+    sheet,
+    open: (id: string) => saveAll({ ...all, active: id }),
+    create: () => {
+      const id = newId();
+      saveAll({ active: id, sheets: [...all.sheets, { id, name: t('Run sheet {n}', { n: all.sheets.length + 1 }), items: [] }] });
+    },
+    rename: (name: string) => saveAll({ ...all, sheets: all.sheets.map(s => (s.id === all.active ? { ...s, name } : s)) }),
+    remove: () => {
+      const rest = all.sheets.filter(s => s.id !== all.active);
+      if (rest.length) saveAll({ active: rest[0].id, sheets: rest });
+    },
+  };
 }
 
 /** Listens for additions (to say so), wherever they came from. */
@@ -96,8 +129,10 @@ export function RunSheetView({ notes, onPresent, onClose }: {
   onPresent: (slides: Slide[], at: number, sections: Section[]) => void;
   onClose: () => void;
 }) {
-  const { items, set } = useRunSheet();
+  const { items, set, sheets, sheet, open, create, rename, remove } = useRunSheet();
   const [adding, setAdding] = useState(false); // choosing a note to add
+  const [saying, setSaying] = useState<string | null>(null); // the item whose speaker note is being written
+  const setSay = (id: string, say: string) => set(items.map(x => (x.id === id ? { ...x, say } : x)));
   const move = (i: number, by: number) => {
     const next = [...items];
     [next[i], next[i + by]] = [next[i + by], next[i]];
@@ -141,7 +176,7 @@ export function RunSheetView({ notes, onPresent, onClose }: {
   };
   const present = (i: number) => {
     const { slides, starts } = runSheetSlides(items, notes);
-    const sections = items.map((item, j) => ({ title: label(item, notes).main, start: starts[j] })).filter((_, j) => starts[j] < (starts[j + 1] ?? slides.length));
+    const sections = items.map((item, j) => ({ title: label(item, notes).main, start: starts[j], say: item.say })).filter((_, j) => starts[j] < (starts[j + 1] ?? slides.length));
     if (slides.length) onPresent(slides, starts[i] ?? 0, sections);
   };
   return (
@@ -150,6 +185,22 @@ export function RunSheetView({ notes, onPresent, onClose }: {
         <div className="sheet-head">
           <h2>{t('Run sheet')}</h2>
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
+        </div>
+        <div className="run-sheets" role="tablist" aria-label={t('Your run sheets')}>
+          {sheets.map(s => (
+            <button key={s.id} role="tab" aria-selected={s.id === sheet.id} className={s.id === sheet.id ? 'on' : ''} onClick={() => open(s.id)}>
+              {s.name || t('Untitled')} <small>{s.items.length}</small>
+            </button>
+          ))}
+          <button className="run-new" onClick={create}>{t('+ New')}</button>
+        </div>
+        <div className="run-name">
+          <input value={sheet.name} placeholder={t('Name, like Sunday or Bible study')} aria-label={t('Run sheet name')} onChange={e => rename(e.target.value)} />
+          {sheets.length > 1 && (
+            <button onClick={() => confirm(t('Delete the run sheet “{name}”? The notes in it are kept.', { name: sheet.name || t('Untitled') })) && remove()}>
+              {t('Delete')}
+            </button>
+          )}
         </div>
         <p className="voice-help live-help">
           {t('Line up what you’ll teach. Add verses with + Run sheet when they’re picked, and a note (or words picked in it) with ▶ in the note. Drag ⠿ to change the order. Present goes through them in order; tap an item to start there.')}
@@ -167,7 +218,7 @@ export function RunSheetView({ notes, onPresent, onClose }: {
                 const on = items.some(i => i.kind === 'note' && i.noteId === nt.id);
                 return (
                   <li key={nt.id}>
-                    <button className="sheet-item run-item" onClick={() => !on && set([...items, { id: Math.random().toString(36).slice(2, 10), kind: 'note', noteId: nt.id }])}>
+                    <button className="sheet-item run-item" onClick={() => !on && set([...items, { id: newId(), kind: 'note', noteId: nt.id }])}>
                       <span>{on ? '✓' : '+'} {noteTitle(nt)}</span>
                     </button>
                   </li>
@@ -194,6 +245,14 @@ export function RunSheetView({ notes, onPresent, onClose }: {
                 <button className="run-btn" aria-label={t('Move up')} disabled={i === 0} onClick={() => move(i, -1)}>▲</button>
                 <button className="run-btn" aria-label={t('Move down')} disabled={i === items.length - 1} onClick={() => move(i, 1)}>▼</button>
                 <button className="run-btn" aria-label={t('Remove')} onClick={() => set(items.filter(x => x.id !== item.id))}>✕</button>
+                {saying === item.id ? (
+                  <textarea className="run-say-edit" autoFocus rows={2} value={item.say ?? ''} placeholder={t('Only you see this: on your phone remote, or with 🗒 Notes while presenting')}
+                    onChange={e => setSay(item.id, e.target.value)} onBlur={() => setSaying(null)} />
+                ) : (
+                  <button className={`run-say${item.say?.trim() ? ' has' : ''}`} onClick={() => setSaying(item.id)}>
+                    {item.say?.trim() ? `🗒 ${item.say.trim()}` : t('🗒 Add a speaker note')}
+                  </button>
+                )}
               </li>
             );
           })}

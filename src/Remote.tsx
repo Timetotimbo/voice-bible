@@ -51,7 +51,13 @@ export function RemotePage({ code }: { code: string }) {
       <div className="remote-now">
         {on ? state!.now : t('Open Present on the other screen (verses, a note or the run sheet) and the slides show here.')}
       </div>
+      {on && state!.say && <div className="remote-say">🗒 {state!.say}</div>}
       {on && <div className="remote-next"><b>{t('Next:')}</b> {state!.next || t('This is the last slide')}</div>}
+      {on && (
+        <button className={`remote-blank${state!.blank ? ' on' : ''}`} aria-pressed={!!state!.blank} onClick={() => { link.current?.send('blank', {}); navigator.vibrate?.(15); }}>
+          {t(state!.blank ? '⬛ Screen is blank · tap to show it' : '⬛ Blank the screen')}
+        </button>
+      )}
       <div className="remote-btns">
         <button aria-label={t('Previous')} disabled={!on || state!.at === 0} onClick={() => go(-1)}>‹</button>
         <button aria-label={t('Next')} disabled={!on || state!.at >= state!.total - 1} onClick={() => go(1)}>›</button>

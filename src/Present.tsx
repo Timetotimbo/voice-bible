@@ -20,8 +20,25 @@ export type Slide =
   | { kind: 'verses'; ref: string; verses: VerseHit[] }
   | { kind: 'text'; text: string; title?: boolean; colorFrom?: number };
 
-/** A run of slides that belong together (one run sheet item), shown as a heading in the ☰ Slides list. */
-export type Section = { title: string; start: number };
+/** A run of slides that belong together (one run sheet item): a heading in the ☰ Slides list, and its speaker note. */
+export type Section = { title: string; start: number; say?: string };
+
+/**
+ * How slides look, chosen with Aa and remembered: the biggest type that fits or a set size, the colours, and
+ * whether a verse's reference comes before it or after.
+ */
+export type SlideStyle = { size: 'fill' | 'large' | 'medium'; theme: 'app' | 'gold' | 'white' | 'blue' | 'light'; ref: 'bottom' | 'top' };
+const STYLE_KEY = 'vb_slide_style';
+const DEFAULT_STYLE: SlideStyle = { size: 'fill', theme: 'app', ref: 'bottom' };
+function loadStyle(): SlideStyle {
+  try {
+    return { ...DEFAULT_STYLE, ...JSON.parse(localStorage.getItem(STYLE_KEY) ?? '{}') };
+  } catch {
+    return DEFAULT_STYLE;
+  }
+}
+// A set size is a share of the slide's height for a line of type; Fill has no limit
+const SIZE_CAP = { fill: 1, large: 0.13, medium: 0.085 };
 
 export function presentSlides(slides: Slide[], at = 0, sections: Section[] = []) {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: { slides, at, sections } }));
@@ -98,16 +115,20 @@ export function PresentHost({ face, onFace, onShowing }: { face: boolean | null;
   return <Slides slides={shown} sections={sections} at={Math.min(at, shown.length - 1)} onAt={setAt} onClose={() => setShown(null)} face={face} onFace={onFace} />;
 }
 
-/** One slide in the biggest type that fits its box. onTap: tapping the left third goes back, the rest forward. */
-export function SlideView({ slide, onTap }: { slide: Slide; onTap?: (by: number) => void }) {
+/**
+ * One slide in the biggest type that fits its box (up to the style's size). onTap: tapping the left third goes
+ * back, the rest forward; swiping left goes forward, right goes back.
+ */
+export function SlideView({ slide, onTap, look = DEFAULT_STYLE }: { slide: Slide; onTap?: (by: number) => void; look?: SlideStyle }) {
   const box = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
+  const swipe = useRef<{ x: number; y: number; done: boolean } | null>(null);
 
   // The biggest font size where the words fit the box, found by halving the gap
   const fit = useCallback(() => {
     const b = box.current, el = text.current;
     if (!b || !el) return;
-    let lo = 14, hi = 220;
+    let lo = 14, hi = Math.max(lo + 2, Math.min(220, b.clientHeight * SIZE_CAP[look.size]));
     while (hi - lo > 1) {
       const mid = (lo + hi) / 2;
       el.style.fontSize = `${mid}px`;
@@ -116,7 +137,7 @@ export function SlideView({ slide, onTap }: { slide: Slide; onTap?: (by: number)
     }
     el.style.fontSize = `${lo}px`;
   }, []);
-  useLayoutEffect(fit, [fit, slide]);
+  useLayoutEffect(fit, [fit, slide, look]);
   useEffect(() => {
     const ro = new ResizeObserver(fit);
     if (box.current) ro.observe(box.current);
@@ -128,7 +149,18 @@ export function SlideView({ slide, onTap }: { slide: Slide; onTap?: (by: number)
     <div
       className="present-box"
       ref={box}
+      onPointerDown={e => { swipe.current = { x: e.clientX, y: e.clientY, done: false }; }}
+      onPointerUp={e => {
+        const s = swipe.current;
+        if (!s || !onTap) return;
+        const dx = e.clientX - s.x, dy = e.clientY - s.y;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          s.done = true; // the click that follows isn't a tap
+          onTap(dx < 0 ? 1 : -1);
+        }
+      }}
       onClick={e => {
+        if (swipe.current?.done) return void (swipe.current = null);
         if (!onTap) return;
         const r = e.currentTarget.getBoundingClientRect();
         onTap(e.clientX < r.left + r.width / 3 ? -1 : 1);
@@ -137,6 +169,7 @@ export function SlideView({ slide, onTap }: { slide: Slide; onTap?: (by: number)
       <div className="present-text" ref={text}>
         {slide.kind === 'verses' ? (
           <>
+            {look.ref === 'top' && <p className="present-ref ref-top">{slide.ref}</p>}
             <p>
               {slide.verses.map(v => (
                 <span key={v.verse}>
@@ -145,7 +178,7 @@ export function SlideView({ slide, onTap }: { slide: Slide; onTap?: (by: number)
                 </span>
               ))}
             </p>
-            <p className="present-ref">{slide.ref}</p>
+            {look.ref !== 'top' && <p className="present-ref">{slide.ref}</p>}
           </>
         ) : (
           <p className={slide.title ? 'present-title' : undefined}>
@@ -200,12 +233,29 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
 
   // ☰ Slides: every slide in a list, to jump to any of them; the presentation carries on underneath
   const [jump, setJump] = useState(false);
+  // Blank: the screen goes black (on the second screen too) while you talk; tap it or Blank again to bring it back
+  const [blank, setBlank] = useState(false);
+  // Aa: how the slides look
+  const [look, setLook] = useState(loadStyle);
+  const [styling, setStyling] = useState(false);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STYLE_KEY, JSON.stringify(look));
+    } catch {
+      // just for now
+    }
+  }, [look]);
+  // The speaker note of the run sheet item on screen: on the phone remote, the presenter view, and here with 🗒
+  const say = [...sections].reverse().find(s => s.start <= at)?.say?.trim() ?? '';
+  const hasSay = sections.some(s => s.say?.trim());
+  const [showSay, setShowSay] = useState(() => remembered('vb_present_say'));
+  useEffect(() => remember('vb_present_say', showSay), [showSay]);
 
   // Second screen: a window showing only the slide; this one becomes the presenter view (next slide, timer)
   const [display, setDisplay] = useState(false);
   const channel = useRef<BroadcastChannel | null>(null);
-  const state = useRef({ slides, at });
-  state.current = { slides, at };
+  const state = useRef({ slides, at, style: look, blank });
+  state.current = { slides, at, style: look, blank };
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
     const ch = new BroadcastChannel(DISPLAY_CHANNEL);
@@ -224,16 +274,18 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
       channel.current = null;
     };
   }, []);
-  useEffect(() => channel.current?.postMessage({ type: 'state', slides, at } satisfies DisplayMsg), [slides, at]);
+  useEffect(() => channel.current?.postMessage({ type: 'state', slides, at, style: look, blank } satisfies DisplayMsg), [slides, at, look, blank]);
 
+  const sayRef = useRef(say);
+  sayRef.current = say;
   // Phone remote: on once it's been set up on this device; the QR code opens the remote on the phone
   const [remoteOn, setRemoteOn] = useState(() => remembered('vb_remote_on'));
   const [qr, setQr] = useState(false);
   const [phone, setPhone] = useState(false); // a phone has joined
   const link = useRef<Awaited<ReturnType<typeof joinRemote>> | null>(null);
   const remoteState = (): RemoteState => {
-    const { slides: ss, at: i } = state.current;
-    return { at: i, total: ss.length, now: slideLine(ss[i]).slice(0, 400), next: slideLine(ss[i + 1]).slice(0, 200) };
+    const { slides: ss, at: i, blank: b } = state.current;
+    return { at: i, total: ss.length, now: slideLine(ss[i]).slice(0, 400), next: slideLine(ss[i + 1]).slice(0, 200), say: sayRef.current, blank: b };
   };
   useEffect(() => {
     remember('vb_remote_on', remoteOn);
@@ -241,6 +293,7 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
     let gone = false;
     joinRemote(remoteCode(), {
       go: (p: { by: number }) => goRef.current(p.by),
+      blank: () => setBlank(b => !b),
       hello: () => {
         setPhone(true);
         link.current?.send('state', remoteState());
@@ -258,7 +311,7 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
       setTimeout(() => l?.leave(), 300); // let the last message go
     };
   }, [remoteOn]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { link.current?.send('state', remoteState()); }, [slides, at]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { link.current?.send('state', remoteState()); }, [slides, at, blank, say]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The presenter's timer, from when Present opened
   const [started] = useState(() => Date.now());
@@ -271,23 +324,32 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') qr ? setQr(false) : jump ? setJump(false) : onClose();
+      if (e.key === 'Escape') qr ? setQr(false) : jump ? setJump(false) : styling ? setStyling(false) : onClose();
+      else if (e.key === 'b' || e.key === 'B' || e.key === '.') setBlank(b => !b);
       else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(1);
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [go, onClose, qr, jump]);
+  }, [go, onClose, qr, jump, styling]);
 
   const next = slides[at + 1];
   return (
-    <div className={`present${banner ? ' banner' : ''}`} role="dialog" aria-modal={!banner} aria-label={slide.kind === 'verses' ? slide.ref : t('Present')}>
+    <div className={`present${banner ? ' banner' : ''} st-${look.theme}`} role="dialog" aria-modal={!banner} aria-label={slide.kind === 'verses' ? slide.ref : t('Present')}>
       {display && !banner && (
         <div className="present-next">
           <b>{t('On the second screen')}</b> · {next ? <>{t('Next:')} {slideLine(next).slice(0, 120)}</> : t('This is the last slide')}
         </div>
       )}
-      <SlideView slide={slide} onTap={slides.length > 1 ? go : undefined} />
+      {say && (showSay || display) && <div className="present-say">🗒 {say}</div>}
+      {blank ? (
+        <button className="present-blank" aria-label={t('Show the slide again')} onClick={() => setBlank(false)}>
+          <span>{t('Blank · tap to show the slide')}</span>
+        </button>
+      ) : (
+        <SlideView slide={slide} look={look} onTap={slides.length > 1 ? go : undefined} />
+      )}
+      {styling && <StyleSheet look={look} onLook={setLook} onClose={() => setStyling(false)} />}
       <div className="present-bar">
         {(display || phone) && <span className="present-clock">⏱ {clock(Date.now() - started)}</span>}
         <button className={`present-opt${banner ? ' on' : ''}`} aria-pressed={banner} title={t('Banner: a strip across the bottom, with the app above it')} onClick={() => setBanner(!banner)}>
@@ -301,6 +363,15 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
         <button className={`present-opt${remoteOn ? ' on' : ''}`} title={t('Use your phone as the remote')} onClick={() => { setRemoteOn(true); setQr(true); }}>
           {t(phone ? '📱 Remote on' : '📱 Remote')}
         </button>
+        <button className={`present-opt${blank ? ' on' : ''}`} aria-pressed={blank} title={t('Black out the screen while you talk (B)')} onClick={() => setBlank(!blank)}>
+          {t('⬛ Blank')}
+        </button>
+        <button className="present-opt" title={t('Slide style: size, colours, where the reference goes')} onClick={() => setStyling(true)}>Aa</button>
+        {hasSay && (
+          <button className={`present-opt${showSay ? ' on' : ''}`} aria-pressed={showSay} title={t('Show your speaker notes on this screen')} onClick={() => setShowSay(!showSay)}>
+            {t('🗒 Notes')}
+          </button>
+        )}
         {slides.length > 1 && (
           <button className="present-opt" title={t('See every slide and jump to any of them')} onClick={() => setJump(true)}>{t('☰ Slides')}</button>
         )}
@@ -318,6 +389,37 @@ function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
       </div>
       {jump && <JumpList slides={slides} sections={sections} at={at} onPick={i => { onAt(i); setJump(false); }} onClose={() => setJump(false)} />}
       {qr && <RemoteQr phone={phone} onOff={() => { setRemoteOn(false); setPhone(false); setQr(false); }} onClose={() => setQr(false)} />}
+    </div>
+  );
+}
+
+const SIZES: [SlideStyle['size'], string][] = [['fill', 'Fill'], ['large', 'Large'], ['medium', 'Medium']];
+const THEMES: [SlideStyle['theme'], string][] = [['app', 'App colours'], ['gold', 'Gold on black'], ['white', 'White on black'], ['blue', 'White on blue'], ['light', 'Black on white']];
+const REFS: [SlideStyle['ref'], string][] = [['bottom', 'After the verse'], ['top', 'Before the verse']];
+
+/** Aa: the slides' size, colours and where a verse's reference goes. It sits under the slide, which shows each change. */
+function StyleSheet({ look, onLook, onClose }: { look: SlideStyle; onLook: (s: SlideStyle) => void; onClose: () => void }) {
+  const group = <K extends keyof SlideStyle>(key: K, label: string, options: [SlideStyle[K], string][]) => (
+    <div className="style-group">
+      <span>{t(label)}</span>
+      <div className="seg">
+        {options.map(([value, name]) => (
+          <button key={value} className={look[key] === value ? 'on' : ''} aria-pressed={look[key] === value} onClick={() => onLook({ ...look, [key]: value })}>
+            {key === 'theme' && <i className={`swatch st-${value}`} aria-hidden="true" />}{t(name)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <div className="style-panel" role="group" aria-label={t('Slide style')}>
+      {group('size', 'Text size', SIZES)}
+      {group('theme', 'Colours', THEMES)}
+      {group('ref', 'Verse reference', REFS)}
+      <div className="style-actions">
+        <button onClick={() => onLook(DEFAULT_STYLE)}>{t('Reset')}</button>
+        <button className="primary" onClick={onClose}>{t('Done')}</button>
+      </div>
     </div>
   );
 }
@@ -389,13 +491,13 @@ function RemoteQr({ phone, onOff, onClose }: { phone: boolean; onOff: () => void
 
 /** The second screen: just the slide, kept in step with the window presenting it. Opened with ?display=1. */
 export function PresentDisplay() {
-  const [shown, setShown] = useState<{ slides: Slide[]; at: number } | null>(null);
+  const [shown, setShown] = useState<{ slides: Slide[]; at: number; style: SlideStyle; blank: boolean } | null>(null);
   const [full, setFull] = useState(!!document.fullscreenElement);
   useEffect(() => {
     document.title = t('Voice Bible · Second screen');
     const ch = new BroadcastChannel(DISPLAY_CHANNEL);
     ch.onmessage = (e: MessageEvent<DisplayMsg>) => {
-      if (e.data.type === 'state') setShown({ slides: e.data.slides, at: e.data.at });
+      if (e.data.type === 'state') setShown({ slides: e.data.slides, at: e.data.at, style: e.data.style, blank: e.data.blank });
       else if (e.data.type === 'closed') setShown(null);
     };
     ch.postMessage({ type: 'hello' } satisfies DisplayMsg);
@@ -419,8 +521,8 @@ export function PresentDisplay() {
   }, []);
   const slide = shown?.slides[shown.at];
   return (
-    <div className="present present-display" onDoubleClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}>
-      {slide ? <SlideView slide={slide} /> : <div className="present-box"><p className="notice">{t('Second screen: waiting for Present…')}</p></div>}
+    <div className={`present present-display st-${shown?.style.theme ?? 'app'}`} onDoubleClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}>
+      {shown?.blank ? <div className="present-blank" /> : slide ? <SlideView slide={slide} look={shown!.style} /> : <div className="present-box"><p className="notice">{t('Second screen: waiting for Present…')}</p></div>}
       {!full && (
         <button className="display-full" onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}>
           {t('⛶ Full screen (or press F). Drag this window to the TV first.')}

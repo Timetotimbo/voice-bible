@@ -31,6 +31,14 @@ export function ReadingText({ text, word, sentences, sentenceFrom = 0 }: {
   return <>{out}</>;
 }
 
+/** ⟲ back (10 seconds of a recording, or to the start of the verse or paragraph) and ⏭ the next one, in the pill. */
+export function BackButton({ reader }: { reader: Reader }) {
+  return <button className="split-skip" aria-label={t('Back')} title={t('Back 10 seconds, or to the start of the verse')} onClick={reader.back}>⟲</button>;
+}
+export function NextButton({ reader }: { reader: Reader }) {
+  return <button className="split-skip split-next" aria-label={t('Next verse')} title={t('Next verse')} onClick={reader.next}>⏭</button>;
+}
+
 /** The bar pinned to the bottom while a note or chat is read aloud: Pause/Play and Stop (one pill split in two), Loop and speed. */
 export function ListenBar({ reader, total }: { reader: Reader; total: number }) {
   return (
@@ -44,9 +52,11 @@ export function ListenBar({ reader, total }: { reader: Reader; total: number }) 
         >
           <svg viewBox="0 0 24 24" aria-hidden>{reader.paused ? <path d="M7 4.5v15l13-7.5z" /> : <path d="M6 4h4.5v16H6zm7.5 0H18v16h-4.5z" />}</svg>
         </button>
+        <BackButton reader={reader} />
         <button className="split-stop" onClick={reader.stop}>
           {t('■ Stop')}{reader.textAt >= 0 && total > 1 ? t(' · {i} of {n}', { i: reader.textAt + 1, n: total }) : ''}
         </button>
+        <NextButton reader={reader} />
       </div>
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}

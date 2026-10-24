@@ -371,8 +371,17 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         for (let attempt = 1; ; attempt++) try {
           const starts = await verseStarts(voiceName, verse.book, verse.chapter);
           if (id !== run.current) return;
-          // Carrying on after pause: from a moment before where it stopped (so the word isn't clipped), without the reference
-          const resumeTime = at?.time != null ? Math.max(starts[verse.verse - 1], at.time - 0.4 * speedRef.current) : null;
+          // Carrying on from a place in the verse (after pause, ⟲, or a tapped word), without the reference: a time in
+          // the recording, or a word, found by how far into the verse's speaking time it comes
+          let resumeTime: number | null = null;
+          if (at?.time != null) resumeTime = Math.max(starts[verse.verse - 1], at.time);
+          else if (at?.char) {
+            const begin = starts[verse.verse - 1] + SPEECH_LEAD;
+            const end = starts[verse.verse] !== undefined ? starts[verse.verse] - SPEECH_TAIL
+              : mainEl!.src === chapterAudio(voiceName, verse.book, verse.chapter) && isFinite(mainEl!.duration) ? mainEl!.duration - SPEECH_GAP : undefined;
+            const share = wordSpans(verse.text).filter(s => s.start <= at.char).pop()?.at ?? 0;
+            if (end !== undefined && end > begin) resumeTime = Math.max(starts[verse.verse - 1], begin + share * (end - begin) - 0.15);
+          }
           if (sayRefsRef.current && resumeTime === null) {
             const [chapterClip, verseClip] = await refSpans(voiceName, verse);
             if (id !== run.current) return;
@@ -597,7 +606,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     if (!queue.current.length || pausedRef.current) return;
     // A verse recording playing (not a reference clip, not Heart): its exact moment; otherwise the word on screen
     const recording = !!recordedRef.current && !isText(queue.current) && !heartRun.current && !!mainEl && !mainEl.paused;
-    const point = { char: Math.max(0, wordStart.current), time: recording ? mainEl!.currentTime : null };
+    // (a moment before it, so the word isn't clipped)
+    const point = { char: Math.max(0, wordStart.current), time: recording ? Math.max(0, mainEl!.currentTime - 0.4 * speedRef.current) : null };
     run.current++;
     synth?.cancel();
     endSegment?.();
@@ -610,6 +620,36 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   }, [unfollow, showWord, setPause]);
   const resume = useCallback(() => {
     if (pausedRef.current && queue.current.length) play(queue.current, index.current, pausedAt.current);
+  }, [play]);
+
+  /** Reads on from a word (a character in the verse) of the verse at `i` in what's being read. */
+  const jump = useCallback((i: number, char = 0) => {
+    if (queue.current[i]) play(queue.current, i, char > 0 ? { char, time: null } : null);
+  }, [play]);
+  /** ⏭: on to the next verse (or paragraph). */
+  const next = useCallback(() => {
+    if (index.current + 1 < queue.current.length) play(queue.current, index.current + 1);
+  }, [play]);
+  /**
+   * ⟲: a recording goes back 10 seconds of listening (into the verse before, if that's where it lands). A device
+   * voice goes back to the start of the verse, or to the verse before when it had only just begun.
+   */
+  const back = useCallback(async () => {
+    const q = queue.current, i = index.current, verse = q[i];
+    if (!verse) return;
+    const voiceName = recordedRef.current;
+    const now = !voiceName || isText(q) || heartRun.current || !mainEl ? null
+      : pausedRef.current ? pausedAt.current?.time ?? null : !mainEl.paused ? mainEl.currentTime : null;
+    if (voiceName && now !== null) {
+      const starts = await verseStarts(voiceName, verse.book, verse.chapter);
+      const target = now - 10 * speedRef.current;
+      let j = i;
+      while (j > 0 && q[j - 1].book === verse.book && q[j - 1].chapter === verse.chapter && q[j - 1].verse === q[j].verse - 1 && starts[q[j].verse - 1] > target) j--;
+      play(q, j, { char: 0, time: Math.max(target, starts[q[j].verse - 1]) });
+      return;
+    }
+    const char = pausedRef.current ? pausedAt.current?.char ?? 0 : wordStart.current;
+    play(q, char > 15 ? i : Math.max(0, i - 1));
   }, [play]);
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
@@ -673,7 +713,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
-    const handlers: [MediaSessionAction, () => void][] = [['pause', pause], ['play', resume], ['stop', stop]];
+    // ⏮ ⏭ on the lock screen and in the notification move a verse (⏮ goes back like ⟲)
+    const handlers: [MediaSessionAction, () => void][] = [['pause', pause], ['play', resume], ['stop', stop], ['previoustrack', back], ['nexttrack', next], ['seekbackward', back]];
     const actions = handlers.map(([a]) => a);
     for (const [a, run] of handlers) {
       try {
@@ -689,7 +730,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         // ignore
       }
     });
-  }, [stop, pause, resume]);
+  }, [stop, pause, resume, back, next]);
 
   const restart = useCallback(() => {
     if (queue.current.length && !pausedRef.current) play(queue.current, index.current);
@@ -767,7 +808,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   }, []);
 
   return { supported: !!synth || !!mainEl, language, playing, current, word, repeat, setRepeat, sayRefs, setSayRefs, speed, setSpeed,
-    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop, pause, resume, paused,
+    voices, voice, voiceId, recordedVoice, setVoice, preview, refreshVoices, play, playText, stop, pause, resume, paused, jump, back, next,
     /** Whether a note or chat can be read aloud (it needs a device voice) */
     canReadText: !!synth || (!!recordedVoice && heartTextSaved()),
     /** The paragraph of text being read (0-based), or -1 */

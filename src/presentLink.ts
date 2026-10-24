@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/realtime-js';
-import type { Slide } from './Present';
+import type { Slide, SlideStyle } from './Present';
 
 /**
  * Present on other screens. A second window (on the TV or projector) shows just the slide while this one becomes
@@ -13,7 +13,7 @@ const SUPABASE_KEY = 'sb_publishable_T-3IqHtHVZe4S_pqZAlM4g_9HVqu6J9';
 
 export type DisplayMsg =
   | { type: 'hello' } // the display window opened and wants the slides
-  | { type: 'state'; slides: Slide[]; at: number }
+  | { type: 'state'; slides: Slide[]; at: number; style: SlideStyle; blank: boolean }
   | { type: 'go'; by: number } // a key pressed on the display window
   | { type: 'closed' }; // Present closed
 export const DISPLAY_CHANNEL = 'vb-display';
@@ -29,7 +29,8 @@ export function slideLine(s: Slide | undefined): string {
   return s.kind === 'verses' ? `${s.ref} · ${s.verses.map(v => v.text).join(' ')}` : s.text;
 }
 
-export type RemoteState = { at: number; total: number; now: string; next: string };
+// say: the speaker note for the run sheet item on screen; blank: the screen is blanked
+export type RemoteState = { at: number; total: number; now: string; next: string; say?: string; blank?: boolean };
 
 const CODE_KEY = 'vb_remote_code';
 /** This device's remote code, made once and kept, so a phone's saved link keeps working. */

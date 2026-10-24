@@ -2,7 +2,7 @@ import { VerseNotifySheet, intervalLabel } from './VerseNotifySheet';
 import { loadSettings, syncVersePush } from './versePush';
 import { HEART_TEXT_MB, canHeartText, loadHeartText, removeHeartText, useHeartText } from './heartText';
 import { createPortal } from 'react-dom';
-import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { bookName, bookNames, setBookLanguage } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
@@ -27,7 +27,7 @@ import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
 import { combineBackup, describeBackup, makeBackup, readBackup, restoreBackup } from './backup';
 import { SPEEDS, TEXT_BOOK, describeVoice, useReader, voiceName } from './useReader';
-import { ReadingText, type Listen } from './ReadAloud';
+import { BackButton, NextButton, ReadingText, type Listen } from './ReadAloud';
 import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
 import { findAll } from './NoteRefs';
@@ -110,6 +110,18 @@ function Highlight({ text, pattern }: { text: string; pattern: RegExp | null }):
  * Verse text whose translated words can be tapped to study the Hebrew or Greek behind them. Without
  * `onWord` (inside something already tappable) it only highlights the words translating `mark`.
  */
+/** How many characters of `box`'s text come before the point (x, y), or 0 if it isn't in it. */
+function charAtPoint(box: Element | null, x: number, y: number): number {
+  const pos = (document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null }).caretPositionFromPoint?.(x, y);
+  const range = pos ? null : document.caretRangeFromPoint?.(x, y);
+  const node = pos ? pos.offsetNode : range?.startContainer;
+  if (!box || !node || !box.contains(node)) return 0;
+  const before = document.createRange();
+  before.setStart(box, 0);
+  before.setEnd(node, pos ? pos.offset : range!.startOffset);
+  return before.toString().length;
+}
+
 function TaggedText({ text, tags, mark, onWord }: {
   text: string;
   tags: Tag[];
@@ -301,9 +313,10 @@ export default function App() {
       speechRef.current.stop();
     }
   };
-  const readAloud = (verses: VerseHit[]) => {
+  // char: start at that word of the first verse (a tapped word)
+  const readAloud = (verses: VerseHit[], char = 0) => {
     pauseMic();
-    reader.play(verses);
+    reader.play(verses, 0, char ? { char, time: null } : null);
   };
   // A chapter (or verses) being read keeps playing while you go to your notes, search or other chapters;
   // reading a note or chat out loud stops when you leave it
@@ -1111,10 +1124,12 @@ export default function App() {
         <div className={`player now-playing${view.kind === 'chat' ? ' over-composer' : ''}`}>
           <div className="player-main player-split">
             <PauseButton reader={reader} />
+<BackButton reader={reader} />
             <button className="split-stop" title={t('Back to the chapter')}
               onClick={() => reader.current && openView({ kind: 'chapter', ref: { book: reader.current.book, chapter: reader.current.chapter } })}>
               📖 <StopDetail reader={reader} full />
             </button>
+            <NextButton reader={reader} />
           </div>
           <button className="np-stop" aria-label={t('Stop')} title={t('Stop')} onClick={reader.stop}>■</button>
         </div>
@@ -1820,7 +1835,7 @@ function SearchResults({
   onMore: (all?: boolean) => void; // the next page, or everything
   onOpen: (hit: VerseHit) => void;
   reader: ReturnType<typeof useReader>;
-  readAloud: (verses: VerseHit[]) => void;
+  readAloud: (verses: VerseHit[], char?: number) => void;
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSelectAll: () => void;
@@ -2006,7 +2021,9 @@ function SearchResults({
           {reader.playing ? (
             <div className="player-main player-split">
               <PauseButton reader={reader} />
-              <button className="split-stop" onClick={reader.stop}>{t('■ Stop · ')}<StopDetail reader={reader} full /></button>
+<BackButton reader={reader} />
+              <button className="split-stop" onClick={reader.stop}>■ <span className="stop-word">{t('Stop · ')}</span><StopDetail reader={reader} full /></button>
+              <NextButton reader={reader} />
             </div>
           ) : (
             <button className="player-main" onClick={() => readAloud(queue)}>
@@ -2028,7 +2045,7 @@ function Chapter({
   view: Extract<View, { kind: 'chapter' }>;
   abbrev: string;
   reader: ReturnType<typeof useReader>;
-  readAloud: (verses: VerseHit[]) => void;
+  readAloud: (verses: VerseHit[], char?: number) => void;
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSave: (picked: VerseHit[]) => void;
@@ -2094,6 +2111,14 @@ function Chapter({
   const picked = all.filter(h => selected.has(hitKey(h))); // always in chapter order
   /** A chapter and everything after it, so reading carries on (just the chapter while Repeat is on). */
   const onward = (i: number) => (reader.repeat ? versesOf(i) : chapters.slice(i).flatMap((_, j) => versesOf(i + j)));
+  // While the Bible is read aloud, tapping a word reads on from it (from where the reading is, or from this chapter)
+  const readingBible = !!reader.playing?.length && reader.playing[0].book !== TEXT_BOOK;
+  const readFrom = (h: VerseHit, e: ReactMouseEvent<HTMLElement>) => {
+    const char = charAtPoint(e.currentTarget.querySelector('.vt'), e.clientX, e.clientY);
+    const i = reader.playing!.findIndex(x => x.book === h.book && x.chapter === h.chapter && x.verse === h.verse);
+    if (i >= 0) reader.jump(i, char);
+    else readAloud(onward(indexOf(h.book, h.chapter)).slice(h.verse - 1), char);
+  };
   // The first verse chosen (or asked for): play from it to the end of the chapter and on
   const fromVerse = (picked[0] ?? asked[0])?.verse ?? 1;
   const chosen = picked.length ? picked : asked;
@@ -2190,7 +2215,7 @@ function Chapter({
           </div>
         )}
         {hints && <p className="chapter-hint">
-          {aroundList && onMain
+          {readingBible ? t('Tap a word to read on from there. ') : aroundList && onMain
             ? t('Tap verses around {ref} to add them to “{list}”. ', { ref: aroundList.label, list: aroundList.name })
             : tags ? t('Tap a word to study the Hebrew or Greek. ') : reader.supported ? t('Tap verses to choose which ones to play. ') : ''}
           {t('Swipe left or right for the next or previous chapter.')}
@@ -2211,7 +2236,7 @@ function Chapter({
                   role: 'button',
                   tabIndex: 0,
                   'aria-pressed': isSelected,
-                  onClick: () => onToggle(key),
+                  onClick: (e: ReactMouseEvent<HTMLLIElement>) => (readingBible ? readFrom(h, e) : onToggle(key)),
                   onKeyDown: (e: ReactKeyboardEvent) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -2221,14 +2246,16 @@ function Chapter({
                 })}
               >
                 <sup>{isSelected ? '✓' : ''}{v}</sup>{' '}
-                {key === readingKey && reader.word ? (
-                  <ReadingText text={h.text} word={reader.word} />
-                ) : tags?.[v - 1] ? (
-                  // Once a verse is picked, words stop opening Strong's so tapping anywhere on the next verses picks them too
-                  <TaggedText text={h.text} tags={tags[v - 1]} onWord={picked.length ? undefined : (word, code) => onWord(word, code, h)} />
-                ) : (
-                  h.text
-                )}
+                <span className="vt">
+                  {key === readingKey && reader.word ? (
+                    <ReadingText text={h.text} word={reader.word} />
+                  ) : tags?.[v - 1] ? (
+                    // Once a verse is picked (or while reading), words stop opening Strong's so a tap picks the verse (or reads from it)
+                    <TaggedText text={h.text} tags={tags[v - 1]} onWord={picked.length || readingBible ? undefined : (word, code) => onWord(word, code, h)} />
+                  ) : (
+                    h.text
+                  )}
+                </span>
               </li>
             );
           })}
@@ -2267,14 +2294,18 @@ function Chapter({
             <>
               <div className="player-main player-split">
                 <PauseButton reader={reader} />
+<BackButton reader={reader} />
                 <button className="split-stop" title={t('Back to the chapter')} onClick={() => show(readingAt)}>📖 <StopDetail reader={reader} full /></button>
+                <NextButton reader={reader} />
               </div>
               <button className="np-stop" aria-label={t('Stop')} title={t('Stop')} onClick={reader.stop}>■</button>
             </>
           ) : reader.playing ? (
             <div className="player-main player-split">
               <PauseButton reader={reader} />
-              <button className="split-stop" onClick={reader.stop}>{t('■ Stop · ')}<StopDetail reader={reader} /></button>
+<BackButton reader={reader} />
+              <button className="split-stop" onClick={reader.stop}>■ <span className="stop-word">{t('Stop · ')}</span><StopDetail reader={reader} /></button>
+              <NextButton reader={reader} />
             </div>
           ) : picked.length || askedLabel ? (
             <button className="player-main" onClick={() => setPlayMenu(true)}>
