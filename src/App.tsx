@@ -1065,7 +1065,7 @@ export default function App() {
         onShowing={setPresenting}
       />
       {(preview ? preview.face : live.on && live.face && (live.presentFace || !presenting)) && (
-        <FaceBubble shape={preview?.shape ?? live.shape} zoom={preview?.zoom ?? live.zoom} onError={faceError} />
+        <FaceBubble shape={preview?.shape ?? live.shape} zoom={preview?.zoom ?? live.zoom} aim={preview?.aim ?? live.aim} ring={preview?.ring ?? live.ring} onError={faceError} />
       )}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}

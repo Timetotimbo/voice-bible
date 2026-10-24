@@ -10,15 +10,19 @@ import { noteTitle, type Note } from './useNotes';
 // presentFace: whether the bubble stays on while verses are presented full screen (📷 in Present)
 // zoom: how far the camera is zoomed in on your face, so less of the room behind shows
 // clean: the pointer and the app's buttons fade away when the mouse or a finger has been still for a few seconds
-export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; presentFace: boolean; clean: boolean };
+// aim: where a zoom centres (0 top … 100 bottom of the camera picture); ring: the bubble's edge colour
+export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string; presentFace: boolean; clean: boolean };
 type BubbleSize = 'xs' | 's' | 'm' | 'l';
 /** Round, a narrower oval, or a circle with its top or bottom third cut off flat, to show less of the room */
 export type BubbleShape = 'round' | 'narrow' | 'cut-top' | 'cut-bottom';
 
 const KEY = 'liveMode';
-const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, presentFace: true, clean: true };
+const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, aim: 50, ring: 'purple', presentFace: true, clean: true };
 const ZOOMS = [1, 1.5, 2, 2.5];
-export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number };
+export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string };
+const AIMS = [{ at: 30, label: '▲ Higher' }, { at: 50, label: '● Middle' }, { at: 70, label: '▼ Lower' }];
+// The bubble's edge: the app's purple, white, gold, or none at all
+export const RINGS: Record<string, string> = { purple: 'var(--purple-bright)', white: '#fff', gold: '#f5c542', none: 'transparent' };
 const SHAPES: { id: BubbleShape; label: string }[] = [
   { id: 'round', label: 'Circle' },
   { id: 'narrow', label: 'Narrow' },
@@ -50,8 +54,10 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   const [face, setFace] = useState(live.face);
   const [shape, setShape] = useState(live.shape);
   const [zoom, setZoom] = useState(live.zoom);
+  const [aim, setAim] = useState(live.aim);
+  const [ring, setRing] = useState(live.ring);
   const [clean, setClean] = useState(live.clean);
-  useEffect(() => onPreview({ face, shape, zoom }), [face, shape, zoom, onPreview]);
+  useEffect(() => onPreview({ face, shape, zoom, aim, ring }), [face, shape, zoom, aim, ring, onPreview]);
   const toggle = (id: string) => setPicked(p => {
     const next = new Set(p);
     if (!next.delete(id)) next.add(id);
@@ -91,6 +97,24 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
           </div>
         )}
 
+        {face && zoom > 1 && (
+          <div className="live-zoom" role="radiogroup" aria-label={t('Aim the zoom')}>
+            <span>{t('Aim the zoom')}</span>
+            {AIMS.map(a => (
+              <button key={a.at} role="radio" aria-checked={aim === a.at} className={aim === a.at ? 'on' : ''} onClick={() => setAim(a.at)}>{t(a.label)}</button>
+            ))}
+          </div>
+        )}
+        {face && (
+          <div className="live-zoom" role="radiogroup" aria-label={t('Edge colour')}>
+            <span>{t('Edge colour')}</span>
+            {Object.entries(RINGS).map(([id, c]) => (
+              <button key={id} role="radio" aria-checked={ring === id} aria-label={t(id)} title={t(id)} className={`ring-pick${ring === id ? ' on' : ''}`} onClick={() => setRing(id)}>
+                <i style={{ borderColor: id === 'none' ? 'var(--muted)' : c, borderStyle: id === 'none' ? 'dashed' : 'solid' }} />
+              </button>
+            ))}
+          </div>
+        )}
         <label className="set-row">
           <span>{t('Clean screen')}<small className="set-sub">{t('When the mouse or your finger is still for a few seconds, the pointer, the tab bar and the app’s buttons fade away, so people see only what you’re teaching. Move or tap to bring them back.')}</small></span>
           <input type="checkbox" role="switch" className="switch" checked={clean} onChange={e => setClean(e.target.checked)} />
@@ -114,7 +138,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
 
         <div className="live-actions">
           {live.on && <button onClick={onEnd}>{t('End Live mode')}</button>}
-          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom }, clean)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
+          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom, aim, ring }, clean)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
         </div>
       </div>
     </div>
@@ -125,7 +149,7 @@ const SIZES: BubbleSize[] = ['xs', 's', 'm', 'l'];
 const POS_KEY = 'liveBubble';
 
 /** Your camera in a circle (or the shape picked), mirrored like a selfie. Drag to move; tap to go extra small → small → medium → large. */
-export function FaceBubble({ shape, zoom, onError }: { shape: BubbleShape; zoom: number; onError: (text: string) => void }) {
+export function FaceBubble({ shape, zoom, aim, ring, onError }: { shape: BubbleShape; zoom: number; aim: number; ring: string; onError: (text: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [spot, setSpot] = useState<{ x: number; y: number; size: BubbleSize }>(() => {
     try { return { x: 16, y: 120, size: 'm', ...JSON.parse(localStorage.getItem(POS_KEY) || '{}') }; } catch { return { x: 16, y: 120, size: 'm' }; }
@@ -182,7 +206,7 @@ export function FaceBubble({ shape, zoom, onError }: { shape: BubbleShape; zoom:
   return (
     <div
       className={`face-bubble face-${spot.size} face-${shape}`}
-      style={{ left: spot.x, top: spot.y }}
+      style={{ left: spot.x, top: spot.y, borderColor: RINGS[ring] ?? RINGS.purple }}
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
@@ -190,7 +214,7 @@ export function FaceBubble({ shape, zoom, onError }: { shape: BubbleShape; zoom:
       role="img"
       aria-label={t('Your camera')}
     >
-      <video ref={video} autoPlay muted playsInline style={{ transform: `scale(${-zoom}, ${zoom})` }} />
+      <video ref={video} autoPlay muted playsInline style={{ transform: `scale(${-zoom}, ${zoom})`, transformOrigin: `50% ${aim}%` }} />
     </div>
   );
 }

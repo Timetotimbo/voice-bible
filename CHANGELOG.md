@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.54.0 — 2026-10-24
+- **📱 Phone remote.** In Present, tap **📱 Remote** and scan the QR code with your phone. The phone gets big ‹ › buttons that move the slides on the other screen, shows the slide you're on and the next one, and keeps its screen on. The link stays the same for this device, so you can save it to your phone's home screen.
+- **🖥 Second screen** (on a computer). Opens the slides in their own window: drag it to the TV or projector and tap Full screen (or press F). This window becomes the presenter view, with **Next:** and a timer. ‹ ›, the arrow keys or a clicker work from either window.
+- **⬒ Banner.** Present can show as a strip across the bottom of the screen, like a TV lower third, with the app still showing above it. Tap ⬒ to switch between Full and Banner; it's remembered.
+- **Aim the zoom.** When the face bubble is zoomed in, choose ▲ Higher, ● Middle or ▼ Lower so the zoom lands on your face.
+- **Edge colour** for the face bubble: purple, white, gold, or none.
+
 ## v2.53.0 — 2026-10-24
 - **Present a note.** A new ▶ button in a note's top row opens **Present**: **▶ Present this note** shows it full screen, the title first and then a paragraph at a time (a long paragraph is split between sentences), in the biggest type that fits. With 🎨 on, the sentence colours carry on from slide to slide. ‹ ›, tapping the sides, the arrow keys or a presentation clicker move through it.
 - **Run sheet.** Line up what you'll teach, in order: tap **+ Run sheet** next to Present when verses are picked, or in a note's ▶ menu add the whole note or just words you've picked in it. **▶ Run sheet** at the top of the Notes tab shows the list: ▲ ▼ to reorder, ✕ to remove, **▶ Present all** to go through everything one slide after another, or tap an item to start there. A note on the run sheet is shown as it is when you present, so later edits are included.

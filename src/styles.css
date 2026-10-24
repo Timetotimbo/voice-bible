@@ -1077,7 +1077,7 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .present-text p { margin: 0; text-wrap: balance; }
 .present-text sup { font-size: 0.45em; color: var(--purple-bright); margin-right: 0.15em; }
 .present-ref { margin-top: 0.5em !important; font-size: 0.5em; font-weight: 700; letter-spacing: 0.04em; color: var(--purple-bright); }
-.present-bar { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 8px; color: var(--muted); }
+.present-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 8px; color: var(--muted); }
 .present-bar button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 1.1rem; }
 .present-bar button:disabled { opacity: 0.35; }
 
@@ -1098,3 +1098,39 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .live-clean :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { transition: opacity 0.4s; }
 .live-clean.idle, .live-clean.idle * { cursor: none !important; }
 .live-clean.idle :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { opacity: 0; pointer-events: none; }
+
+/* Present: options on its bar, the banner, the presenter view's Next and timer */
+.present-bar .present-opt { width: auto; padding: 0 12px; border-radius: 999px; font-size: 0.85rem; }
+.present-bar .present-opt.on { border-color: var(--purple-bright); color: var(--purple-bright); }
+.present-nav { display: inline-flex; align-items: center; gap: 8px; }
+.present-clock { margin-right: auto; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+.present-next { flex: none; padding: 6px 10px; margin-bottom: 8px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.present-next b { color: var(--purple-bright); }
+.present.banner { top: auto; height: 34vh; min-height: 150px; padding-top: 10px; border-top: 3px solid var(--purple-bright); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5); }
+.present.banner .present-bar button { width: 32px; height: 32px; font-size: 0.95rem; }
+.present.banner .present-bar .present-opt, .present.banner .present-bar .present-cam { width: auto; }
+.remote-qr .qr-box { width: min(260px, 70vw); margin: 8px auto; padding: 10px; background: #fff; border-radius: 12px; }
+.remote-qr .qr-box svg { display: block; width: 100%; height: auto; }
+.qr-url { text-align: center; font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere; }
+
+/* The second screen */
+.present-display { cursor: default; }
+.present-display .notice { color: var(--muted); }
+.display-full { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; opacity: 0.85; }
+.present-display:fullscreen, :fullscreen .present-display { cursor: none; }
+
+/* The phone remote */
+.remote { min-height: 100dvh; display: flex; flex-direction: column; gap: 12px; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 16px); background: var(--bg); color: var(--text); }
+.remote-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+.remote-head b { color: var(--purple-bright); }
+.remote-ok { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.remote-now { flex: 1; min-height: 0; overflow: auto; font-family: var(--read, Georgia, serif); font-size: 1.25rem; line-height: 1.45; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+.remote-next { color: var(--muted); font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.remote-next b { color: var(--purple-bright); }
+.remote-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; height: 34vh; min-height: 160px; }
+.remote-btns button { border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 4rem; font-weight: 300; }
+.remote-btns button:last-child { background: var(--purple-deep); border-color: var(--purple-bright); color: var(--on-accent); }
+.remote-btns button:disabled { opacity: 0.35; }
+
+.live-zoom .ring-pick { min-width: 40px; padding: 6px; display: grid; place-items: center; }
+.ring-pick i { display: block; width: 20px; height: 20px; border-radius: 50%; border-width: 3px; }

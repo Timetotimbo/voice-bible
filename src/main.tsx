@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { PresentDisplay } from './Present';
+import { RemotePage } from './Remote';
 import './styles.css';
 import { applyTheme, savedTheme } from './theme';
 
@@ -14,8 +16,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   navigator.storage?.persist?.().catch(() => {});
 }
 
+// The same address also opens the second screen for Present (?display=1) and the phone remote (?remote=code)
+const params = new URLSearchParams(location.search);
+const remote = params.get('remote');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {params.has('display') ? <PresentDisplay /> : remote ? <RemotePage code={remote} /> : <App />}
   </StrictMode>,
 );
