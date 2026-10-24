@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
 import { colorsOn } from './noteColors';
@@ -103,6 +103,42 @@ export function RunSheetView({ notes, onPresent, onClose }: {
     [next[i], next[i + by]] = [next[i + by], next[i]];
     set(next);
   };
+  // Dragging by the ⠿ grip: the row follows your finger, the others slide out of its way, and letting go saves the order
+  const list = useRef<HTMLOListElement>(null);
+  const grabbed = useRef<{ startY: number; centers: number[]; shift: number } | null>(null);
+  const [drag, setDrag] = useState<{ from: number; to: number; dy: number } | null>(null);
+  const grab = (i: number, e: PointerEvent<HTMLElement>) => {
+    const rects = [...list.current!.children].map(r => r.getBoundingClientRect());
+    const gap = rects.length > 1 ? rects[1].top - rects[0].bottom : 0;
+    grabbed.current = { startY: e.clientY, centers: rects.map(r => r.top + r.height / 2), shift: rects[i].height + gap };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    navigator.vibrate?.(10);
+    setDrag({ from: i, to: i, dy: 0 });
+  };
+  const pull = (e: PointerEvent<HTMLElement>) => {
+    const g = grabbed.current;
+    if (!g || !drag) return;
+    const dy = e.clientY - g.startY, at = g.centers[drag.from] + dy;
+    const to = g.centers.filter((c, j) => j !== drag.from && c < at).length;
+    setDrag({ ...drag, to, dy });
+  };
+  const drop = () => {
+    if (drag && drag.to !== drag.from) {
+      const next = [...items];
+      next.splice(drag.to, 0, ...next.splice(drag.from, 1));
+      set(next);
+    }
+    grabbed.current = null;
+    setDrag(null);
+  };
+  const rowStyle = (i: number) => {
+    if (!drag) return undefined;
+    if (i === drag.from) return { transform: `translateY(${drag.dy}px)`, zIndex: 2, transition: 'none' };
+    const shift = grabbed.current?.shift ?? 0;
+    if (drag.from < drag.to && i > drag.from && i <= drag.to) return { transform: `translateY(${-shift}px)` };
+    if (drag.to < drag.from && i >= drag.to && i < drag.from) return { transform: `translateY(${shift}px)` };
+    return undefined;
+  };
   const present = (i: number) => {
     const { slides, starts } = runSheetSlides(items, notes);
     if (slides.length) onPresent(slides, starts[i] ?? 0);
@@ -115,7 +151,7 @@ export function RunSheetView({ notes, onPresent, onClose }: {
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         <p className="voice-help live-help">
-          {t('Line up what you’ll teach. Add verses with + Run sheet when they’re picked, and a note (or words picked in it) with ▶ in the note. Present goes through them in order; tap an item to start there.')}
+          {t('Line up what you’ll teach. Add verses with + Run sheet when they’re picked, and a note (or words picked in it) with ▶ in the note. Drag ⠿ to change the order. Present goes through them in order; tap an item to start there.')}
         </p>
         {!items.length && !adding && <p className="notice">{t('Nothing lined up yet.')}</p>}
         {adding ? (
@@ -141,12 +177,15 @@ export function RunSheetView({ notes, onPresent, onClose }: {
         ) : (
           <button className="new-row" onClick={() => setAdding(true)}>{t('+ Add a note')}</button>
         )}
-        <ol className="sheet-list run-list">
+        <ol ref={list} className={`sheet-list run-list${drag ? ' dragging' : ''}`}>
           {items.map((item, i) => {
             const l = label(item, notes);
             return (
-              <li key={item.id}>
-                <span className="run-num">{i + 1}</span>
+              <li key={item.id} style={rowStyle(i)} className={drag?.from === i ? 'run-held' : undefined}>
+                <span className="run-grip" aria-label={t('Drag to move')} title={t('Drag to move')}
+                  onPointerDown={e => grab(i, e)} onPointerMove={pull} onPointerUp={drop} onPointerCancel={drop}>
+                  <span aria-hidden="true">⠿</span><span className="run-num">{i + 1}</span>
+                </span>
                 <button className="sheet-item run-item" disabled={l.gone} onClick={() => present(i)} title={t('Present from here')}>
                   <span>{l.main}</span>
                   {l.sub && <small>{l.sub}</small>}

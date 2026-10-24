@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.60.0 — 2026-10-24
+- **Drag to reorder the run sheet.** Hold the **⠿** grip at the left of an item and drag it up or down. The other items slide out of the way, and letting go saves the new order. ▲ ▼ still work too.
+
 ## v2.59.1 — 2026-10-24
 - **+ Add a note in the run sheet.** The run sheet has its own **+ Add a note** button: tap it, then tap the notes to line up (✓ shows the ones already on it), and **Done**. No need to open each note first.
 
