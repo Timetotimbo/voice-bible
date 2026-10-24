@@ -1042,7 +1042,7 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .live-bar button { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; color: inherit; font-weight: 600; }
 .page-head .text-btn + .text-btn { margin-left: 4px; }
 .live-help { margin: 0 0 8px; }
-.live-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.live-actions { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); z-index: 2; display: flex; gap: 8px; justify-content: flex-end; margin: 12px -16px calc(-20px - env(safe-area-inset-bottom)); padding: 12px 16px calc(env(safe-area-inset-bottom) + 14px); background: var(--surface); border-top: 1px solid var(--border); }
 .live-actions button { border-radius: 999px; padding: 10px 18px; border: 1px solid var(--border); background: none; color: inherit; font-weight: 700; }
 .live-actions .primary { background: var(--purple-deep); border-color: var(--purple-bright); color: var(--on-accent); }
 .face-bubble { position: fixed; z-index: 1001; border-radius: 50%; overflow: hidden; touch-action: none; cursor: grab; border: 3px solid var(--purple-bright); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); background: #000; }
