@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.47.0 — 2026-10-23
+- **● Live mode, for teaching on a livestream.** Tap **● Live** at the top of the Notes tab, tick the notes people can see, and tap **Start Live mode**. Every other note is hidden everywhere in the app (the Notes tab, its search, and the Add to a note lists) until you end it. A red bar on the Notes tab shows it's on; **Change** picks different notes or ends it. A note you make while live is shown.
+- **Show my face.** Live mode can put your camera in a round bubble that stays over every screen. Drag it anywhere; tap it to make it small, medium or large. It remembers where you left it.
+
 ## v2.46.0 — 2026-10-23
 - **A new Go to picker** (tap the book and chapter at the top of a chapter). The Book, Chapter and Verse wheels are bigger and curve away like a drum, with the chosen row in a box.
 - **All / OT / NT** under the wheels shows every book, or just the Old or New Testament.

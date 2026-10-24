@@ -32,6 +32,7 @@ import { TAP_TO_TALK, useSpeech } from './useSpeech';
 import { n, setUiLanguage, t, uiLanguage } from './i18n';
 import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
+import { FaceBubble, LiveSheet, useLiveMode } from './LiveMode';
 
 type View =
   | { kind: 'home' }
@@ -215,9 +216,22 @@ export default function App() {
   const [noteToNote, setNoteToNote] = useState<{ text: string; from: string; title: string } | null>(null);
   // The Notes tab's search, kept while a found note is open (Back shows the same results)
   const [notesQuery, setNotesQuery] = useState('');
+  // Live mode: only the picked notes show anywhere, and the face bubble is on screen
+  const live = useLiveMode();
+  const [liveSheet, setLiveSheet] = useState(false);
+  const shownNotes = useMemo(() => (live.on ? notes.notes.filter(x => live.shown.includes(x.id)) : notes.notes), [live.on, live.shown, notes.notes]);
+  // Reordering a shorter list: move next to the note that's at that place in it
+  // A note made during Live mode is one you're showing
+  const newShownNote = () => {
+    const id = notes.newNote();
+    if (live.on) live.update({ shown: [...live.shown, id] });
+    return id;
+  };
+  const moveShownNote = (id: string, to: number) => notes.moveNote(id, live.on ? notes.notes.findIndex(x => x.id === shownNotes[to]?.id) : to);
   const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
+  const faceError = useCallback((text: string) => { setToastState({ text }); live.update({ face: false }); }, [live.update]);
   // A list someone shared, from the link this page was opened with
   const [incoming, setIncoming] = useState(() => sharedListInLink());
   useEffect(() => {
@@ -930,13 +944,15 @@ export default function App() {
         )}
         {view.kind === 'notes' && (
           <NotesPage
-            notes={notes.notes}
+            notes={shownNotes}
+            live={live.on ? live.shown.length : null}
+            onLive={() => setLiveSheet(true)}
             query={notesQuery}
             onQuery={setNotesQuery}
             onOpen={(id, find) => openView({ kind: 'note', id, find })}
-            onNew={() => openView({ kind: 'note', id: notes.newNote() })}
+            onNew={() => openView({ kind: 'note', id: newShownNote() })}
             onDelete={notes.deleteNote}
-            onMove={notes.moveNote}
+            onMove={moveShownNote}
           />
         )}
         {view.kind === 'chats' && (
@@ -992,6 +1008,16 @@ export default function App() {
         )}
       </main>
 
+      {liveSheet && (
+        <LiveSheet
+          notes={notes.notes}
+          live={live}
+          onStart={(shown, face) => { live.update({ on: true, shown, face }); setLiveSheet(false); setNotesQuery(''); }}
+          onEnd={() => { live.update({ on: false }); setLiveSheet(false); }}
+          onClose={() => setLiveSheet(false)}
+        />
+      )}
+      {live.on && live.face && <FaceBubble onError={faceError} />}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
       {showNowPlaying && reader.current && (
@@ -1112,17 +1138,17 @@ export default function App() {
           }}
           onDeleteChat={chats.deleteChat}
           onMoveChat={chats.moveChat}
-          notes={notes.notes}
+          notes={shownNotes}
           onOpenNote={id => {
             setSheet(null);
             openView({ kind: 'note', id });
           }}
           onNewNote={() => {
             setSheet(null);
-            openView({ kind: 'note', id: notes.newNote() });
+            openView({ kind: 'note', id: newShownNote() });
           }}
           onDeleteNote={notes.deleteNote}
-          onMoveNote={notes.moveNote}
+          onMoveNote={moveShownNote}
           onImportChats={() => {
             setSheet(null);
             setImporting(true);
@@ -1159,11 +1185,11 @@ export default function App() {
       {toNote && (
         <NotePicker
           count={toNote.verses.length}
-          notes={notes.notes}
+          notes={shownNotes}
           onClose={() => setToNote(null)}
           onPick={noteId => {
             // At the end of the note, written out with references, like Insert in a note
-            const id = noteId ?? notes.newNote();
+            const id = noteId ?? newShownNote();
             const current = notes.notes.find(n => n.id === id);
             const title = current ? noteTitle(current) : toNote.title;
             notes.updateNote(id, {
@@ -1179,11 +1205,11 @@ export default function App() {
       {noteToNote && (
         <NotePicker
           heading={t('Add to a note')}
-          notes={notes.notes.filter(x => x.id !== noteToNote.from)}
+          notes={shownNotes.filter(x => x.id !== noteToNote.from)}
           onClose={() => setNoteToNote(null)}
           onPick={noteId => {
             // At the end of the note, as its own paragraph
-            const id = noteId ?? notes.newNote();
+            const id = noteId ?? newShownNote();
             const current = notes.notes.find(x => x.id === id);
             const title = current ? noteTitle(current) : noteToNote.title;
             notes.updateNote(id, {
@@ -1254,9 +1280,9 @@ export default function App() {
           word={studyWord.word}
           code={studyWord.code}
           where={studyWord.verse && `${bookName(studyWord.verse.book)} ${studyWord.verse.chapter}:${studyWord.verse.verse}`}
-          notes={notes.notes.map(n => ({ id: n.id, title: noteTitle(n) }))}
+          notes={shownNotes.map(n => ({ id: n.id, title: noteTitle(n) }))}
           onAddToNote={(noteId, text, word) => {
-            const id = noteId ?? notes.newNote();
+            const id = noteId ?? newShownNote();
             const current = notes.notes.find(n => n.id === id);
             notes.updateNote(id, {
               ...(noteId ? {} : { title: t('Word study: {word}', { word }) }),
@@ -1423,10 +1449,11 @@ function SearchModeSwitch({ mode, onChange }: { mode: SearchMode; onChange: (mod
 }
 
 /** A tab's page title, with Edit / Done when its rows can be reordered or deleted. */
-function PageHead({ title, editing, onEdit }: { title: string; editing?: boolean; onEdit?: () => void }) {
+function PageHead({ title, editing, onEdit, children }: { title: string; editing?: boolean; onEdit?: () => void; children?: ReactNode }) {
   return (
     <div className="page-head">
       <h2>{title}</h2>
+      {children}
       {onEdit && <button className="text-btn" onClick={onEdit}>{t(editing ? 'Done' : 'Edit')}</button>}
     </div>
   );
@@ -1515,8 +1542,10 @@ function matchSnippet(text: string, query: string) {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, query, onQuery, onOpen, onNew, onDelete, onMove }: {
+function NotesPage({ notes, live, onLive, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   notes: Note[];
+  live: number | null; // Live mode: how many notes are shown; null when it's off
+  onLive: () => void;
   query: string;
   onQuery: (q: string) => void;
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
@@ -1534,7 +1563,15 @@ function NotesPage({ notes, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   );
   return (
     <section className="tab-page">
-      <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined} />
+      <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined}>
+        {live === null && <button className="text-btn" onClick={onLive}>{t('● Live')}</button>}
+      </PageHead>
+      {live !== null && (
+        <div className="live-bar">
+          <span><b>{t('● Live mode')}</b> · {n('{n} note shown', '{n} notes shown', live)}</span>
+          <button onClick={onLive}>{t('Change')}</button>
+        </div>
+      )}
       {notes.length > 0 && (
         <form className="find-bar notes-search" role="search" onSubmit={e => { e.preventDefault(); if (found.length === 1) onOpen(found[0].note.id, q); }}>
           <input
