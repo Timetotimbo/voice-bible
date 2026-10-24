@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.48.0 — 2026-10-23
+- **Present a verse full screen.** Pick one or more verses (in a chapter or in search results) and tap **Present**: the verse fills the screen in the biggest type that fits, with its reference underneath. It fits again when you turn the phone or resize the window. Verses next to each other show together; others are separate slides: tap the right or left side, use ‹ ›, or the arrow keys. ✕ or Esc closes it. The Live mode face bubble stays on top.
+
 ## v2.47.1 — 2026-10-23
 - **Start Live mode** stays at the bottom of the Live mode sheet, so you don't have to scroll past every note to reach it.
 

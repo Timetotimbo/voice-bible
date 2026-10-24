@@ -187,6 +187,7 @@ const ES: Record<string, string> = {
   'Find in note': 'Buscar en la nota',
   'Search all notes': 'Buscar en todas las notas',
   'Change': 'Cambiar',
+  'Present': 'Presentar',
   'Live mode': 'Modo en vivo',
   'For teaching on a livestream. Only the notes you tick show in the app; the rest are hidden until you end Live mode. Set this up before your camera is on the screen.': 'Para enseñar en una transmisión en vivo. Solo las notas que marques se ven en la app; las demás quedan ocultas hasta que termines el modo en vivo. Prepáralo antes de apuntar la cámara a la pantalla.',
   'Show my face': 'Mostrar mi cara',

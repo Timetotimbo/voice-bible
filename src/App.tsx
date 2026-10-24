@@ -33,6 +33,7 @@ import { n, setUiLanguage, t, uiLanguage } from './i18n';
 import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode } from './LiveMode';
+import { PresentHost, presentVerses } from './Present';
 
 type View =
   | { kind: 'home' }
@@ -1017,6 +1018,7 @@ export default function App() {
           onClose={() => setLiveSheet(false)}
         />
       )}
+      <PresentHost />
       {live.on && live.face && <FaceBubble onError={faceError} />}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
@@ -1859,6 +1861,7 @@ function SearchResults({
             <div className="selection-bar">
               <span>{t('{n} selected', { n: picked.length })}</span>
               {selectionActions(picked)}
+              <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
@@ -2117,6 +2120,7 @@ function Chapter({
               {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>{t('Add around {ref}', { ref: aroundList.label })}</button>}
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
               <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
+              <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
