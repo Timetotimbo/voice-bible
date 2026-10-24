@@ -258,6 +258,8 @@ const ES: Record<string, string> = {
   '🔔 Daily reminder': '🔔 Recordatorio diario',
   'A notification with the day’s chapters, unless you’ve ticked them already.': 'Una notificación con los capítulos del día, salvo que ya los hayas marcado.',
   'At': 'A las',
+  '+ Add a note': '+ Añadir una nota',
+  'Tap a note to add it': 'Toca una nota para añadirla',
   'Reading plan': 'Plan de lectura',
   '📅 Reading plan': '📅 Plan de lectura',
   'Read the Bible in a year, the New Testament in 90 days, and more': 'Lee la Biblia en un año, el Nuevo Testamento en 90 días y más',

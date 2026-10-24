@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.59.1 — 2026-10-24
+- **+ Add a note in the run sheet.** The run sheet has its own **+ Add a note** button: tap it, then tap the notes to line up (✓ shows the ones already on it), and **Done**. No need to open each note first.
+
 ## v2.59.0 — 2026-10-24
 - **🔔 Daily reading-plan reminder.** In your reading plan, turn on **Daily reminder** and pick a time (7:00 AM unless you change it). Each day at that time you get a notification with the day's chapters, like "📅 Day 6 · Genesis 17–20". It's skipped on days you've already ticked. Tapping it opens your plan. Verse notifications and the plan reminder work side by side; turning one off leaves the other on.
 

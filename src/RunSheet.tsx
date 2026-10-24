@@ -97,6 +97,7 @@ export function RunSheetView({ notes, onPresent, onClose }: {
   onClose: () => void;
 }) {
   const { items, set } = useRunSheet();
+  const [adding, setAdding] = useState(false); // choosing a note to add
   const move = (i: number, by: number) => {
     const next = [...items];
     [next[i], next[i + by]] = [next[i + by], next[i]];
@@ -116,7 +117,30 @@ export function RunSheetView({ notes, onPresent, onClose }: {
         <p className="voice-help live-help">
           {t('Line up what you’ll teach. Add verses with + Run sheet when they’re picked, and a note (or words picked in it) with ▶ in the note. Present goes through them in order; tap an item to start there.')}
         </p>
-        {!items.length && <p className="notice">{t('Nothing lined up yet.')}</p>}
+        {!items.length && !adding && <p className="notice">{t('Nothing lined up yet.')}</p>}
+        {adding ? (
+          <div className="run-add">
+            <div className="import-bar">
+              <span>{t('Tap a note to add it')}</span>
+              <button onClick={() => setAdding(false)}>{t('Done')}</button>
+            </div>
+            <ul className="sheet-list">
+              {!notes.length && <li className="notice">{t('No notes yet.')}</li>}
+              {notes.map(nt => {
+                const on = items.some(i => i.kind === 'note' && i.noteId === nt.id);
+                return (
+                  <li key={nt.id}>
+                    <button className="sheet-item run-item" onClick={() => !on && set([...items, { id: Math.random().toString(36).slice(2, 10), kind: 'note', noteId: nt.id }])}>
+                      <span>{on ? '✓' : '+'} {noteTitle(nt)}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : (
+          <button className="new-row" onClick={() => setAdding(true)}>{t('+ Add a note')}</button>
+        )}
         <ol className="sheet-list run-list">
           {items.map((item, i) => {
             const l = label(item, notes);
