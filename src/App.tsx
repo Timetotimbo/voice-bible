@@ -266,6 +266,7 @@ export default function App() {
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
   const faceError = useCallback((text: string) => { setToastState({ text }); live.update({ face: false }); }, [live.update]);
+  const backdropFail = useCallback(() => { setToastState({ text: t('Couldn’t start the background effect on this device. Check your connection and try again.') }); live.update({ backdrop: 'none' }); }, [live.update]);
   // A list someone shared, from the link this page was opened with
   const [incoming, setIncoming] = useState(() => sharedListInLink());
   useEffect(() => {
@@ -1086,7 +1087,15 @@ export default function App() {
         onShowing={setPresenting}
       />
       {(preview ? preview.face : live.on && live.face && (live.presentFace || !presenting)) && (
-        <FaceBubble shape={preview?.shape ?? live.shape} zoom={preview?.zoom ?? live.zoom} aim={preview?.aim ?? live.aim} ring={preview?.ring ?? live.ring} onError={faceError} />
+        <FaceBubble
+          shape={preview?.shape ?? live.shape}
+          zoom={preview?.zoom ?? live.zoom}
+          aim={preview?.aim ?? live.aim}
+          ring={preview?.ring ?? live.ring}
+          backdrop={preview?.backdrop ?? live.backdrop}
+          onError={faceError}
+          onBackdropFail={backdropFail}
+        />
       )}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.58.0 — 2026-10-24
+- **Blur or black out the room behind you** in the Live mode face bubble. In the Live mode sheet, **Background** has Normal, **Blur** and **Dark**; the bubble shows it right away. It finds you in the picture on the device itself (nothing is sent anywhere), using Google's MediaPipe selfie segmenter. The first time, it downloads about 9 MB; after that the browser keeps it. If it can't start, the bubble goes back to Normal and says so.
+
 ## v2.57.0 — 2026-10-24
 - **📅 Reading plans**, in Verse Lists. Choose the whole Bible in a year, the New Testament in 90 days, the Gospels in 30 days, or Psalms and Proverbs in a month. Each day shows its chapters (tap one to read it) and a circle to tick when you've read them. You see the day you're on, a 🔥 streak, how much is done, any days to catch up, and the next few days. The Verse Lists tab shows today's chapters at a glance.
 

@@ -1068,6 +1068,8 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .live-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
 .present-bar .present-cam { width: auto; padding: 0 12px; border-radius: 999px; font-size: 0.9rem; }
 .face-bubble video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; display: block; }
+.face-bubble canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; }
+.face-bubble video.under { opacity: 0; } /* still playing: the canvas draws from it */
 
 /* Present: picked verses filling the screen */
 .present { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: var(--bg); color: var(--text);

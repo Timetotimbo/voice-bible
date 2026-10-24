@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { drawBackdrop, type Backdrop } from './backdrop';
 import { t } from './i18n';
 import { noteTitle, type Note } from './useNotes';
 
@@ -11,15 +12,17 @@ import { noteTitle, type Note } from './useNotes';
 // zoom: how far the camera is zoomed in on your face, so less of the room behind shows
 // clean: the pointer and the app's buttons fade away when the mouse or a finger has been still for a few seconds
 // aim: where a zoom centres (0 top … 100 bottom of the camera picture); ring: the bubble's edge colour
-export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string; presentFace: boolean; clean: boolean };
+// backdrop: what's behind you in the bubble (as the camera sees it, blurred, or dark)
+export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string; backdrop: Backdrop; presentFace: boolean; clean: boolean };
 type BubbleSize = 'xs' | 's' | 'm' | 'l';
 /** Round, a narrower oval, or a circle with its top or bottom third cut off flat, to show less of the room */
 export type BubbleShape = 'round' | 'narrow' | 'cut-top' | 'cut-bottom';
 
 const KEY = 'liveMode';
-const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, aim: 50, ring: 'purple', presentFace: true, clean: true };
+const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, aim: 50, ring: 'purple', backdrop: 'none', presentFace: true, clean: true };
 const ZOOMS = [1, 1.5, 2, 2.5];
-export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string };
+export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number; aim: number; ring: string; backdrop: Backdrop };
+const BACKDROPS: { id: Backdrop; label: string }[] = [{ id: 'none', label: 'Normal' }, { id: 'blur', label: 'Blur' }, { id: 'dark', label: 'Dark' }];
 const AIMS = [{ at: 30, label: '▲ Higher' }, { at: 50, label: '● Middle' }, { at: 70, label: '▼ Lower' }];
 // The bubble's edge: the app's purple, white, gold, or none at all
 export const RINGS: Record<string, string> = { purple: 'var(--purple-bright)', white: '#fff', gold: '#f5c542', none: 'transparent' };
@@ -56,8 +59,9 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   const [zoom, setZoom] = useState(live.zoom);
   const [aim, setAim] = useState(live.aim);
   const [ring, setRing] = useState(live.ring);
+  const [backdrop, setBackdrop] = useState(live.backdrop);
   const [clean, setClean] = useState(live.clean);
-  useEffect(() => onPreview({ face, shape, zoom, aim, ring }), [face, shape, zoom, aim, ring, onPreview]);
+  useEffect(() => onPreview({ face, shape, zoom, aim, ring, backdrop }), [face, shape, zoom, aim, ring, backdrop, onPreview]);
   const toggle = (id: string) => setPicked(p => {
     const next = new Set(p);
     if (!next.delete(id)) next.add(id);
@@ -106,6 +110,15 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
           </div>
         )}
         {face && (
+          <div className="live-zoom" role="radiogroup" aria-label={t('Background')}>
+            <span>{t('Background')}</span>
+            {BACKDROPS.map(b => (
+              <button key={b.id} role="radio" aria-checked={backdrop === b.id} className={backdrop === b.id ? 'on' : ''} onClick={() => setBackdrop(b.id)}>{t(b.label)}</button>
+            ))}
+          </div>
+        )}
+        {face && backdrop !== 'none' && <p className="voice-help live-help">{t('Blur and Dark find you in the picture on this device (nothing is sent anywhere). The first time, it downloads about 9 MB.')}</p>}
+        {face && (
           <div className="live-zoom" role="radiogroup" aria-label={t('Edge colour')}>
             <span>{t('Edge colour')}</span>
             {Object.entries(RINGS).map(([id, c]) => (
@@ -138,7 +151,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
 
         <div className="live-actions">
           {live.on && <button onClick={onEnd}>{t('End Live mode')}</button>}
-          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom, aim, ring }, clean)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
+          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom, aim, ring, backdrop }, clean)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
         </div>
       </div>
     </div>
@@ -149,8 +162,21 @@ const SIZES: BubbleSize[] = ['xs', 's', 'm', 'l'];
 const POS_KEY = 'liveBubble';
 
 /** Your camera in a circle (or the shape picked), mirrored like a selfie. Drag to move; tap to go extra small → small → medium → large. */
-export function FaceBubble({ shape, zoom, aim, ring, onError }: { shape: BubbleShape; zoom: number; aim: number; ring: string; onError: (text: string) => void }) {
+export function FaceBubble({ shape, zoom, aim, ring, backdrop, onError, onBackdropFail }: {
+  shape: BubbleShape;
+  zoom: number;
+  aim: number;
+  ring: string;
+  backdrop: Backdrop;
+  onError: (text: string) => void;
+  onBackdropFail: () => void; // the background effect couldn't start: the bubble goes back to Normal
+}) {
   const video = useRef<HTMLVideoElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (backdrop === 'none' || !video.current || !canvas.current) return;
+    return drawBackdrop(video.current, canvas.current, backdrop, onBackdropFail);
+  }, [backdrop, onBackdropFail]);
   const [spot, setSpot] = useState<{ x: number; y: number; size: BubbleSize }>(() => {
     try { return { x: 16, y: 120, size: 'm', ...JSON.parse(localStorage.getItem(POS_KEY) || '{}') }; } catch { return { x: 16, y: 120, size: 'm' }; }
   });
@@ -214,7 +240,15 @@ export function FaceBubble({ shape, zoom, aim, ring, onError }: { shape: BubbleS
       role="img"
       aria-label={t('Your camera')}
     >
-      <video ref={video} autoPlay muted playsInline style={{ transform: `scale(${-zoom}, ${zoom})`, transformOrigin: `50% ${aim}%` }} />
+      <video
+        ref={video}
+        autoPlay
+        muted
+        playsInline
+        className={backdrop !== 'none' ? 'under' : undefined}
+        style={{ transform: `scale(${-zoom}, ${zoom})`, transformOrigin: `50% ${aim}%` }}
+      />
+      {backdrop !== 'none' && <canvas ref={canvas} style={{ transform: `scale(${-zoom}, ${zoom})`, transformOrigin: `50% ${aim}%` }} />}
     </div>
   );
 }
