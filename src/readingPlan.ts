@@ -33,7 +33,8 @@ export const PLANS = [
   },
 ] as const;
 export type PlanId = (typeof PLANS)[number]['id'];
-export type PlanState = { id: PlanId; start: string; done: number[] }; // start: 'YYYY-MM-DD'; done: day numbers from 0
+// start: 'YYYY-MM-DD'; done: day numbers from 0; remind: the daily reminder's time ('HH:MM'), when it's on
+export type PlanState = { id: PlanId; start: string; done: number[]; remind?: string };
 
 const KEY = 'vb_reading_plan';
 export function loadPlan(): PlanState | null {

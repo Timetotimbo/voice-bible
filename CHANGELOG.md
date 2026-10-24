@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.59.0 — 2026-10-24
+- **🔔 Daily reading-plan reminder.** In your reading plan, turn on **Daily reminder** and pick a time (7:00 AM unless you change it). Each day at that time you get a notification with the day's chapters, like "📅 Day 6 · Genesis 17–20". It's skipped on days you've already ticked. Tapping it opens your plan. Verse notifications and the plan reminder work side by side; turning one off leaves the other on.
+
 ## v2.58.0 — 2026-10-24
 - **Blur or black out the room behind you** in the Live mode face bubble. In the Live mode sheet, **Background** has Normal, **Blur** and **Dark**; the bubble shows it right away. It finds you in the picture on the device itself (nothing is sent anywhere), using Google's MediaPipe selfie segmenter. The first time, it downloads about 9 MB; after that the browser keeps it. If it can't start, the bubble goes back to Normal and says so.
 

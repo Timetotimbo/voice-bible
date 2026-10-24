@@ -212,12 +212,15 @@ self.addEventListener('notificationclick', event => {
   const ref = url.searchParams.get('ref');
   const target = new URL(SCOPE, self.location.origin);
   if (ref) target.searchParams.set('ref', ref);
+  const plan = url.searchParams.has('plan'); // a reading-plan reminder: open the plan
+  if (plan) target.searchParams.set('plan', '1');
   event.waitUntil(
     (async () => {
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const mine = wins.find(w => new URL(w.url).pathname.startsWith(SCOPE) && !new URL(w.url).pathname.startsWith(SCOPE + 'clipforge'));
       if (mine) {
         if (ref) mine.postMessage({ type: 'open-ref', ref });
+        if (plan) mine.postMessage({ type: 'open-plan' });
         return mine.focus();
       }
       return self.clients.openWindow(target.href);

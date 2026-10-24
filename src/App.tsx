@@ -517,7 +517,15 @@ export default function App() {
       history.replaceState(null, '', location.pathname + location.hash);
       runRef.current(ref);
     }
-    const onMessage = (e: MessageEvent) => e.data?.type === 'open-ref' && typeof e.data.ref === 'string' && runRef.current(e.data.ref);
+    // A reading-plan reminder was tapped: show the plan
+    if (new URLSearchParams(location.search).has('plan')) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      setPlanOpen(true);
+    }
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'open-ref' && typeof e.data.ref === 'string') runRef.current(e.data.ref);
+      else if (e.data?.type === 'open-plan') setPlanOpen(true);
+    };
     navigator.serviceWorker?.addEventListener('message', onMessage);
     return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
   }, []);

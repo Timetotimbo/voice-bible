@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react';
-import { bookName } from './bible/books';
+import { bookName, bookNames } from './bible/books';
 import type { Reference } from './bible/search';
 import { n, t } from './i18n';
+import { planDonePush, stopPlanPush, syncPlanPush, unsupportedReason } from './versePush';
 import { PLANS, dayNumber, loadPlan, savePlan, streak, today, type Ch, type PlanState } from './readingPlan';
+
+const WHY: Record<string, string> = {
+  'ios-home-screen': 'On iPhone, add Voice Bible to your home screen first (Share → Add to Home Screen), then open it from there and turn this on.',
+  unsupported: 'This browser can’t show notifications from websites. Try Chrome.',
+  blocked: 'Notifications are blocked for Voice Bible. Allow them in your phone’s settings (Apps → Chrome → Notifications, or the site’s settings in Chrome), then try again.',
+};
 
 /** "Genesis 1–3, Exodus 1": a day's chapters, grouped by book. */
 function label(chs: Ch[]): { text: string; first: Ch }[] {
@@ -37,7 +44,33 @@ export function PlanSheet({ onGo, onClose }: { onGo: (ref: Reference) => void; o
   const def = plan && PLANS.find(p => p.id === plan.id)!;
   const days = useMemo(() => def?.build() ?? [], [def]);
   const day = plan ? dayNumber(plan.start) : 0;
-  const tick = (d: number) => plan && update({ ...plan, done: plan.done.includes(d) ? plan.done.filter(x => x !== d) : [...plan.done, d] });
+  const tick = (d: number) => {
+    if (!plan) return;
+    const done = plan.done.includes(d) ? plan.done.filter(x => x !== d) : [...plan.done, d];
+    update({ ...plan, done });
+    if (plan.remind) planDonePush(done); // so a day that's read isn't reminded
+  };
+  // The daily reminder: a notification at the chosen time with that day's chapters (not once they're ticked)
+  const [remindErr, setRemindErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const remind = async (at: string | undefined, ask: boolean) => {
+    if (!plan || !def) return;
+    setRemindErr('');
+    setBusy(true);
+    try {
+      if (at) {
+        const why = unsupportedReason();
+        if (why) throw new Error(why);
+        await syncPlanPush({ name: t(def.name), start: plan.start, days: days.map(d => label(d).map(g => g.text).join(', ')), done: plan.done, remindAt: at }, bookNames()[0] !== 'Genesis' ? 'es' : 'en', ask);
+      } else await stopPlanPush();
+      update({ ...plan, remind: at });
+    } catch (e) {
+      const m = (e as Error).message;
+      setRemindErr(t(WHY[m] ?? m));
+    } finally {
+      setBusy(false);
+    }
+  };
   const missed = plan ? days.map((_, d) => d).filter(d => d < day && !plan.done.includes(d)) : [];
 
   const Day = ({ d, big }: { d: number; big?: boolean }) => (
@@ -87,6 +120,16 @@ export function PlanSheet({ onGo, onClose }: { onGo: (ref: Reference) => void; o
               <small>{t('{done} of {total} days read', { done: plan.done.length, total: days.length })}</small>
             </div>
             {day < days.length ? <Day d={day} big /> : <p className="notice">{t('🎉 That’s the whole plan. Well done!')}</p>}
+            <label className="set-row plan-remind">
+              <span>{t('🔔 Daily reminder')}<small className="set-sub">{t('A notification with the day’s chapters, unless you’ve ticked them already.')}</small></span>
+              <input type="checkbox" role="switch" className="switch" disabled={busy} checked={!!plan.remind} onChange={e => remind(e.target.checked ? plan.remind ?? '07:00' : undefined, true)} />
+            </label>
+            {plan.remind && (
+              <label className="plan-time">
+                {t('At')} <input type="time" value={plan.remind} disabled={busy} onChange={e => e.target.value && remind(e.target.value, false)} />
+              </label>
+            )}
+            {remindErr && <p className="notice error">{remindErr}</p>}
             {missed.length > 0 && (
               <>
                 <h3 className="plan-sub">{n('{n} day to catch up', '{n} days to catch up', missed.length)}</h3>
@@ -104,7 +147,7 @@ export function PlanSheet({ onGo, onClose }: { onGo: (ref: Reference) => void; o
                 <>
                   <span className="related-count">{t('Stop this plan? Your ticks are cleared.')}</span>
                   <button onClick={() => setStopping(false)}>{t('Cancel')}</button>
-                  <button className="danger" onClick={() => { update(null); setStopping(false); }}>{t('Stop')}</button>
+                  <button className="danger" onClick={() => { if (plan.remind) stopPlanPush(); update(null); setStopping(false); }}>{t('Stop')}</button>
                 </>
               ) : (
                 <button onClick={() => setStopping(true)}>{t('Stop or change plan')}</button>

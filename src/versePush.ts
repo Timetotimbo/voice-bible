@@ -99,7 +99,51 @@ export async function stopVersePush() {
   const sub = await subscription(false).catch(() => null);
   if (!sub) return;
   await call({ action: 'unsubscribe', endpoint: sub.endpoint }).catch(() => {});
-  await sub.unsubscribe().catch(() => false);
+  if (!planReminderOn()) await sub.unsubscribe().catch(() => false); // the reading-plan reminder still uses it
+}
+
+// Reading-plan reminders: once a day at the chosen time, the same sign-up as verse notifications
+const PLAN_KEY = 'vb_plan_remind';
+export const planReminderOn = () => {
+  try {
+    return !!localStorage.getItem(PLAN_KEY);
+  } catch {
+    return false;
+  }
+};
+export type PlanReminder = { name: string; start: string; days: string[]; done: number[]; remindAt: string };
+
+export async function syncPlanPush(plan: PlanReminder, language: string, ask: boolean) {
+  if (ask && Notification.permission === 'default') await Notification.requestPermission();
+  if (Notification.permission !== 'granted') throw new Error('blocked');
+  const sub = await subscription(true);
+  if (!sub) throw new Error('unsupported');
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const r = await call({ action: 'plan-subscribe', subscription: sub.toJSON(), plan: { ...plan, tz, language } });
+  try {
+    localStorage.setItem(PLAN_KEY, plan.remindAt);
+  } catch {
+    // the server has it anyway
+  }
+  return r as { next_at: string };
+}
+
+export async function planDonePush(done: number[]) {
+  if (!planReminderOn()) return;
+  const sub = await subscription(false).catch(() => null);
+  if (sub) await call({ action: 'plan-done', endpoint: sub.endpoint, done }).catch(() => {});
+}
+
+export async function stopPlanPush() {
+  try {
+    localStorage.removeItem(PLAN_KEY);
+  } catch {
+    // fine
+  }
+  const sub = await subscription(false).catch(() => null);
+  if (!sub) return;
+  await call({ action: 'plan-unsubscribe', endpoint: sub.endpoint }).catch(() => {});
+  if (!loadSettings().on) await sub.unsubscribe().catch(() => false); // verse notifications still use it
 }
 
 export async function testVersePush() {

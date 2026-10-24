@@ -1179,3 +1179,6 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .plan-chs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .plan-ch { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: inherit; font-weight: 600; }
 .plan-sub { margin: 14px 0 6px; font-size: 0.95rem; color: var(--muted); }
+.plan-remind { margin-top: 4px; }
+.plan-time { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: var(--muted); }
+.plan-time input { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
