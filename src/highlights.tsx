@@ -3,6 +3,7 @@ import { bookName, bookNames } from './bible/books';
 import type { Reference, VerseHit } from './bible/search';
 import { loadTranslation } from './bible/translations';
 import { t } from './i18n';
+import { SYNCED_EVENT } from './sync';
 
 /**
  * Highlights: verses marked in one of five colours, shown behind the verse in the chapter, and all together in
@@ -43,8 +44,13 @@ export function useHighlights() {
   const [marks, setMarks] = useState(load);
   useEffect(() => {
     const on = (e: Event) => setMarks((e as CustomEvent<Marks>).detail);
+    const reload = () => setMarks(load());
     window.addEventListener(EVENT, on);
-    return () => window.removeEventListener(EVENT, on);
+    window.addEventListener(SYNCED_EVENT, reload);
+    return () => {
+      window.removeEventListener(EVENT, on);
+      window.removeEventListener(SYNCED_EVENT, reload);
+    };
   }, []);
   return { marks, colorOf: (v: { book: number; chapter: number; verse: number }) => marks[keyOf(v)] };
 }

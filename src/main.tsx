@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { PresentDisplay } from './Present';
 import { RemotePage } from './Remote';
+import { startSync } from './sync';
 import './styles.css';
 import { applyTheme, savedTheme } from './theme';
 
@@ -19,6 +20,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 // The same address also opens the second screen for Present (?display=1) and the phone remote (?remote=code)
 const params = new URLSearchParams(location.search);
 const remote = params.get('remote');
+if (!params.has('display') && !remote) startSync(); // sync across devices, when signed in
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

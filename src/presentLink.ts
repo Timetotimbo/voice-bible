@@ -7,9 +7,10 @@ import type { Slide } from './Present';
  * Realtime channel named by this device's code (a QR code in Present opens it), sends ‹ › and sees the slide and
  * the next one. Nothing is stored; the messages only pass through.
  */
+export const SUPABASE_URL = 'https://yrrlzqdabodopzaqjlwf.supabase.co';
 const SUPABASE_REALTIME = 'wss://yrrlzqdabodopzaqjlwf.supabase.co/realtime/v1';
 // Social Bloom's publishable key: public, already in its web pages; it only reaches what anyone may
-const SUPABASE_KEY = 'sb_publishable_T-3IqHtHVZe4S_pqZAlM4g_9HVqu6J9';
+export const SUPABASE_KEY = 'sb_publishable_T-3IqHtHVZe4S_pqZAlM4g_9HVqu6J9';
 
 export type DisplayMsg =
   | { type: 'hello' } // the display window opened and wants the slides

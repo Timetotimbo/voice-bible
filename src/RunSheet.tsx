@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
+import { SYNCED_EVENT } from './sync';
 import { colorsOn } from './noteColors';
 import { noteSlides, verseSlides, type Slide } from './Present';
 import { noteTitle, type Note } from './useNotes';
@@ -46,8 +47,13 @@ export function useRunSheet() {
   const [items, setItems] = useState(load);
   useEffect(() => {
     const on = (e: Event) => setItems((e as CustomEvent<RunItem[]>).detail);
+    const reload = () => setItems(load());
     window.addEventListener(EVENT, on);
-    return () => window.removeEventListener(EVENT, on);
+    window.addEventListener(SYNCED_EVENT, reload);
+    return () => {
+      window.removeEventListener(EVENT, on);
+      window.removeEventListener(SYNCED_EVENT, reload);
+    };
   }, []);
   return { items, set: save };
 }

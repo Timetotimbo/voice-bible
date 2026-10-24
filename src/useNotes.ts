@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { t } from './i18n';
+import { SYNCED_EVENT } from './sync';
 
 export interface Note {
   id: string;
@@ -19,6 +20,11 @@ function load(): Note[] {
 /** Notes (thoughts, sermons), kept on this device in the order they're arranged. */
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>(load);
+  useEffect(() => {
+    const reload = () => setNotes(load()); // changed on another device
+    window.addEventListener(SYNCED_EVENT, reload);
+    return () => window.removeEventListener(SYNCED_EVENT, reload);
+  }, []);
   useEffect(() => {
     try {
       localStorage.setItem('notes', JSON.stringify(notes));

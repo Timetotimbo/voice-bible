@@ -12,6 +12,7 @@
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",
     "@supabase/realtime-js": "^2.11.2",
+    "@supabase/supabase-js": "^2.45.4",
     "fflate": "^0.8.3",
     "kokoro-js": "^1.2.1",
     "mp4-muxer": "^5.2.2",

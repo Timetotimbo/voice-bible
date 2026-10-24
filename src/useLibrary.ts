@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SYNCED_EVENT } from './sync';
 
 /** A verse location; text comes from whichever translation is loaded. */
 export type VerseRef = [book: number, chapter: number, verse: number];
@@ -22,6 +23,11 @@ function load<T>(key: string, fallback: T): T {
 
 function usePersisted<T>(key: string, fallback: T) {
   const [value, setValue] = useState<T>(() => load(key, fallback));
+  useEffect(() => {
+    const reload = () => setValue(load(key, fallback)); // changed on another device
+    window.addEventListener(SYNCED_EVENT, reload);
+    return () => window.removeEventListener(SYNCED_EVENT, reload);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));

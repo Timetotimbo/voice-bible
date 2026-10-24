@@ -10,7 +10,8 @@ export function makeBackup(storage: Storage): string {
   const data: Record<string, string> = {};
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i);
-    if (key !== null) data[key] = storage.getItem(key) ?? '';
+    // Not the sync sign-in: a backup moved to another device mustn't carry it
+    if (key !== null && !['vb-auth', 'vb_sync_base', 'vb_sync_last'].includes(key)) data[key] = storage.getItem(key) ?? '';
   }
   return JSON.stringify({ app: APP, saved: new Date().toISOString(), data });
 }

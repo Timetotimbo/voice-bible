@@ -34,6 +34,7 @@ import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode, type FaceLook } from './LiveMode';
 import { PresentHost, presentSlides, presentVerses } from './Present';
+import { SyncPanel } from './SyncPanel';
 import { PlanSheet, usePlanSummary } from './PlanSheet';
 import { HighlightButton, HighlightsSheet, useHighlights } from './highlights';
 import { CompareHost, RelatedHost, compareVerses, relatedVerses } from './Compare';
@@ -1176,6 +1177,7 @@ export default function App() {
               <span>{t('Share Voice Bible')}</span>
               <small>voicebible.eefavorbooks.com ›</small>
             </button>
+            <SyncPanel />
             <Backup />
             <p className="voice-help">Voice Bible v{__APP_VERSION__}{PREVIEW && ` · ${t('Test version')}`}</p>
           </div>
@@ -2825,6 +2827,7 @@ function LibrarySheet({
               </div>
             );
           })}
+          <SyncPanel />
           <Backup />
           </div>
         )}
