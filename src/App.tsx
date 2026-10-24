@@ -34,6 +34,7 @@ import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode, type FaceLook } from './LiveMode';
 import { PresentHost, presentSlides, presentVerses } from './Present';
+import { CompareHost, RelatedHost, compareVerses, relatedVerses } from './Compare';
 import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './RunSheet';
 
 type View =
@@ -1052,6 +1053,8 @@ export default function App() {
           onPreview={setFaceDraft}
         />
       )}
+      <CompareHost />
+      <RelatedHost />
       {runSheetOpen && (
         <RunSheetView
           notes={notes.notes}
@@ -1925,6 +1928,8 @@ function SearchResults({
               {selectionActions(picked)}
               <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
               <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
+              <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
+              <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
@@ -2185,6 +2190,8 @@ function Chapter({
               <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
               <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
               <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
+              <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
+              <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>

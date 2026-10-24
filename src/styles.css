@@ -1134,3 +1134,14 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 
 .live-zoom .ring-pick { min-width: 40px; padding: 6px; display: grid; place-items: center; }
 .ring-pick i { display: block; width: 20px; height: 20px; border-radius: 50%; border-width: 3px; }
+
+/* Compare: a verse in several Bibles */
+.compare-verse + .compare-verse { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.compare-verse h3 { margin: 0 0 6px; color: var(--purple-bright); font-size: 1rem; }
+.compare-verse p { margin: 0 0 8px; font-family: var(--read, Georgia, serif); line-height: 1.45; }
+.compare-verse p b { font-family: inherit; font-size: 0.75em; letter-spacing: 0.05em; color: var(--muted); margin-right: 4px; }
+.compare .muted { color: var(--muted); }
+.related-row { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font-family: var(--read, Georgia, serif); line-height: 1.45; }
+.related-row input { margin-top: 0.35em; flex: none; }
+.related-ref { font-family: var(--ui, inherit); color: var(--purple-bright); margin-right: 4px; }
+.related-count { flex: 1; align-self: center; color: var(--muted); }

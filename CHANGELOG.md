@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.55.0 — 2026-10-24
+- **Compare.** Pick verses and tap **Compare** to see them in four Bibles at once: KJV, the Berean Standard Bible (modern English), the American Standard Version and Young's Literal Translation. The three new ones are public domain; they download the first time you compare (about 4 MB each), then work offline.
+- **Related verses.** Pick a verse and tap **Related** for its cross references: the most-voted related verses from OpenBible.info, with their words. Tick the ones you want and **Present** them or add them to the **Run sheet**.
+
 ## v2.54.0 — 2026-10-24
 - **📱 Phone remote.** In Present, tap **📱 Remote** and scan the QR code with your phone. The phone gets big ‹ › buttons that move the slides on the other screen, shows the slide you're on and the next one, and keeps its screen on. The link stays the same for this device, so you can save it to your phone's home screen.
 - **🖥 Second screen** (on a computer). Opens the slides in their own window: drag it to the TV or projector and tap Full screen (or press F). This window becomes the presenter view, with **Next:** and a timer. ‹ ›, the arrow keys or a clicker work from either window.

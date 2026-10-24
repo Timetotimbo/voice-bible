@@ -41,3 +41,7 @@ Chats (Lists › ChatGPT) call the OpenAI API straight from the browser with the
 Every push to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`.
 
 KJV text is public domain.
+
+## Credits
+- Cross references (Related verses): [OpenBible.info](https://www.openbible.info/labs/cross-references/), CC-BY. Built by `scripts/build-xrefs.py`.
+- Compare: Berean Standard Bible, American Standard Version and Young's Literal Translation, all public domain (JSON from scrollmapper/bible_databases).

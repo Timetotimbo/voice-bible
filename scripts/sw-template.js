@@ -11,6 +11,7 @@ const AUDIO_BASE = '__AUDIO__'; // the Natural voice recordings (another address
 const AUDIO_CACHE = 'vb-audio'; // saved by the reader (src/offlineAudio.ts) or kept when played on Wi-Fi
 const HEART = __HEART__; // Heart for notes' engine (src/heartWorker.ts), kept once the reader downloads it
 const HEART_CACHE = 'vb-heart';
+const COMPARE_CACHE = 'vb-compare'; // the translations for Compare, kept once they've been opened
 const FONT_CSS = __FONTS__; // the Google Fonts stylesheets in index.html
 
 self.addEventListener('install', event => {
@@ -54,7 +55,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     (async () => {
-      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE, AUDIO_CACHE, HEART_CACHE];
+      const keep = [SHELL_CACHE, DATA_CACHE, FONT_CACHE, AUDIO_CACHE, HEART_CACHE, COMPARE_CACHE];
       for (const k of await caches.keys()) if (k.startsWith('vb-') && !keep.includes(k)) await caches.delete(k);
       await self.clients.claim();
     })(),
@@ -118,8 +119,8 @@ self.addEventListener('fetch', event => {
       const hit = await caches.match(req, { ignoreSearch: true, ignoreVary: true });
       if (hit) return hit;
       const r = await fetch(req);
-      if (r.ok && (DATA.includes(url.pathname) || /\/assets\//.test(url.pathname))) {
-        const c = await caches.open(DATA.includes(url.pathname) ? DATA_CACHE : SHELL_CACHE);
+      if (r.ok && (DATA.includes(url.pathname) || /\/assets\//.test(url.pathname) || path.startsWith('compare/'))) {
+        const c = await caches.open(DATA.includes(url.pathname) ? DATA_CACHE : path.startsWith('compare/') ? COMPARE_CACHE : SHELL_CACHE);
         c.put(req, r.clone());
       }
       return r;

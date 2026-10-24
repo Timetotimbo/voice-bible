@@ -20,7 +20,8 @@ function offlineServiceWorker(base: string): Plugin {
       const data = pub.filter(f => f.startsWith('bibles/'));
       // Heart for notes' engine (src/heartWorker.ts) is big: kept only on phones that download it
       const heart = Object.keys(bundle).filter(f => /heartWorker|ort-wasm/.test(f));
-      const shell = ['', 'index.html', ...pub.filter(f => !data.includes(f)), ...Object.keys(bundle).filter(f => !f.endsWith('.map') && f !== 'version.json' && !heart.includes(f))];
+      // Compare's translations (public/compare/) aren't kept ahead of time: only once they've been opened
+      const shell = ['', 'index.html', ...pub.filter(f => !data.includes(f) && !f.startsWith('compare/')), ...Object.keys(bundle).filter(f => !f.endsWith('.map') && f !== 'version.json' && !heart.includes(f))];
       // The Bible files' cache only changes when the files do (they're big)
       const dataKey = createHash('sha256').update(data.map(f => readFileSync(join('public', f))).reduce((h, b) => h + createHash('sha256').update(b).digest('hex'), '')).digest('hex').slice(0, 12);
       const source = readFileSync('scripts/sw-template.js', 'utf8')
