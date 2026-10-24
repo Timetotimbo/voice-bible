@@ -203,6 +203,7 @@ const ES: Record<string, string> = {
   'Narrow': 'Estrecha',
   'Top cut off': 'Sin la parte de arriba',
   'Bottom cut off': 'Sin la parte de abajo',
+  'End': 'Terminar',
   '📷 Hide me': '📷 Ocultarme',
   '📷 Show me': '📷 Mostrarme',
   '● Live': '● En vivo',

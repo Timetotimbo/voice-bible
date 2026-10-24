@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.49.1 — 2026-10-24
+- **End Live mode in one tap.** The red Live bar on the Notes tab has its own red **End** button, so you don't have to open Change first.
+
 ## v2.49.0 — 2026-10-24
 - **Face bubble shapes.** In the Live mode sheet, under Show my face, pick **Circle**, **Narrow** (a slimmer oval), **Top cut off** or **Bottom cut off** (the circle with a third sliced off flat). The narrower and cut shapes show less of the room behind you. Tap the bubble to change its size, as before.
 - **📷 Hide me / Show me while presenting.** When you Present verses in Live mode, a 📷 button next to ✕ turns your camera off completely (not just hidden) while presenting. It's back when you close Present, and the choice is remembered for next time.

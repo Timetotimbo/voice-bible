@@ -951,6 +951,7 @@ export default function App() {
             onLive={() => setLiveSheet(true)}
             face={live.face}
             onFace={() => live.update({ face: !live.face })}
+            onEndLive={() => live.update({ on: false })}
             query={notesQuery}
             onQuery={setNotesQuery}
             onOpen={(id, find) => openView({ kind: 'note', id, find })}
@@ -1551,12 +1552,13 @@ function matchSnippet(text: string, query: string) {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, face, onFace, query, onQuery, onOpen, onNew, onDelete, onMove }: {
+function NotesPage({ notes, live, onLive, face, onFace, onEndLive, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
   face: boolean; // Live mode's camera bubble is on
   onFace: () => void;
+  onEndLive: () => void;
   query: string;
   onQuery: (q: string) => void;
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
@@ -1582,6 +1584,7 @@ function NotesPage({ notes, live, onLive, face, onFace, query, onQuery, onOpen, 
           <span><b>{t('● Live mode')}</b> · {n('{n} note shown', '{n} notes shown', live)}</span>
           <button className="live-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
           <button onClick={onLive}>{t('Change')}</button>
+          <button className="live-end" onClick={onEndLive}>{t('End')}</button>
         </div>
       )}
       {notes.length > 0 && (
