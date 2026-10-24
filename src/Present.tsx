@@ -2,20 +2,60 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
+import { SENTENCE_COLORS, sentenceRanges } from './noteColors';
+import { paragraphsOf } from './words';
 
 /**
- * Present: the picked verses filling the screen in the biggest type that fits, for showing on a livestream or
- * a projector. Verses next to each other show together; others are separate slides (‹ › or tap the sides).
+ * Present: picked verses, or a note a paragraph at a time, filling the screen in the biggest type that fits, for
+ * showing on a livestream or a projector. Verses next to each other show together; others are separate slides
+ * (‹ › or tap the sides).
  */
 const EVENT = 'vb-present';
 
-export function presentVerses(verses: VerseHit[]) {
-  window.dispatchEvent(new CustomEvent(EVENT, { detail: verses }));
+// A slide is verses with their reference, or words from a note: its title (title: true) or a paragraph.
+// colorFrom: with 🎨 on, the colour of its first sentence, so the colours carry on from slide to slide
+export type Slide =
+  | { kind: 'verses'; ref: string; verses: VerseHit[] }
+  | { kind: 'text'; text: string; title?: boolean; colorFrom?: number };
+
+export function presentSlides(slides: Slide[], at = 0) {
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: { slides, at } }));
 }
 
-type Slide = { ref: string; verses: VerseHit[] };
+export function presentVerses(verses: VerseHit[]) {
+  presentSlides(verseSlides(verses));
+}
 
-function slides(verses: VerseHit[]): Slide[] {
+/** A note as slides: its title, then each paragraph (a long one is split between sentences, about 45 words a slide). */
+export function noteSlides(title: string, text: string, colored: boolean): Slide[] {
+  const out: Slide[] = title.trim() ? [{ kind: 'text', text: title.trim(), title: true }] : [];
+  let color = 0;
+  for (const p of paragraphsOf(text)) {
+    for (const chunk of splitLong(p)) {
+      out.push({ kind: 'text', text: chunk, colorFrom: colored ? color : undefined });
+      color += sentenceRanges(chunk).length;
+    }
+  }
+  return out;
+}
+
+const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+function splitLong(p: string, most = 45): string[] {
+  if (words(p) <= most + 20) return [p];
+  const out: string[] = [];
+  let cur = '';
+  for (const r of sentenceRanges(p)) {
+    const sentence = p.slice(r.start, r.end);
+    if (cur && words(cur) + words(sentence) > most) {
+      out.push(cur);
+      cur = sentence;
+    } else cur = cur ? `${cur} ${sentence}` : sentence;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+export function verseSlides(verses: VerseHit[]): Slide[] {
   const groups: VerseHit[][] = [];
   for (const v of verses) {
     const last = groups[groups.length - 1]?.at(-1);
@@ -23,6 +63,7 @@ function slides(verses: VerseHit[]): Slide[] {
     else groups.push([v]);
   }
   return groups.map(g => ({
+    kind: 'verses' as const,
     ref: `${bookName(g[0].book)} ${g[0].chapter}:${g[0].verse}${g.length > 1 ? `–${g[g.length - 1].verse}` : ''}`,
     verses: g,
   }));
@@ -37,8 +78,9 @@ export function PresentHost({ face, onFace, onShowing }: { face: boolean | null;
   const [at, setAt] = useState(0);
   useEffect(() => {
     const open = (e: Event) => {
-      setShown(slides((e as CustomEvent<VerseHit[]>).detail));
-      setAt(0);
+      const { slides, at } = (e as CustomEvent<{ slides: Slide[]; at: number }>).detail;
+      setShown(slides);
+      setAt(at);
     };
     window.addEventListener(EVENT, open);
     return () => window.removeEventListener(EVENT, open);
@@ -94,7 +136,7 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
   }, [go, onClose]);
 
   return (
-    <div className="present" role="dialog" aria-modal="true" aria-label={slide.ref}>
+    <div className="present" role="dialog" aria-modal="true" aria-label={slide.kind === 'verses' ? slide.ref : t('Present')}>
       <div
         className="present-box"
         ref={box}
@@ -105,15 +147,27 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
         }}
       >
         <div className="present-text" ref={text}>
-          <p>
-            {slide.verses.map(v => (
-              <span key={v.verse}>
-                {slide.verses.length > 1 && <sup>{v.verse}</sup>}
-                {v.text}{' '}
-              </span>
-            ))}
-          </p>
-          <p className="present-ref">{slide.ref}</p>
+          {slide.kind === 'verses' ? (
+            <>
+              <p>
+                {slide.verses.map(v => (
+                  <span key={v.verse}>
+                    {slide.verses.length > 1 && <sup>{v.verse}</sup>}
+                    {v.text}{' '}
+                  </span>
+                ))}
+              </p>
+              <p className="present-ref">{slide.ref}</p>
+            </>
+          ) : (
+            <p className={slide.title ? 'present-title' : undefined}>
+              {slide.colorFrom === undefined
+                ? slide.text
+                : sentenceRanges(slide.text).map((r, i) => (
+                  <span key={r.start} className={`sc${(slide.colorFrom! + i) % SENTENCE_COLORS}`}>{slide.text.slice(r.start, r.end)} </span>
+                ))}
+            </p>
+          )}
         </div>
       </div>
       <div className="present-bar">

@@ -16,6 +16,8 @@ import { continueList, toggleCheck, toggleList, type ListKind } from './noteList
 import { colorsOn, sentenceRanges, setColorsOn } from './noteColors';
 import { tocLinks } from './noteToc';
 import { socialBloomLinked, videoSendOn } from './socialBloom';
+import { noteSlides, presentSlides } from './Present';
+import { addToRunSheet } from './RunSheet';
 import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from './ReadAloud';
 
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
@@ -65,6 +67,7 @@ export function NoteView({
   const viewEl = useRef<HTMLDivElement>(null);
   // Colour by sentence (🎨): off unless turned on for this note
   const [colored, setColored] = useState(() => colorsOn(note.id));
+  const [presentMenu, setPresentMenu] = useState(false);
   useEffect(() => setColored(colorsOn(note.id)), [note.id]);
   const sentences = useMemo(() => (colored ? sentenceRanges(shownText) : undefined), [colored, shownText]);
   // A table of contents in the note: its titles link to their headings further down; ↑ Contents comes back
@@ -404,6 +407,15 @@ export function NoteView({
             <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
           </svg>
         </button>
+        <button
+          className="undo present-btn"
+          aria-label={t('Present')}
+          title={t('Present this note full screen, or add it to the run sheet')}
+          disabled={!note.text.trim()}
+          onClick={() => setPresentMenu(true)}
+        >
+          ▶
+        </button>
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
         <button
@@ -681,6 +693,35 @@ export function NoteView({
           </div>
         </div>
       )}
+      {presentMenu && (() => {
+        // Words picked in the note (for a video, or just selected) can go on the run sheet by themselves
+        const picked = picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end).trim() : '';
+        const close = () => setPresentMenu(false);
+        return (
+          <div className="sheet-backdrop" onClick={close}>
+            <div className="sheet present-menu" role="dialog" aria-modal="true" aria-label={t('Present')} onClick={e => e.stopPropagation()}>
+              <div className="sheet-head">
+                <h2>{t('Present')}</h2>
+                <button className="sheet-close" aria-label={t('Close')} onClick={close}>✕</button>
+              </div>
+              <button className="sheet-item" onClick={() => { close(); if (reading) reader.stop(); presentSlides(noteSlides(noteTitle(note), note.text, colored)); }}>
+                <span>{t('▶ Present this note')}</span>
+                <small>{t('Full screen, a paragraph at a time, in the biggest type that fits')}</small>
+              </button>
+              <button className="sheet-item" onClick={() => { close(); addToRunSheet({ kind: 'note', noteId: note.id }); }}>
+                <span>{t('+ Run sheet: this note')}</span>
+                <small>{t('Line it up with verses and other notes')}</small>
+              </button>
+              {picked && (
+                <button className="sheet-item" onClick={() => { close(); addToRunSheet({ kind: 'words', noteId: note.id, text: picked }); setSel(null); }}>
+                  <span>{t('+ Run sheet: picked words')}</span>
+                  <small>{picked.replace(/\s+/g, ' ').slice(0, 90)}</small>
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }

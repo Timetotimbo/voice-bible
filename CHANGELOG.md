@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.53.0 — 2026-10-24
+- **Present a note.** A new ▶ button in a note's top row opens **Present**: **▶ Present this note** shows it full screen, the title first and then a paragraph at a time (a long paragraph is split between sentences), in the biggest type that fits. With 🎨 on, the sentence colours carry on from slide to slide. ‹ ›, tapping the sides, the arrow keys or a presentation clicker move through it.
+- **Run sheet.** Line up what you'll teach, in order: tap **+ Run sheet** next to Present when verses are picked, or in a note's ▶ menu add the whole note or just words you've picked in it. **▶ Run sheet** at the top of the Notes tab shows the list: ▲ ▼ to reorder, ✕ to remove, **▶ Present all** to go through everything one slide after another, or tap an item to start there. A note on the run sheet is shown as it is when you present, so later edits are included.
+- **Clean screen for Live mode** (on unless you turn it off in the Live mode sheet). When the mouse or your finger has been still for a few seconds, the pointer, the top bar, the tab bar, the Live bar, the note's buttons, drag handles, + New note and the search box fade away, so the stream shows only what you're teaching. Move the mouse or tap to bring them back.
+- Present never breaks a word in the middle: the type gets smaller until the longest word fits.
+
 ## v2.52.0 — 2026-10-24
 - **Zoom in on your face.** In the Live mode sheet, under the bubble shapes, **Zoom in on my face** has 1× (no zoom), 1.5×, 2× and 2.5×. It fills the bubble with more of you and less of the room behind you, in every shape and size, and you see it in the bubble as you pick.
 

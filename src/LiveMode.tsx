@@ -9,13 +9,14 @@ import { noteTitle, type Note } from './useNotes';
  */
 // presentFace: whether the bubble stays on while verses are presented full screen (📷 in Present)
 // zoom: how far the camera is zoomed in on your face, so less of the room behind shows
-export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; presentFace: boolean };
+// clean: the pointer and the app's buttons fade away when the mouse or a finger has been still for a few seconds
+export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; zoom: number; presentFace: boolean; clean: boolean };
 type BubbleSize = 'xs' | 's' | 'm' | 'l';
 /** Round, a narrower oval, or a circle with its top or bottom third cut off flat, to show less of the room */
 export type BubbleShape = 'round' | 'narrow' | 'cut-top' | 'cut-bottom';
 
 const KEY = 'liveMode';
-const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, presentFace: true };
+const OFF: Live = { on: false, shown: [], face: true, shape: 'round', zoom: 1, presentFace: true, clean: true };
 const ZOOMS = [1, 1.5, 2, 2.5];
 export type FaceLook = { face: boolean; shape: BubbleShape; zoom: number };
 const SHAPES: { id: BubbleShape; label: string }[] = [
@@ -40,7 +41,7 @@ export function useLiveMode() {
 export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   notes: Note[];
   live: Live;
-  onStart: (shown: string[], look: FaceLook) => void;
+  onStart: (shown: string[], look: FaceLook, clean: boolean) => void;
   onEnd: () => void;
   onClose: () => void;
   onPreview: (draft: FaceLook) => void; // shows the bubble as picked, before Save
@@ -49,6 +50,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   const [face, setFace] = useState(live.face);
   const [shape, setShape] = useState(live.shape);
   const [zoom, setZoom] = useState(live.zoom);
+  const [clean, setClean] = useState(live.clean);
   useEffect(() => onPreview({ face, shape, zoom }), [face, shape, zoom, onPreview]);
   const toggle = (id: string) => setPicked(p => {
     const next = new Set(p);
@@ -89,6 +91,11 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
           </div>
         )}
 
+        <label className="set-row">
+          <span>{t('Clean screen')}<small className="set-sub">{t('When the mouse or your finger is still for a few seconds, the pointer, the tab bar and the app’s buttons fade away, so people see only what you’re teaching. Move or tap to bring them back.')}</small></span>
+          <input type="checkbox" role="switch" className="switch" checked={clean} onChange={e => setClean(e.target.checked)} />
+        </label>
+
         <div className="import-bar">
           <span>{t('Notes people can see: {n}', { n: picked.size })}</span>
           {picked.size > 0 && <button onClick={() => setPicked(new Set())}>{t('Clear')}</button>}
@@ -107,7 +114,7 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
 
         <div className="live-actions">
           {live.on && <button onClick={onEnd}>{t('End Live mode')}</button>}
-          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom })}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
+          <button className="primary" onClick={() => onStart([...picked], { face, shape, zoom }, clean)}>{t(live.on ? 'Save' : 'Start Live mode')}</button>
         </div>
       </div>
     </div>

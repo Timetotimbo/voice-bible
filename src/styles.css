@@ -1024,10 +1024,10 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .more-row .more + .more { flex: 0 0 auto; }
 /* 🎨 Colour by sentence in a note: bright on the dark themes, deeper on the light ones */
 /* (and while it's read aloud) */
-.note-view, .note-reading { --sc0: #ffd166; --sc1: #7fd4ff; --sc2: #ff8fb8; --sc3: #8ee59b; --sc4: #c7a6ff; }
-[data-theme='light'] :is(.note-view, .note-reading), [data-theme='parchment'] :is(.note-view, .note-reading) { --sc0: #b45309; --sc1: #0369a1; --sc2: #be185d; --sc3: #15803d; --sc4: #6d28d9; }
-:is(.note-view, .note-reading) .sc0 { color: var(--sc0); } :is(.note-view, .note-reading) .sc1 { color: var(--sc1); } :is(.note-view, .note-reading) .sc2 { color: var(--sc2); }
-:is(.note-view, .note-reading) .sc3 { color: var(--sc3); } :is(.note-view, .note-reading) .sc4 { color: var(--sc4); }
+.note-view, .note-reading, .present { --sc0: #ffd166; --sc1: #7fd4ff; --sc2: #ff8fb8; --sc3: #8ee59b; --sc4: #c7a6ff; }
+[data-theme='light'] :is(.note-view, .note-reading, .present), [data-theme='parchment'] :is(.note-view, .note-reading, .present) { --sc0: #b45309; --sc1: #0369a1; --sc2: #be185d; --sc3: #15803d; --sc4: #6d28d9; }
+:is(.note-view, .note-reading, .present) .sc0 { color: var(--sc0); } :is(.note-view, .note-reading, .present) .sc1 { color: var(--sc1); } :is(.note-view, .note-reading, .present) .sc2 { color: var(--sc2); }
+:is(.note-view, .note-reading, .present) .sc3 { color: var(--sc3); } :is(.note-view, .note-reading, .present) .sc4 { color: var(--sc4); }
 
 /* Now playing: a chapter keeps reading on other screens; pause, back to it, or stop */
 .player.now-playing { flex-wrap: nowrap; padding-top: 8px; padding-bottom: 8px; }
@@ -1073,10 +1073,28 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .present { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   padding: calc(env(safe-area-inset-top) + 16px) max(20px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 10px) max(20px, env(safe-area-inset-left)); }
 .present-box { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.present-text { max-width: 100%; max-height: 100%; font-family: var(--read, Georgia, 'Times New Roman', serif); line-height: 1.3; text-align: center; overflow-wrap: break-word; }
+.present-text { max-width: 100%; max-height: 100%; font-family: var(--read, Georgia, 'Times New Roman', serif); line-height: 1.3; text-align: center; overflow-wrap: normal; } /* words never break in the middle: the type shrinks until the longest fits */
 .present-text p { margin: 0; text-wrap: balance; }
 .present-text sup { font-size: 0.45em; color: var(--purple-bright); margin-right: 0.15em; }
 .present-ref { margin-top: 0.5em !important; font-size: 0.5em; font-weight: 700; letter-spacing: 0.04em; color: var(--purple-bright); }
 .present-bar { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 8px; color: var(--muted); }
 .present-bar button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 1.1rem; }
 .present-bar button:disabled { opacity: 0.35; }
+
+/* A note presented: its title slide stands out */
+.present-title { font-weight: 800; color: var(--purple-bright); }
+.present-menu .sheet-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; }
+.present-menu .sheet-item + .sheet-item { margin-top: 8px; }
+
+/* Run sheet */
+.run-list li { display: flex; align-items: center; gap: 6px; }
+.run-num { flex: none; width: 1.6em; text-align: right; color: var(--muted); font-weight: 700; }
+.run-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; }
+.run-item span, .run-item small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-btn { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: none; color: inherit; }
+.run-btn:disabled { opacity: 0.3; }
+
+/* Clean screen: in Live mode, when the mouse or a finger has been still, the pointer and the buttons fade away */
+.live-clean :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { transition: opacity 0.4s; }
+.live-clean.idle, .live-clean.idle * { cursor: none !important; }
+.live-clean.idle :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { opacity: 0; pointer-events: none; }

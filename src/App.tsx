@@ -33,7 +33,8 @@ import { n, setUiLanguage, t, uiLanguage } from './i18n';
 import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode, type FaceLook } from './LiveMode';
-import { PresentHost, presentVerses } from './Present';
+import { PresentHost, presentSlides, presentVerses } from './Present';
+import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './RunSheet';
 
 type View =
   | { kind: 'home' }
@@ -221,6 +222,29 @@ export default function App() {
   const live = useLiveMode();
   const [liveSheet, setLiveSheet] = useState(false);
   const [presenting, setPresenting] = useState(false);
+  const runSheet = useRunSheet();
+  const [runSheetOpen, setRunSheetOpen] = useState(false);
+  useRunSheetAdded(useCallback((count: number) => setToastState({ text: t('Added to the run sheet ({n})', { n: count }), run: true }), []));
+  // Clean screen (Live mode): after a few seconds without the mouse or a touch, the pointer and the app's
+  // buttons fade away so the stream shows only what's being taught; any move brings them back
+  const clean = live.on && live.clean;
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    if (!clean) return setIdle(false);
+    let timer = 0;
+    const wake = () => {
+      setIdle(false);
+      clearTimeout(timer);
+      timer = window.setTimeout(() => setIdle(true), 2500);
+    };
+    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
+    events.forEach(e => window.addEventListener(e, wake, { passive: true }));
+    wake();
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, wake));
+    };
+  }, [clean]);
   // While the Live mode sheet is open, the bubble previews what's picked there before it's saved
   const [faceDraft, setFaceDraft] = useState<FaceLook | null>(null);
   const preview = liveSheet ? faceDraft : null;
@@ -233,7 +257,7 @@ export default function App() {
     return id;
   };
   const moveShownNote = (id: string, to: number) => notes.moveNote(id, live.on ? notes.notes.findIndex(x => x.id === shownNotes[to]?.id) : to);
-  const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string } | null>(null);
+  const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string; run?: boolean } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
   const faceError = useCallback((text: string) => { setToastState({ text }); live.update({ face: false }); }, [live.update]);
@@ -562,7 +586,7 @@ export default function App() {
 
   return (
     <ClassicContext.Provider value={classic}>
-    <div className={`app ${classic ? 'classic' : 'v2'}${showNowPlaying ? ' np-on' : ''}`}>
+    <div className={`app ${classic ? 'classic' : 'v2'}${showNowPlaying ? ' np-on' : ''}${clean ? ' live-clean' : ''}${clean && idle ? ' idle' : ''}`}>
       {classic ? (
         <>
         <header className="top">
@@ -955,6 +979,8 @@ export default function App() {
             face={live.face}
             onFace={() => live.update({ face: !live.face })}
             onEndLive={() => live.update({ on: false })}
+            runCount={runSheet.items.length}
+            onRunSheet={() => setRunSheetOpen(true)}
             query={notesQuery}
             onQuery={setNotesQuery}
             onOpen={(id, find) => openView({ kind: 'note', id, find })}
@@ -1020,10 +1046,17 @@ export default function App() {
         <LiveSheet
           notes={notes.notes}
           live={live}
-          onStart={(shown, look) => { live.update({ on: true, shown, ...look }); setLiveSheet(false); setNotesQuery(''); }}
+          onStart={(shown, look, clean) => { live.update({ on: true, shown, ...look, clean }); setLiveSheet(false); setNotesQuery(''); }}
           onEnd={() => { live.update({ on: false }); setLiveSheet(false); }}
           onClose={() => setLiveSheet(false)}
           onPreview={setFaceDraft}
+        />
+      )}
+      {runSheetOpen && (
+        <RunSheetView
+          notes={notes.notes}
+          onPresent={(slides, at) => { setRunSheetOpen(false); presentSlides(slides, at); }}
+          onClose={() => setRunSheetOpen(false)}
         />
       )}
       <PresentHost
@@ -1337,7 +1370,12 @@ export default function App() {
           }}
         />
       )}
-      {toast && (toast.listId || toast.noteId ? (
+      {toast && (toast.run ? (
+        <button className="toast toast-link" onClick={() => { setToastState(null); setRunSheetOpen(true); }}>
+          <span className="toast-text">{toast.text}</span>
+          <span className="toast-open">{t('Open ›')}</span>
+        </button>
+      ) : toast.listId || toast.noteId ? (
         <button
           className="toast toast-link"
           onClick={() => {
@@ -1558,13 +1596,15 @@ function matchSnippet(text: string, query: string) {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, face, onFace, onEndLive, query, onQuery, onOpen, onNew, onDelete, onMove }: {
+function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
   face: boolean; // Live mode's camera bubble is on
   onFace: () => void;
   onEndLive: () => void;
+  runCount: number; // what's lined up on the run sheet
+  onRunSheet: () => void;
   query: string;
   onQuery: (q: string) => void;
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
@@ -1583,6 +1623,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, query, onQuer
   return (
     <section className="tab-page">
       <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined}>
+        <button className="text-btn" onClick={onRunSheet}>{runCount ? t('▶ Run sheet ({n})', { n: runCount }) : t('▶ Run sheet')}</button>
         {live === null && <button className="text-btn" onClick={onLive}>{t('● Live')}</button>}
       </PageHead>
       {live !== null && (
@@ -1883,6 +1924,7 @@ function SearchResults({
               <span>{t('{n} selected', { n: picked.length })}</span>
               {selectionActions(picked)}
               <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
+              <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
@@ -2142,6 +2184,7 @@ function Chapter({
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
               <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
               <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
+              <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
