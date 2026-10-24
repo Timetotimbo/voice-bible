@@ -28,8 +28,11 @@ function slides(verses: VerseHit[]): Slide[] {
   }));
 }
 
-/** Listens for presentVerses() and shows the slides over everything. */
-export function PresentHost() {
+/**
+ * Listens for presentVerses() and shows the slides over everything. face: in Live mode with the camera on, whether
+ * the face bubble stays on while presenting (null otherwise); 📷 turns it off, camera and all, until Present closes.
+ */
+export function PresentHost({ face, onFace, onShowing }: { face: boolean | null; onFace: () => void; onShowing: (on: boolean) => void }) {
   const [shown, setShown] = useState<Slide[] | null>(null);
   const [at, setAt] = useState(0);
   useEffect(() => {
@@ -40,11 +43,20 @@ export function PresentHost() {
     window.addEventListener(EVENT, open);
     return () => window.removeEventListener(EVENT, open);
   }, []);
+  const showing = !!shown?.length;
+  useEffect(() => onShowing(showing), [showing, onShowing]);
   if (!shown?.length) return null;
-  return <Slides slides={shown} at={Math.min(at, shown.length - 1)} onAt={setAt} onClose={() => setShown(null)} />;
+  return <Slides slides={shown} at={Math.min(at, shown.length - 1)} onAt={setAt} onClose={() => setShown(null)} face={face} onFace={onFace} />;
 }
 
-function Slides({ slides, at, onAt, onClose }: { slides: Slide[]; at: number; onAt: (i: number) => void; onClose: () => void }) {
+function Slides({ slides, at, onAt, onClose, face, onFace }: {
+  slides: Slide[];
+  at: number;
+  onAt: (i: number) => void;
+  onClose: () => void;
+  face: boolean | null;
+  onFace: () => void;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const slide = slides[at];
@@ -111,6 +123,9 @@ function Slides({ slides, at, onAt, onClose }: { slides: Slide[]; at: number; on
             <span>{at + 1} / {slides.length}</span>
             <button aria-label={t('Next')} disabled={at === slides.length - 1} onClick={() => go(1)}>›</button>
           </>
+        )}
+        {face !== null && (
+          <button className="present-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
         )}
         <button aria-label={t('Close')} onClick={onClose}>✕</button>
       </div>

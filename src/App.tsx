@@ -220,6 +220,7 @@ export default function App() {
   // Live mode: only the picked notes show anywhere, and the face bubble is on screen
   const live = useLiveMode();
   const [liveSheet, setLiveSheet] = useState(false);
+  const [presenting, setPresenting] = useState(false);
   const shownNotes = useMemo(() => (live.on ? notes.notes.filter(x => live.shown.includes(x.id)) : notes.notes), [live.on, live.shown, notes.notes]);
   // Reordering a shorter list: move next to the note that's at that place in it
   // A note made during Live mode is one you're showing
@@ -948,6 +949,8 @@ export default function App() {
             notes={shownNotes}
             live={live.on ? live.shown.length : null}
             onLive={() => setLiveSheet(true)}
+            face={live.face}
+            onFace={() => live.update({ face: !live.face })}
             query={notesQuery}
             onQuery={setNotesQuery}
             onOpen={(id, find) => openView({ kind: 'note', id, find })}
@@ -1013,13 +1016,17 @@ export default function App() {
         <LiveSheet
           notes={notes.notes}
           live={live}
-          onStart={(shown, face) => { live.update({ on: true, shown, face }); setLiveSheet(false); setNotesQuery(''); }}
+          onStart={(shown, face, shape) => { live.update({ on: true, shown, face, shape }); setLiveSheet(false); setNotesQuery(''); }}
           onEnd={() => { live.update({ on: false }); setLiveSheet(false); }}
           onClose={() => setLiveSheet(false)}
         />
       )}
-      <PresentHost />
-      {live.on && live.face && <FaceBubble onError={faceError} />}
+      <PresentHost
+        face={live.on && live.face ? live.presentFace : null}
+        onFace={() => live.update({ presentFace: !live.presentFace })}
+        onShowing={setPresenting}
+      />
+      {live.on && live.face && (live.presentFace || !presenting) && <FaceBubble shape={live.shape} onError={faceError} />}
       {prompter && <Teleprompter key={prompter.at} title={prompter.title} text={prompter.text} onClose={() => setPrompter(null)} />}
       {classic && hints && <footer className="version">Voice Bible v{__APP_VERSION__}</footer>}
       {showNowPlaying && reader.current && (
@@ -1544,10 +1551,12 @@ function matchSnippet(text: string, query: string) {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, query, onQuery, onOpen, onNew, onDelete, onMove }: {
+function NotesPage({ notes, live, onLive, face, onFace, query, onQuery, onOpen, onNew, onDelete, onMove }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
+  face: boolean; // Live mode's camera bubble is on
+  onFace: () => void;
   query: string;
   onQuery: (q: string) => void;
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
@@ -1571,6 +1580,7 @@ function NotesPage({ notes, live, onLive, query, onQuery, onOpen, onNew, onDelet
       {live !== null && (
         <div className="live-bar">
           <span><b>{t('● Live mode')}</b> · {n('{n} note shown', '{n} notes shown', live)}</span>
+          <button className="live-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
           <button onClick={onLive}>{t('Change')}</button>
         </div>
       )}

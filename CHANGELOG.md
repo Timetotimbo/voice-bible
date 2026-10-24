@@ -2,6 +2,11 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.49.0 — 2026-10-24
+- **Face bubble shapes.** In the Live mode sheet, under Show my face, pick **Circle**, **Narrow** (a slimmer oval), **Top cut off** or **Bottom cut off** (the circle with a third sliced off flat). The narrower and cut shapes show less of the room behind you. Tap the bubble to change its size, as before.
+- **📷 Hide me / Show me while presenting.** When you Present verses in Live mode, a 📷 button next to ✕ turns your camera off completely (not just hidden) while presenting. It's back when you close Present, and the choice is remembered for next time.
+- **📷 on the Live bar** on the Notes tab turns the camera bubble off or on without opening the Live mode sheet.
+
 ## v2.48.0 — 2026-10-23
 - **Present a verse full screen.** Pick one or more verses (in a chapter or in search results) and tap **Present**: the verse fills the screen in the biggest type that fits, with its reference underneath. It fits again when you turn the phone or resize the window. Verses next to each other show together; others are separate slides: tap the right or left side, use ‹ ›, or the arrow keys. ✕ or Esc closes it. The Live mode face bubble stays on top.
 
