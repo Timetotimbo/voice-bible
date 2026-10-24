@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.56.0 — 2026-10-24
+- **🖍 Highlight verses** in five colours (yellow, green, blue, pink, purple). Pick verses in a chapter or in search results, tap **🖍 Highlight** and choose a colour, or ✕ to take it off. Highlighted verses show their colour whenever you read the chapter.
+- **Verse Lists → 🖍 Highlights** shows every highlighted verse in Bible order, with a filter by colour. Tap one to open it in its chapter. Highlights are in your backups.
+
 ## v2.55.0 — 2026-10-24
 - **Compare.** Pick verses and tap **Compare** to see them in four Bibles at once: KJV, the Berean Standard Bible (modern English), the American Standard Version and Young's Literal Translation. The three new ones are public domain; they download the first time you compare (about 4 MB each), then work offline.
 - **Related verses.** Pick a verse and tap **Related** for its cross references: the most-voted related verses from OpenBible.info, with their words. Tick the ones you want and **Present** them or add them to the **Run sheet**.

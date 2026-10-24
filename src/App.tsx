@@ -34,6 +34,7 @@ import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode, type FaceLook } from './LiveMode';
 import { PresentHost, presentSlides, presentVerses } from './Present';
+import { HighlightButton, HighlightsSheet, useHighlights } from './highlights';
 import { CompareHost, RelatedHost, compareVerses, relatedVerses } from './Compare';
 import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './RunSheet';
 
@@ -225,6 +226,7 @@ export default function App() {
   const [presenting, setPresenting] = useState(false);
   const runSheet = useRunSheet();
   const [runSheetOpen, setRunSheetOpen] = useState(false);
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
   useRunSheetAdded(useCallback((count: number) => setToastState({ text: t('Added to the run sheet ({n})', { n: count }), run: true }), []));
   // Clean screen (Live mode): after a few seconds without the mouse or a touch, the pointer and the app's
   // buttons fade away so the stream shows only what's being taught; any move brings them back
@@ -970,6 +972,7 @@ export default function App() {
             library={library}
             onOpen={id => openView({ kind: 'list', id })}
             onShare={shareList}
+            onHighlights={() => setHighlightsOpen(true)}
           />
         )}
         {view.kind === 'notes' && (
@@ -1054,6 +1057,12 @@ export default function App() {
         />
       )}
       <CompareHost />
+      {highlightsOpen && (
+        <HighlightsSheet
+          onGo={ref => { setHighlightsOpen(false); openView({ kind: 'chapter', ref }); }}
+          onClose={() => setHighlightsOpen(false)}
+        />
+      )}
       <RelatedHost />
       {runSheetOpen && (
         <RunSheetView
@@ -1516,9 +1525,21 @@ function PageHead({ title, editing, onEdit, children }: { title: string; editing
   );
 }
 
+/** Verse Lists → Highlights: how many verses are highlighted; opens them all. */
+function HighlightsRow({ onOpen }: { onOpen: () => void }) {
+  const count = Object.keys(useHighlights().marks).length;
+  return (
+    <button className="sheet-item hl-open" onClick={onOpen}>
+      <span>{t('🖍 Highlights')}</span>
+      <small>{count ? n('{n} verse', '{n} verses', count) : t('Pick verses and tap 🖍 Highlight')}</small>
+    </button>
+  );
+}
+
 /** The Verse Lists tab. Edit shows the drag handles, rename, share and delete. */
-function ListsPage({ library, onOpen, onShare }: {
+function ListsPage({ library, onOpen, onShare, onHighlights }: {
   library: ReturnType<typeof useLibrary>;
+  onHighlights: () => void;
   onOpen: (id: string) => void;
   onShare: (list: VerseList) => void;
 }) {
@@ -1546,6 +1567,7 @@ function ListsPage({ library, onOpen, onShare }: {
       ) : (
         <button className="new-row" onClick={() => setCreating(true)}>{t('+ New list')}</button>
       )}
+      <HighlightsRow onOpen={onHighlights} />
       {!library.lists.length && <p className="notice">{t('Tap + New, or check verses in your results and tap “Save to list”.')}</p>}
       <ul className="sheet-list">
         {library.lists.map((l, i) => deleting === l.id ? (
@@ -1930,6 +1952,7 @@ function SearchResults({
               <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
               <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
               <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
+              <HighlightButton verses={picked} onDone={onClearSelection} />
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
@@ -1980,6 +2003,7 @@ function Chapter({
   // Opened from a list: add the chosen verses beside the verse opened (verses already in the list are marked)
   aroundList?: { name: string; label: string; inList: Set<number>; onAdd: (picked: VerseHit[]) => void };
 }) {
+  const hl = useHighlights();
   const classic = useContext(ClassicContext);
   const { book, chapter, verseStart, verseEnd } = view.ref;
   // Every chapter of the Bible in order, for swiping to the one before or after and reading on
@@ -2141,7 +2165,7 @@ function Chapter({
               <li
                 key={v}
                 ref={key === readingKey ? readingEl : onMain && v === verseStart ? first : undefined}
-                className={`${inRange(v) ? 'hit' : ''} ${key === readingKey ? 'reading' : ''} ${isSelected ? 'selected' : ''} ${
+                className={`${inRange(v) ? 'hit' : ''} ${key === readingKey ? 'reading' : ''} ${isSelected ? 'selected' : ''} ${hl.colorOf(h) ? `hl hl-${hl.colorOf(h)}` : ''} ${
                   aroundList && onMain && aroundList.inList.has(v) ? 'in-list' : ''
                 }`}
                 {...(reader.supported && {
@@ -2192,6 +2216,7 @@ function Chapter({
               <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
               <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
               <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
+              <HighlightButton verses={picked} onDone={onClearSelection} />
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
