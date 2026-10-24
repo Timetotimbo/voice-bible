@@ -1161,3 +1161,19 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .hl-all { border-radius: 999px; padding: 5px 12px; border: 1px solid var(--border); background: none; color: inherit; }
 .hl-all.on { border-color: var(--purple-bright); }
 .hl-open { display: flex; flex-direction: column; align-items: flex-start; width: 100%; margin-bottom: 8px; }
+
+/* Reading plan */
+.plan-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.plan-head span, .plan-head small { color: var(--muted); }
+.plan-bar { height: 8px; border-radius: 999px; background: var(--surface-2, var(--surface)); overflow: hidden; border: 1px solid var(--border); }
+.plan-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--purple-deep), var(--purple-bright)); }
+.plan-day { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; }
+.plan-day.today { border-color: var(--purple-bright); background: color-mix(in srgb, var(--purple-deep) 18%, transparent); }
+.plan-day.done { opacity: 0.7; }
+.plan-day-body { flex: 1; min-width: 0; }
+.plan-day-body small { color: var(--muted); }
+.plan-tick { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--purple-bright); background: none; color: var(--on-accent); font-weight: 800; }
+.plan-day.done .plan-tick { background: var(--purple-deep); }
+.plan-chs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.plan-ch { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: inherit; font-weight: 600; }
+.plan-sub { margin: 14px 0 6px; font-size: 0.95rem; color: var(--muted); }

@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.57.0 — 2026-10-24
+- **📅 Reading plans**, in Verse Lists. Choose the whole Bible in a year, the New Testament in 90 days, the Gospels in 30 days, or Psalms and Proverbs in a month. Each day shows its chapters (tap one to read it) and a circle to tick when you've read them. You see the day you're on, a 🔥 streak, how much is done, any days to catch up, and the next few days. The Verse Lists tab shows today's chapters at a glance.
+
 ## v2.56.0 — 2026-10-24
 - **🖍 Highlight verses** in five colours (yellow, green, blue, pink, purple). Pick verses in a chapter or in search results, tap **🖍 Highlight** and choose a colour, or ✕ to take it off. Highlighted verses show their colour whenever you read the chapter.
 - **Verse Lists → 🖍 Highlights** shows every highlighted verse in Bible order, with a filter by colour. Tap one to open it in its chapter. Highlights are in your backups.

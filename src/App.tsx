@@ -34,6 +34,7 @@ import { findAll } from './NoteRefs';
 import { Teleprompter } from './Teleprompter';
 import { FaceBubble, LiveSheet, useLiveMode, type FaceLook } from './LiveMode';
 import { PresentHost, presentSlides, presentVerses } from './Present';
+import { PlanSheet, usePlanSummary } from './PlanSheet';
 import { HighlightButton, HighlightsSheet, useHighlights } from './highlights';
 import { CompareHost, RelatedHost, compareVerses, relatedVerses } from './Compare';
 import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './RunSheet';
@@ -227,6 +228,7 @@ export default function App() {
   const runSheet = useRunSheet();
   const [runSheetOpen, setRunSheetOpen] = useState(false);
   const [highlightsOpen, setHighlightsOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   useRunSheetAdded(useCallback((count: number) => setToastState({ text: t('Added to the run sheet ({n})', { n: count }), run: true }), []));
   // Clean screen (Live mode): after a few seconds without the mouse or a touch, the pointer and the app's
   // buttons fade away so the stream shows only what's being taught; any move brings them back
@@ -973,6 +975,7 @@ export default function App() {
             onOpen={id => openView({ kind: 'list', id })}
             onShare={shareList}
             onHighlights={() => setHighlightsOpen(true)}
+            onPlan={() => setPlanOpen(true)}
           />
         )}
         {view.kind === 'notes' && (
@@ -1057,6 +1060,12 @@ export default function App() {
         />
       )}
       <CompareHost />
+      {planOpen && (
+        <PlanSheet
+          onGo={ref => { setPlanOpen(false); openView({ kind: 'chapter', ref }); }}
+          onClose={() => setPlanOpen(false)}
+        />
+      )}
       {highlightsOpen && (
         <HighlightsSheet
           onGo={ref => { setHighlightsOpen(false); openView({ kind: 'chapter', ref }); }}
@@ -1525,6 +1534,17 @@ function PageHead({ title, editing, onEdit, children }: { title: string; editing
   );
 }
 
+/** Verse Lists → Reading plan: today's chapters, or an invitation to start one. */
+function PlanRow({ onOpen }: { onOpen: () => void }) {
+  const plan = usePlanSummary();
+  return (
+    <button className="sheet-item hl-open" onClick={onOpen}>
+      <span>{plan ? `${plan.done ? '✓' : '📅'} ${t('Day {n} of {total}', { n: plan.day + 1, total: plan.total })}` : t('📅 Reading plan')}</span>
+      <small>{plan ? plan.today || t('Finished') : t('Read the Bible in a year, the New Testament in 90 days, and more')}</small>
+    </button>
+  );
+}
+
 /** Verse Lists → Highlights: how many verses are highlighted; opens them all. */
 function HighlightsRow({ onOpen }: { onOpen: () => void }) {
   const count = Object.keys(useHighlights().marks).length;
@@ -1537,9 +1557,10 @@ function HighlightsRow({ onOpen }: { onOpen: () => void }) {
 }
 
 /** The Verse Lists tab. Edit shows the drag handles, rename, share and delete. */
-function ListsPage({ library, onOpen, onShare, onHighlights }: {
+function ListsPage({ library, onOpen, onShare, onHighlights, onPlan }: {
   library: ReturnType<typeof useLibrary>;
   onHighlights: () => void;
+  onPlan: () => void;
   onOpen: (id: string) => void;
   onShare: (list: VerseList) => void;
 }) {
@@ -1567,6 +1588,7 @@ function ListsPage({ library, onOpen, onShare, onHighlights }: {
       ) : (
         <button className="new-row" onClick={() => setCreating(true)}>{t('+ New list')}</button>
       )}
+      <PlanRow onOpen={onPlan} />
       <HighlightsRow onOpen={onHighlights} />
       {!library.lists.length && <p className="notice">{t('Tap + New, or check verses in your results and tap “Save to list”.')}</p>}
       <ul className="sheet-list">
