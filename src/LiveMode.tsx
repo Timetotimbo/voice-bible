@@ -9,7 +9,7 @@ import { noteTitle, type Note } from './useNotes';
  */
 // presentFace: whether the bubble stays on while verses are presented full screen (📷 in Present)
 export type Live = { on: boolean; shown: string[]; face: boolean; shape: BubbleShape; presentFace: boolean };
-type BubbleSize = 's' | 'm' | 'l';
+type BubbleSize = 'xs' | 's' | 'm' | 'l';
 /** Round, a narrower oval, or a circle with its top or bottom third cut off flat, to show less of the room */
 export type BubbleShape = 'round' | 'narrow' | 'cut-top' | 'cut-bottom';
 
@@ -100,10 +100,10 @@ export function LiveSheet({ notes, live, onStart, onEnd, onClose, onPreview }: {
   );
 }
 
-const SIZES: BubbleSize[] = ['s', 'm', 'l'];
+const SIZES: BubbleSize[] = ['xs', 's', 'm', 'l'];
 const POS_KEY = 'liveBubble';
 
-/** Your camera in a circle (or the shape picked), mirrored like a selfie. Drag to move; tap to go small → medium → large. */
+/** Your camera in a circle (or the shape picked), mirrored like a selfie. Drag to move; tap to go extra small → small → medium → large. */
 export function FaceBubble({ shape, onError }: { shape: BubbleShape; onError: (text: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [spot, setSpot] = useState<{ x: number; y: number; size: BubbleSize }>(() => {

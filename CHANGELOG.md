@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.51.0 — 2026-10-24
+- **An extra-small face bubble.** Tapping the bubble now goes extra small → small → medium → large. Extra small is about two-thirds the old smallest, in every shape (a narrow extra-small bubble is a slim little oval).
+
 ## v2.50.0 — 2026-10-24
 - **See your face bubble while you set it up.** In the Live mode sheet, turning Show my face on and picking a shape shows the bubble right away, before you tap Save or Start. Close the sheet without saving and it goes back to how it was.
 - On a narrow screen the Live bar's buttons move to their own row instead of running off the edge.

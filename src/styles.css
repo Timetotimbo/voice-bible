@@ -1047,7 +1047,7 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .live-actions .primary { background: var(--purple-deep); border-color: var(--purple-bright); color: var(--on-accent); }
 .face-bubble { position: fixed; z-index: 1001; border-radius: 50%; overflow: hidden; touch-action: none; cursor: grab; border: 3px solid var(--purple-bright); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); background: #000; }
 .face-bubble:active { cursor: grabbing; }
-.face-s { --d: 96px; } .face-m { --d: 150px; } .face-l { --d: 220px; }
+.face-xs { --d: 64px; } .face-s { --d: 96px; } .face-m { --d: 150px; } .face-l { --d: 220px; }
 .face-bubble, .shape-icon { width: var(--d); height: var(--d); }
 /* Narrower oval, or the circle with a third cut off flat (the round half stays a true half circle) */
 :is(.face-bubble, .shape-icon).face-narrow { width: calc(var(--d) * 0.68); }
