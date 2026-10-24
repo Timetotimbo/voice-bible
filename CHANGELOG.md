@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.62.0 — 2026-10-24
+- **Pause carries on from the word it stopped on.** Before, Play after a pause started the verse (or paragraph) over. Now the Heart recordings carry on a moment before the word where you paused, without repeating the reference. Device voices and Heart for notes carry on from the word that was highlighted.
+
 ## v2.61.0 — 2026-10-24
 - **☰ Slides: jump to any slide while presenting.** A new **☰ Slides** button in the presenting bar lists every slide, grouped under each run sheet item's name, with the one you're on highlighted. Tap any slide to jump straight to it. The presentation keeps going: ✕ on the list goes back to the slide you were on, and the timer, second screen and phone remote carry on.
 

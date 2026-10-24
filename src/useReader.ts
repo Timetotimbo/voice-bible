@@ -109,6 +109,9 @@ const REC = 'rec:';
 const speaking = new Set<SpeechSynthesisUtterance>();
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+/** Where to carry on in the first verse read: from a word (a character in it), or a time in its recording. */
+type ResumePoint = { char: number; time: number | null };
+
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
 export type ReadingLanguage = 'en' | 'es';
@@ -279,6 +282,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   const queue = useRef<VerseHit[]>([]);
   const textTitle = useRef(''); // what's being read, when it's a note or chat, for the lock screen
   const index = useRef(0); // verse being read, so a speed or voice change can restart it
+  // Where pause stopped in that verse: the word it was on, and the place in the recording when one was playing
+  const pausedAt = useRef<ResumePoint | null>(null);
 
   // The word being said, as a character range in the verse being read
   const [word, setWord] = useState<{ start: number; end: number } | null>(null);
@@ -334,7 +339,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
   }, [finish]);
 
   const play = useCallback(
-    (verses: VerseHit[], from = 0) => {
+    (verses: VerseHit[], from = 0, resumeAt: ResumePoint | null = null) => {
       const text = isText(verses);
       const recorded = text ? undefined : recordedRef.current;
       // Notes and chats in Heart's voice, made on the phone (src/heartText.ts), when it's been downloaded
@@ -346,10 +351,11 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
       endSegment?.();
       heartCancel();
       setPause(false);
+      pausedAt.current = null;
       queue.current = verses;
       setPlaying(verses);
 
-      const speakRecorded = async (i: number, voiceName: string) => {
+      const speakRecorded = async (i: number, voiceName: string, at: ResumePoint | null = null) => {
         if (id !== run.current) return;
         if (i >= verses.length) {
           if (repeatRef.current) speakRecorded(0, voiceName);
@@ -365,7 +371,9 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         for (let attempt = 1; ; attempt++) try {
           const starts = await verseStarts(voiceName, verse.book, verse.chapter);
           if (id !== run.current) return;
-          if (sayRefsRef.current) {
+          // Carrying on after pause: from a moment before where it stopped (so the word isn't clipped), without the reference
+          const resumeTime = at?.time != null ? Math.max(starts[verse.verse - 1], at.time - 0.4 * speedRef.current) : null;
+          if (sayRefsRef.current && resumeTime === null) {
             const [chapterClip, verseClip] = await refSpans(voiceName, verse);
             if (id !== run.current) return;
             if ((await playSegment(refEls[0]!, refsAudio(voiceName, 'chapters'), ...chapterClip, speedRef.current)) === 'error') throw 0;
@@ -385,7 +393,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
             if (el.currentTime >= from && to > from) showWord(wordAt(spans, (el.currentTime - from) / (to - from)));
           });
           // Stop in the quiet after the verse (it lasts SPEECH_TAIL + SPEECH_LEAD before the next one's words)
-          const result = await playSegment(mainEl!, src, starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows, SPEECH_TAIL - 0.15);
+          const result = await playSegment(mainEl!, src, resumeTime ?? starts[verse.verse - 1], starts[verse.verse], speedRef.current, flows, SPEECH_TAIL - 0.15);
           unfollow();
           if (result === 'error') throw 0;
           break;
@@ -405,7 +413,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         speakRecorded(i + 1, voiceName);
       };
 
-      const speak = (i: number) => {
+      const speak = (i: number, fromChar = 0) => {
         if (id !== run.current) return;
         if (i >= verses.length) {
           if (repeatRef.current) speak(0);
@@ -416,20 +424,21 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         const verse = verses[i];
         // A note or chat with "Say the reference first" off: its references are blanked out (keeping word positions)
         const said = text ? saidText(i) : verse.text;
-        const pieces = chunks(said).filter(c => /[\p{L}\p{N}]/u.test(c));
+        // After pause, only the words from the one it stopped on (positions still count from the start of the verse)
+        const pieces = chunks(said.slice(fromChar)).filter(c => /[\p{L}\p{N}]/u.test(c));
         // Nothing left to say (a reference on its own line): on to the next
         if (!pieces.length) {
           setTimeout(() => id === run.current && speak(i + 1));
           return;
         }
         // Where each piece sits in the verse, so a word reported within a piece can be found in the verse
-        let pos = 0;
+        let pos = fromChar;
         const offsets = pieces.map(c => {
           const at = said.indexOf(c, pos);
           pos = at < 0 ? pos : at + c.length;
           return Math.max(at, 0);
         });
-        const parts = [...(sayRefsRef.current && !text ? [{ text: spokenReference(verse, languageRef.current), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
+        const parts = [...(sayRefsRef.current && !text && !fromChar ? [{ text: spokenReference(verse, languageRef.current), at: -1 }] : []), ...pieces.map((text, k) => ({ text, at: offsets[k] }))];
         parts.forEach(({ text, at }, j) => {
           // Markdown in chats (**bold**, # headings) would be read out as symbols; blank them, keeping word positions
           const u = new SpeechSynthesisUtterance(text && isText(verses) ? text.replace(/[*#_`~>|]/g, ' ') : text);
@@ -495,11 +504,11 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         }
         return p;
       };
-      const piecesOf = (i: number) => {
+      const piecesOf = (i: number, fromChar = 0) => {
         const said = saidText(i);
         const out: { text: string; at: number }[] = [];
-        let pos = 0;
-        for (const c of chunks(said).filter(c => /[\p{L}\p{N}]/u.test(c))) {
+        let pos = fromChar;
+        for (const c of chunks(said.slice(fromChar)).filter(c => /[\p{L}\p{N}]/u.test(c))) {
           const at = said.indexOf(c, pos);
           pos = at + c.length;
           const last = out[out.length - 1];
@@ -509,13 +518,14 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         }
         return out;
       };
-      const ahead = (i: number, k: number, n: number) => {
-        for (let pi = i, pk = k; pi < verses.length && n > 0; pi++, pk = 0) {
-          const ps = piecesOf(pi);
-          for (; pk < ps.length && n > 0; pk++, n--) void make(`${pi}:${pk}`, ps[pk].text);
+      // A piece's key includes where in the paragraph its reading began, since after pause the pieces start there
+      const ahead = (i: number, k: number, n: number, fromChar: number) => {
+        for (let pi = i, pk = k, fc = fromChar; pi < verses.length && n > 0; pi++, pk = 0, fc = 0) {
+          const ps = piecesOf(pi, fc);
+          for (; pk < ps.length && n > 0; pk++, n--) void make(`${pi}:${fc}:${pk}`, ps[pk].text);
         }
       };
-      const speakHeart = async (i: number) => {
+      const speakHeart = async (i: number, fromChar = 0) => {
         if (id !== run.current) return;
         if (i >= verses.length) {
           if (repeatRef.current) speakHeart(0);
@@ -524,18 +534,18 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         }
         index.current = i;
         const verse = verses[i];
-        const ps = piecesOf(i);
+        const ps = piecesOf(i, fromChar);
         if (!ps.length) return speakHeart(i + 1);
         setCurrent(verse);
         for (let k = 0; k < ps.length; k++) {
-          ahead(i, k, 3);
+          ahead(i, k, 3, fromChar);
           showWord(null);
           // Making the voice can take a moment on a phone; the watchdog shouldn't count that as stuck
           const busy = setInterval(() => (lastProgress.current = Date.now()), 5000);
           lastProgress.current = Date.now();
           let url: string;
           try {
-            url = await make(`${i}:${k}`, ps[k].text);
+            url = await make(`${i}:${fromChar}:${k}`, ps[k].text);
           } catch {
             clearInterval(busy);
             if (id !== run.current) return;
@@ -554,7 +564,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           });
           const result = await playSegment(mainEl!, url, 0, undefined, speedRef.current);
           unfollow();
-          made.delete(`${i}:${k}`);
+          made.delete(`${i}:${fromChar}:${k}`);
           URL.revokeObjectURL(url);
           if (id !== run.current) return;
           if (result === 'error') {
@@ -569,22 +579,25 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         // The silence loop keeps the page awake while a piece is being made
         keepAwake(true);
         unlockAudio();
-        speakHeart(from);
+        speakHeart(from, resumeAt?.char ?? 0);
       } else if (recorded) {
         keepAwake(false);
         unlockAudio();
-        speakRecorded(from, recorded);
+        speakRecorded(from, recorded, resumeAt);
       } else {
         keepAwake(true);
-        speak(from);
+        speak(from, resumeAt?.char ?? 0);
       }
     },
     [finish, follow, unfollow, showWord, setPause],
   );
 
-  /** Stops the voice but keeps the place; resume starts again at the start of the paragraph (or verse) it was on. */
+  /** Stops the voice but keeps the place; resume carries on from the word it stopped on. */
   const pause = useCallback(() => {
     if (!queue.current.length || pausedRef.current) return;
+    // A verse recording playing (not a reference clip, not Heart): its exact moment; otherwise the word on screen
+    const recording = !!recordedRef.current && !isText(queue.current) && !heartRun.current && !!mainEl && !mainEl.paused;
+    const point = { char: Math.max(0, wordStart.current), time: recording ? mainEl!.currentTime : null };
     run.current++;
     synth?.cancel();
     endSegment?.();
@@ -593,9 +606,10 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
     showWord(null);
     keepAwake(false);
     setPause(true);
+    pausedAt.current = point;
   }, [unfollow, showWord, setPause]);
   const resume = useCallback(() => {
-    if (pausedRef.current && queue.current.length) play(queue.current, index.current);
+    if (pausedRef.current && queue.current.length) play(queue.current, index.current, pausedAt.current);
   }, [play]);
 
   // Queued speech keeps its old rate and voice, so restart the current verse with the new ones
