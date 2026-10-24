@@ -20,8 +20,11 @@ export type Slide =
   | { kind: 'verses'; ref: string; verses: VerseHit[] }
   | { kind: 'text'; text: string; title?: boolean; colorFrom?: number };
 
-export function presentSlides(slides: Slide[], at = 0) {
-  window.dispatchEvent(new CustomEvent(EVENT, { detail: { slides, at } }));
+/** A run of slides that belong together (one run sheet item), shown as a heading in the ☰ Slides list. */
+export type Section = { title: string; start: number };
+
+export function presentSlides(slides: Slide[], at = 0, sections: Section[] = []) {
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: { slides, at, sections } }));
 }
 
 export function presentVerses(verses: VerseHit[]) {
@@ -78,11 +81,13 @@ export function verseSlides(verses: VerseHit[]): Slide[] {
 export function PresentHost({ face, onFace, onShowing }: { face: boolean | null; onFace: () => void; onShowing: (on: boolean) => void }) {
   const [shown, setShown] = useState<Slide[] | null>(null);
   const [at, setAt] = useState(0);
+  const [sections, setSections] = useState<Section[]>([]);
   useEffect(() => {
     const open = (e: Event) => {
-      const { slides, at } = (e as CustomEvent<{ slides: Slide[]; at: number }>).detail;
+      const { slides, at, sections } = (e as CustomEvent<{ slides: Slide[]; at: number; sections: Section[] }>).detail;
       setShown(slides);
       setAt(at);
+      setSections(sections);
     };
     window.addEventListener(EVENT, open);
     return () => window.removeEventListener(EVENT, open);
@@ -90,7 +95,7 @@ export function PresentHost({ face, onFace, onShowing }: { face: boolean | null;
   const showing = !!shown?.length;
   useEffect(() => onShowing(showing), [showing, onShowing]);
   if (!shown?.length) return null;
-  return <Slides slides={shown} at={Math.min(at, shown.length - 1)} onAt={setAt} onClose={() => setShown(null)} face={face} onFace={onFace} />;
+  return <Slides slides={shown} sections={sections} at={Math.min(at, shown.length - 1)} onAt={setAt} onClose={() => setShown(null)} face={face} onFace={onFace} />;
 }
 
 /** One slide in the biggest type that fits its box. onTap: tapping the left third goes back, the rest forward. */
@@ -176,8 +181,9 @@ const clock = (ms: number) => {
 };
 const desktop = typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches;
 
-function Slides({ slides, at, onAt, onClose, face, onFace }: {
+function Slides({ slides, sections, at, onAt, onClose, face, onFace }: {
   slides: Slide[];
+  sections: Section[];
   at: number;
   onAt: (i: number) => void;
   onClose: () => void;
@@ -191,6 +197,9 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
   // Banner: a strip across the bottom, like a lower third on TV, with the app still showing above it
   const [banner, setBanner] = useState(() => remembered('vb_present_banner'));
   useEffect(() => remember('vb_present_banner', banner), [banner]);
+
+  // ☰ Slides: every slide in a list, to jump to any of them; the presentation carries on underneath
+  const [jump, setJump] = useState(false);
 
   // Second screen: a window showing only the slide; this one becomes the presenter view (next slide, timer)
   const [display, setDisplay] = useState(false);
@@ -262,13 +271,13 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') qr ? setQr(false) : onClose();
+      if (e.key === 'Escape') qr ? setQr(false) : jump ? setJump(false) : onClose();
       else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(1);
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [go, onClose, qr]);
+  }, [go, onClose, qr, jump]);
 
   const next = slides[at + 1];
   return (
@@ -292,6 +301,9 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
         <button className={`present-opt${remoteOn ? ' on' : ''}`} title={t('Use your phone as the remote')} onClick={() => { setRemoteOn(true); setQr(true); }}>
           {t(phone ? '📱 Remote on' : '📱 Remote')}
         </button>
+        {slides.length > 1 && (
+          <button className="present-opt" title={t('See every slide and jump to any of them')} onClick={() => setJump(true)}>{t('☰ Slides')}</button>
+        )}
         {face !== null && (
           <button className="present-cam" aria-pressed={face} onClick={onFace}>{t(face ? '📷 Hide me' : '📷 Show me')}</button>
         )}
@@ -304,7 +316,45 @@ function Slides({ slides, at, onAt, onClose, face, onFace }: {
         )}
         <button aria-label={t('Close')} onClick={onClose}>✕</button>
       </div>
+      {jump && <JumpList slides={slides} sections={sections} at={at} onPick={i => { onAt(i); setJump(false); }} onClose={() => setJump(false)} />}
       {qr && <RemoteQr phone={phone} onOff={() => { setRemoteOn(false); setPhone(false); setQr(false); }} onClose={() => setQr(false)} />}
+    </div>
+  );
+}
+
+/** Every slide, under its run sheet item's name; tap one to show it. Closing it goes back to the slide you were on. */
+function JumpList({ slides, sections, at, onPick, onClose }: {
+  slides: Slide[];
+  sections: Section[];
+  at: number;
+  onPick: (i: number) => void;
+  onClose: () => void;
+}) {
+  const here = useRef<HTMLLIElement>(null);
+  useEffect(() => { here.current?.scrollIntoView({ block: 'center' }); }, []);
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet jump-list" role="dialog" aria-modal="true" aria-label={t('Slides')} onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>{t('Slides')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
+        </div>
+        <p className="voice-help">{t('Tap a slide to jump to it. Still presenting: ✕ goes back to the slide you’re on.')}</p>
+        <ol className="sheet-list">
+          {slides.map((sl, i) => {
+            const h = sections.find(s => s.start === i);
+            return (
+              <li key={i} ref={i === at ? here : undefined} className={i === at ? 'on' : undefined}>
+                {h && <div className="jump-head">{h.title}</div>}
+                <button className="sheet-item jump-item" onClick={() => onPick(i)}>
+                  <span className="jump-num">{i + 1}</span>
+                  <span className="jump-text">{(sl.kind === 'text' && sl.title ? '▍' : '') + slideLine(sl).slice(0, 120)}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }

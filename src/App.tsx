@@ -1085,7 +1085,7 @@ export default function App() {
       {runSheetOpen && (
         <RunSheetView
           notes={notes.notes}
-          onPresent={(slides, at) => { setRunSheetOpen(false); presentSlides(slides, at); }}
+          onPresent={(slides, at, sections) => { setRunSheetOpen(false); presentSlides(slides, at, sections); }}
           onClose={() => setRunSheetOpen(false)}
         />
       )}

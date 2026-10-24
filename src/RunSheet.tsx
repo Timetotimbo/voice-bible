@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
 import { colorsOn } from './noteColors';
-import { noteSlides, verseSlides, type Slide } from './Present';
+import { noteSlides, verseSlides, type Section, type Slide } from './Present';
 import { noteTitle, type Note } from './useNotes';
 
 /**
@@ -93,7 +93,7 @@ function label(item: RunItem, notes: Note[]): { main: string; sub?: string; gone
 /** The run sheet: reorder with ▲ ▼, remove with ✕, and present from the top or from any item. */
 export function RunSheetView({ notes, onPresent, onClose }: {
   notes: Note[];
-  onPresent: (slides: Slide[], at: number) => void;
+  onPresent: (slides: Slide[], at: number, sections: Section[]) => void;
   onClose: () => void;
 }) {
   const { items, set } = useRunSheet();
@@ -141,7 +141,8 @@ export function RunSheetView({ notes, onPresent, onClose }: {
   };
   const present = (i: number) => {
     const { slides, starts } = runSheetSlides(items, notes);
-    if (slides.length) onPresent(slides, starts[i] ?? 0);
+    const sections = items.map((item, j) => ({ title: label(item, notes).main, start: starts[j] })).filter((_, j) => starts[j] < (starts[j + 1] ?? slides.length));
+    if (slides.length) onPresent(slides, starts[i] ?? 0, sections);
   };
   return (
     <div className="sheet-backdrop" onClick={onClose}>

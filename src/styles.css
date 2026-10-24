@@ -1091,6 +1091,14 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 /* Run sheet */
 .run-list li { display: flex; align-items: center; gap: 6px; }
 .run-list li { position: relative; }
+.jump-list { max-height: 85vh; display: flex; flex-direction: column; }
+.jump-list .sheet-list { overflow-y: auto; min-height: 0; }
+.jump-list li { display: block; }
+.jump-head { padding: 14px 4px 4px; color: var(--purple-bright); font-weight: 700; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-item { display: flex; gap: 10px; width: 100%; align-items: baseline; }
+.jump-num { flex: none; min-width: 1.8em; text-align: right; color: var(--muted); font-size: 0.85em; }
+.jump-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-list li.on { background: var(--surface-2); border-radius: 10px; }
 .run-list.dragging li { transition: transform 0.15s ease; }
 .run-list li.run-held { background: var(--surface-2); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); border-radius: 12px; }
 .run-grip { flex: none; display: flex; align-items: center; gap: 4px; padding: 10px 4px; color: var(--muted); font-size: 1.15em; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
