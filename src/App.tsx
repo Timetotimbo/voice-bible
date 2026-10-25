@@ -21,7 +21,7 @@ import { copyVerses, makeVerseVideo, shareVerses, versesAsText } from './shareVe
 import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
-import { noteTitle, useNotes, type Note } from './useNotes';
+import { dropTarget, noteRows, noteTitle, useNotes, type Note } from './useNotes';
 import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
@@ -266,14 +266,14 @@ export default function App() {
   const [faceDraft, setFaceDraft] = useState<FaceLook | null>(null);
   const preview = liveSheet ? faceDraft : null;
   const shownNotes = useMemo(() => (live.on ? notes.notes.filter(x => live.shown.includes(x.id)) : notes.notes), [live.on, live.shown, notes.notes]);
-  // Reordering a shorter list: move next to the note that's at that place in it
   // A note made during Live mode is one you're showing
   const newShownNote = () => {
     const id = notes.newNote();
     if (live.on) live.update({ shown: [...live.shown, id] });
     return id;
   };
-  const moveShownNote = (id: string, to: number) => notes.moveNote(id, live.on ? notes.notes.findIndex(x => x.id === shownNotes[to]?.id) : to);
+  // Dragged in a list: take the place of the note `onto` (see dropTarget), which works for Live mode's shorter list too
+  const moveShownNote = (id: string, onto: string) => notes.moveNote(id, notes.notes.findIndex(x => x.id === onto));
   const [toast, setToastState] = useState<{ text: string; listId?: string; noteId?: string; run?: boolean } | null>(null);
   const setToast = (text: string, listId?: string, noteId?: string) => setToastState(text ? { text, listId, noteId } : null);
   const newVersion = useNewVersion();
@@ -1016,6 +1016,9 @@ export default function App() {
             onNew={() => openView({ kind: 'note', id: newShownNote() })}
             onDelete={notes.deleteNote}
             onMove={moveShownNote}
+            onPin={notes.togglePin}
+            onFold={notes.toggleCollapsed}
+            onPutUnder={notes.setParent}
           />
         )}
         {view.kind === 'chats' && (
@@ -1251,6 +1254,7 @@ export default function App() {
           }}
           onDeleteNote={notes.deleteNote}
           onMoveNote={moveShownNote}
+          onFoldNote={notes.toggleCollapsed}
           onImportChats={() => {
             setSheet(null);
             setImporting(true);
@@ -1675,7 +1679,7 @@ function matchSnippet(text: string, query: string) {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove }: {
+function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
@@ -1689,11 +1693,17 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
   onNew: () => void;
   onDelete: (id: string) => void;
-  onMove: (id: string, to: number) => void;
+  onMove: (id: string, onto: string) => void; // takes the place of the note `onto`
+  onPin: (id: string) => void;
+  onFold: (id: string) => void; // folds away the notes under it, or shows them
+  onPutUnder: (id: string, parent: string | null) => void; // null: back out to the top level
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const drag = useDragOrder(notes.map(n => n.id), onMove);
+  // The note being tucked under another, while the Put under sheet is open
+  const [tucking, setTucking] = useState<Note | null>(null);
+  const rows = useMemo(() => noteRows(notes), [notes]);
+  const drag = useDragOrder(rows.map(r => r.note.id), (id, to) => onMove(id, dropTarget(rows, id, to)));
   const q = query.trim();
   const found = useMemo(
     () => (q ? notes.map(n => ({ note: n, count: findAll(noteTitle(n), q).length + findAll(n.text, q).length })).filter(x => x.count) : []),
@@ -1748,9 +1758,9 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
       {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
       <ul className="sheet-list">
-        {notes.map((n, i) => deleting === n.id ? (
+        {rows.map(({ note: n, child, children }, i) => deleting === n.id ? (
           <li key={n.id} className="confirm-row" role="alertdialog" aria-label={t('Delete note {name}?', { name: noteTitle(n) })}>
-            <span>{t('Delete this note?')}</span>
+            <span>{children ? t(children === 1 ? 'Delete this note? The note under it stays.' : 'Delete this note? The {n} notes under it stay.', { n: children }) : t('Delete this note?')}</span>
             <button className="danger" onClick={() => {
               onDelete(n.id);
               setDeleting(null);
@@ -1758,17 +1768,65 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
             <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
           </li>
         ) : (
-          <li key={n.id} {...drag.rowProps(n.id, i)}>
-            {notes.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+          <li key={n.id} {...drag.rowProps(n.id, i)} className={`${drag.rowProps(n.id, i).className} ${child ? 'note-child' : ''}`}>
+            {rows.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+            {children > 0 && (
+              <button
+                className="note-fold"
+                aria-expanded={!n.collapsed}
+                aria-label={t(n.collapsed ? 'Show the notes under {name}' : 'Fold away the notes under {name}', { name: noteTitle(n) })}
+                onClick={() => onFold(n.id)}
+              >
+                {n.collapsed ? '▸' : '▾'}
+              </button>
+            )}
             <button className="sheet-item note-row" onClick={() => onOpen(n.id)}>
-              <span>{noteTitle(n)}</span>
+              <span>{noteTitle(n)}{children > 0 && <small className="hit-count"> {children}</small>}</span>
               {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
             </button>
+            {editing && !children && (
+              <button className="sheet-x" aria-label={t('Put {name} under another note', { name: noteTitle(n) })} title={t('Put under another note')} onClick={() => setTucking(n)}>⤷</button>
+            )}
+            {!child && (
+              <button
+                className={`note-pin ${n.pinned ? 'on' : ''}`}
+                aria-pressed={!!n.pinned}
+                aria-label={t(n.pinned ? 'Unpin {name}' : 'Pin {name} to the top', { name: noteTitle(n) })}
+                title={t(n.pinned ? 'Unpin' : 'Pin to the top')}
+                onClick={() => onPin(n.id)}
+              >
+                📌
+              </button>
+            )}
             {editing && <button className="sheet-x" aria-label={t('Delete note {name}', { name: noteTitle(n) })} onClick={() => setDeleting(n.id)}>✕</button>}
           </li>
         ))}
       </ul>
       </>
+      )}
+      {tucking && (
+        <div className="sheet-backdrop" onClick={() => setTucking(null)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Put under another note')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Put “{name}” under…', { name: noteTitle(tucking) })}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setTucking(null)}>✕</button>
+            </div>
+            <ul className="sheet-list">
+              {tucking.parent && (
+                <li>
+                  <button className="sheet-item new-chat" onClick={() => { onPutUnder(tucking.id, null); setTucking(null); }}>{t('Not under any note')}</button>
+                </li>
+              )}
+              {notes.filter(x => !x.parent && x.id !== tucking.id).map(x => (
+                <li key={x.id} className={x.id === tucking.parent ? 'on' : ''}>
+                  <button className="sheet-item" onClick={() => { onPutUnder(tucking.id, x.id); setTucking(null); }}>
+                    {x.id === tucking.parent ? '✓ ' : ''}{noteTitle(x)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
     </section>
   );
@@ -2522,7 +2580,7 @@ function useFolded(key: string, openByDefault: boolean) {
 
 function LibrarySheet({
   library, saving, hideList, onClose, onRun, onOpenList, onSaved, onShare, chats, onOpenChat, onNewChat, onDeleteChat,
-  onImportChats, onMoveChat, notes, onOpenNote, onNewNote, onDeleteNote, onMoveNote,
+  onImportChats, onMoveChat, notes, onOpenNote, onNewNote, onDeleteNote, onMoveNote, onFoldNote,
 }: {
   library: ReturnType<typeof useLibrary>;
   saving: VerseRef[] | null; // verses waiting to be saved, or null when just browsing
@@ -2542,7 +2600,8 @@ function LibrarySheet({
   onOpenNote: (id: string) => void;
   onNewNote: () => void;
   onDeleteNote: (id: string) => void;
-  onMoveNote: (id: string, to: number) => void;
+  onMoveNote: (id: string, onto: string) => void; // takes the place of the note `onto`
+  onFoldNote: (id: string) => void;
 }) {
   // The tab last used, remembered per device; the sheet opens there
   const [tab, setTabState] = useState<LibraryTab>(() => {
@@ -2606,7 +2665,8 @@ function LibrarySheet({
   // Lists and chats can be dragged into order by their ⠿ handles
   const listDrag = useDragOrder(lists.map(l => l.id), library.moveList);
   const chatDrag = useDragOrder(chats.map(c => c.id), onMoveChat);
-  const noteDrag = useDragOrder(notes.map(n => n.id), onMoveNote);
+  const rows = useMemo(() => noteRows(notes), [notes]);
+  const noteDrag = useDragOrder(rows.map(r => r.note.id), (id, to) => onMoveNote(id, dropTarget(rows, id, to)));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -2739,7 +2799,7 @@ function LibrarySheet({
         {notesOpen && (
           <ul className="sheet-list">
             {!notes.length && <li className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</li>}
-            {notes.map((n, i) => deleting === `note:${n.id}` ? (
+            {rows.map(({ note: n, child, children }, i) => deleting === `note:${n.id}` ? (
               <li key={n.id} className="confirm-row" role="alertdialog" aria-label={t('Delete note {name}?', { name: noteTitle(n) })}>
                 <span>{t('Delete this note?')}</span>
                 <button
@@ -2754,9 +2814,19 @@ function LibrarySheet({
                 <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
               </li>
             ) : (
-              <li key={n.id} {...noteDrag.rowProps(n.id, i)}>
-                {notes.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
-                <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{noteTitle(n)}</button>
+              <li key={n.id} {...noteDrag.rowProps(n.id, i)} className={`${noteDrag.rowProps(n.id, i).className} ${child ? 'note-child' : ''}`}>
+                {rows.length > 1 && <button {...noteDrag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+                {children > 0 && (
+                  <button
+                    className="note-fold"
+                    aria-expanded={!n.collapsed}
+                    aria-label={t(n.collapsed ? 'Show the notes under {name}' : 'Fold away the notes under {name}', { name: noteTitle(n) })}
+                    onClick={() => onFoldNote(n.id)}
+                  >
+                    {n.collapsed ? '▸' : '▾'}
+                  </button>
+                )}
+                <button className="sheet-item" onClick={() => onOpenNote(n.id)}>{n.pinned ? '📌 ' : ''}{noteTitle(n)}</button>
                 <button className="sheet-x" aria-label={t('Delete note {name}', { name: noteTitle(n) })} onClick={() => setDeleting(`note:${n.id}`)}>✕</button>
               </li>
             ))}
@@ -2908,7 +2978,7 @@ function NotePicker({ count = 0, heading, notes, onPick, onClose }: {
           </li>
           {notes.map(n => (
             <li key={n.id}>
-              <button className="sheet-item" onClick={() => onPick(n.id)}>{noteTitle(n)}</button>
+              <button className="sheet-item" onClick={() => onPick(n.id)}>{n.pinned ? '📌 ' : ''}{noteTitle(n)}</button>
             </li>
           ))}
         </ul>

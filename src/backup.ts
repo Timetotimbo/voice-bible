@@ -35,7 +35,7 @@ export function restoreBackup(text: string, storage: Storage): number {
 }
 
 type List = { id: string; name: string; verses: [number, number, number][] };
-type Note = { id: string; title: string; text: string; updated: number };
+type Note = { id: string; title: string; text: string; updated: number; pinned?: boolean };
 type Chat = { id: string; messages?: unknown[]; updated?: number };
 const parse = <T,>(v: string | null | undefined): T[] => {
   try {
@@ -87,7 +87,8 @@ export function combineBackup(text: string, storage: Storage): { lists: number; 
       }
     }
   }
-  notes.sort((a, b) => b.updated - a.updated);
+  // Newest first, with pinned notes kept at the top
+  notes.sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.updated - a.updated);
 
   // Chats: by id; the one with more messages wins
   const chats = parse<Chat>(storage.getItem('chats'));

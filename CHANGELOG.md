@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.64.0 — 2026-10-25
+**Notes**
+- **📌 Pin notes to the top.** Tap the 📌 at the right of a note in the Notes tab. Pinned notes stay above the others, and new notes go just below them. Tap 📌 again to unpin. Pinned notes show 📌 in Verse Lists and when you add verses to a note.
+- **Put notes under another note.** In the Notes tab, tap **Edit**, then **⤷** on a note and choose the note to put it under (or **Not under any note** to bring it back out). Notes under another are indented beneath it, and that note shows how many it has.
+- **Fold them away.** Tap **▾** beside a note with notes under it to hide them, and **▸** to show them again. This is remembered.
+- Dragging with ⠿ moves a note among the notes at its own level. Deleting a note keeps the notes under it; they go back to the top level.
+
 ## v2.63.0 — 2026-10-24
 **Reading aloud**
 - **⟲ Back and ⏭ Next verse** in the play pill. ⟲ goes back 10 seconds of a Heart recording (into the verse before, if that's where it lands); with a device voice it goes to the start of the verse, or the verse before if it had only just begun. ⏭ goes on to the next verse (or paragraph of a note).

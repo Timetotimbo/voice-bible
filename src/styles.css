@@ -397,6 +397,11 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sheet-item small { color: var(--muted); margin-left: 6px; }
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
 /* Drag lists into order by the handle */
+.sheet-list li.note-child { padding-left: 26px; }
+.sheet-list li.note-child .sheet-item { font-size: 0.95em; }
+.note-fold { background: none; border: 0; color: var(--muted); padding: 10px 6px; font-size: 1rem; }
+.note-pin { background: none; border: 0; padding: 10px 8px; font-size: 1rem; opacity: 0.3; filter: grayscale(1); }
+.note-pin.on { opacity: 1; filter: none; }
 .drag-handle { background: none; border: 0; color: var(--muted); font-size: 1.2rem; padding: 10px 10px 10px 2px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .sheet-list li.shifting { transition: transform 0.15s ease; }
 .sheet-list li.dragging { position: relative; z-index: 2; background: var(--surface-2); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
