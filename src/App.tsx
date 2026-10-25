@@ -2,7 +2,7 @@ import { VerseNotifySheet, intervalLabel } from './VerseNotifySheet';
 import { loadSettings, syncVersePush } from './versePush';
 import { HEART_TEXT_MB, canHeartText, loadHeartText, removeHeartText, useHeartText } from './heartText';
 import { createPortal } from 'react-dom';
-import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent, type ReactNode } from 'react';
 import { bookName, bookNames, setBookLanguage } from './bible/books';
 import {
   buildIndex, formatReference, highlightPattern, parseReference, searchVerses, wordsPattern, type SearchMode,
@@ -1702,6 +1702,37 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   const [deleting, setDeleting] = useState<string | null>(null);
   // The note being tucked under another, while the Put under sheet is open
   const [tucking, setTucking] = useState<Note | null>(null);
+  // Holding a note opens its menu (Pin, Put under, Delete); the tap that ends the hold doesn't open the note
+  const [menuFor, setMenuFor] = useState<{ note: Note; child: boolean; children: number } | null>(null);
+  const hold = useRef<{ timer: number; x: number; y: number; fired: boolean } | null>(null);
+  const holdProps = (row: { note: Note; child: boolean; children: number }) => ({
+    onPointerDown: (e: ReactPointerEvent) => {
+      if (hold.current) clearTimeout(hold.current.timer);
+      const h = { x: e.clientX, y: e.clientY, fired: false, timer: 0 };
+      h.timer = window.setTimeout(() => {
+        h.fired = true;
+        navigator.vibrate?.(15);
+        setMenuFor(row);
+      }, 500);
+      hold.current = h;
+    },
+    onPointerMove: (e: ReactPointerEvent) => {
+      const h = hold.current;
+      if (h && !h.fired && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 10) clearTimeout(h.timer);
+    },
+    onPointerUp: () => hold.current && clearTimeout(hold.current.timer),
+    onPointerCancel: () => hold.current && clearTimeout(hold.current.timer),
+    // Android and a computer's right click
+    onContextMenu: (e: ReactMouseEvent) => {
+      e.preventDefault();
+      if (hold.current) { clearTimeout(hold.current.timer); hold.current.fired = true; }
+      setMenuFor(row);
+    },
+  });
+  const openUnlessHeld = (id: string) => {
+    if (hold.current?.fired) { hold.current = null; return; }
+    onOpen(id);
+  };
   const rows = useMemo(() => noteRows(notes), [notes]);
   const drag = useDragOrder(rows.map(r => r.note.id), (id, to) => onMove(id, dropTarget(rows, id, to)));
   const q = query.trim();
@@ -1780,7 +1811,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
                 {n.collapsed ? '▸' : '▾'}
               </button>
             )}
-            <button className="sheet-item note-row" onClick={() => onOpen(n.id)}>
+            <button className="sheet-item note-row" {...holdProps({ note: n, child, children })} onClick={() => openUnlessHeld(n.id)}>
               <span>{noteTitle(n)}{children > 0 && <small className="hit-count"> {children}</small>}</span>
               {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
             </button>
@@ -1803,6 +1834,26 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
         ))}
       </ul>
       </>
+      )}
+      {menuFor && (
+        <div className="sheet-backdrop" onClick={() => setMenuFor(null)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={noteTitle(menuFor.note)} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{noteTitle(menuFor.note)}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setMenuFor(null)}>✕</button>
+            </div>
+            <ul className="sheet-list">
+              <li><button className="sheet-item" onClick={() => { onOpen(menuFor.note.id); setMenuFor(null); }}>{t('Open')}</button></li>
+              {!menuFor.child && (
+                <li><button className="sheet-item" onClick={() => { onPin(menuFor.note.id); setMenuFor(null); }}>{t(menuFor.note.pinned ? '📌 Unpin' : '📌 Pin to the top')}</button></li>
+              )}
+              {!menuFor.children && (
+                <li><button className="sheet-item" onClick={() => { setTucking(menuFor.note); setMenuFor(null); }}>{t('⤷ Put under another note…')}</button></li>
+              )}
+              <li><button className="sheet-item danger-text" onClick={() => { setDeleting(menuFor.note.id); setMenuFor(null); }}>{t('🗑 Delete')}</button></li>
+            </ul>
+          </div>
+        </div>
       )}
       {tucking && (
         <div className="sheet-backdrop" onClick={() => setTucking(null)}>

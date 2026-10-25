@@ -398,6 +398,9 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
 /* Drag lists into order by the handle */
 .sheet-list li.note-child { padding-left: 26px; }
+/* Holding a note opens its menu, not the phone's own text menu */
+.note-row { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.sheet-item.danger-text { color: var(--danger-border); }
 .sheet-list li.note-child .sheet-item { font-size: 0.95em; }
 .note-fold { background: none; border: 0; color: var(--muted); padding: 10px 6px; font-size: 1rem; }
 .note-pin { background: none; border: 0; padding: 10px 8px; font-size: 1rem; opacity: 0.3; filter: grayscale(1); }

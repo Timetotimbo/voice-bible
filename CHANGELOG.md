@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.64.1 — 2026-10-25
+- **Hold a note to see what you can do with it.** In the Notes tab, press and hold a note (or right-click it on a computer) for **Open**, **📌 Pin to the top** (or Unpin), **⤷ Put under another note…** and **🗑 Delete**. Delete still asks first. **Edit → ✕** works too.
+
 ## v2.64.0 — 2026-10-25
 **Notes**
 - **📌 Pin notes to the top.** Tap the 📌 at the right of a note in the Notes tab. Pinned notes stay above the others, and new notes go just below them. Tap 📌 again to unpin. Pinned notes show 📌 in Verse Lists and when you add verses to a note.
