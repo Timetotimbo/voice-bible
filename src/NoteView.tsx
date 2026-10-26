@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { bookName } from './bible/books';
-import type { VerseHit } from './bible/search';
+import type { BibleText, VerseHit } from './bible/search';
 import { insertDictation } from './dictation';
 import { historyFor } from './editHistory';
 import { paragraphAt, paragraphsOf } from './words';
@@ -9,6 +9,7 @@ import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { versesAsRefs } from './shareVerses';
+import { strongsWords } from './noteStrongs';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
@@ -24,7 +25,7 @@ import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from '.
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
   note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
-  refVerses, onOpenRef, translation, onToNote, initialFind,
+  refVerses, onOpenRef, translation, onToNote, initialFind, strongsBible, onStrongs, onWord,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -48,6 +49,9 @@ export function NoteView({
   translation: string; // "KJV", for the verse card
   onToNote: (text: string) => void; // copies the chosen words into another note (or a new one)
   initialFind?: string; // opened from a search of all notes: those words are found in it straight away
+  strongsBible: BibleText | null; // KJV + Strong's (or the tagged Reina-Valera), once it's loaded
+  onStrongs: () => void; // loads it
+  onWord: (word: string, code: string, verse: VerseHit) => void; // opens the word study
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
@@ -68,6 +72,29 @@ export function NoteView({
   const viewEl = useRef<HTMLDivElement>(null);
   // Colour by sentence (🎨): off unless turned on for this note
   const [colored, setColored] = useState(() => colorsOn(note.id));
+  // Strong's: the words of verses written in the note get dotted lines; tap one for its Hebrew or Greek
+  const [strongsOn, setStrongsOnState] = useState(() => {
+    try {
+      return localStorage.getItem('vb_note_strongs') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setStrongsOn = (on: boolean) => {
+    setStrongsOnState(on);
+    try {
+      localStorage.setItem('vb_note_strongs', on ? '1' : '0');
+    } catch {
+      // lasts for this visit
+    }
+  };
+  useEffect(() => {
+    if (strongsOn && !strongsBible) onStrongs();
+  }, [strongsOn, strongsBible]); // eslint-disable-line react-hooks/exhaustive-deps
+  const studyWords = useMemo(
+    () => (strongsOn && strongsBible && !editing ? strongsWords(shownText, strongsBible, label => refVerses(label)) : []),
+    [strongsOn, strongsBible, editing, shownText], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const [presentMenu, setPresentMenu] = useState(false);
   useEffect(() => setColored(colorsOn(note.id)), [note.id]);
   const sentences = useMemo(() => (colored ? sentenceRanges(shownText) : undefined), [colored, shownText]);
@@ -433,6 +460,15 @@ export function NoteView({
         >
           ▶
         </button>
+        <button
+          className={`undo strongs-btn ${strongsOn ? 'on' : ''}`}
+          aria-label={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
+          title={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
+          aria-pressed={strongsOn}
+          onClick={() => setStrongsOn(!strongsOn)}
+        >
+          {t('H/G')}
+        </button>
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
         <button
@@ -545,6 +581,13 @@ export function NoteView({
             // Keyboard: Enter on the note starts typing (a tap starts it where you tapped)
             onKeyDown={e => e.target === e.currentTarget && e.key === 'Enter' && (e.preventDefault(), startEditing(caret.current ?? note.text.length))}
             onClick={e => {
+              // A word with Strong's lines: its word study, not typing
+              const sw = (e.target as HTMLElement).closest<HTMLElement>('mark.sw-mark');
+              const w = sw ? studyWords[Number(sw.dataset.hit)] : undefined;
+              if (w) {
+                const text = strongsBible?.[w.verse.book]?.[w.verse.chapter - 1]?.[w.verse.verse - 1] ?? '';
+                return onWord(w.word, w.code, { ...w.verse, text });
+              }
               const at = textOffsetAt(viewEl.current, e.clientX, e.clientY);
               // A tap on a checkbox ticks it (or unticks it) without opening the keyboard
               const ticked = at === null ? null : toggleCheck(note.text, at);
@@ -558,7 +601,7 @@ export function NoteView({
               jumps={toc}
               onJump={jumpTo}
               sentences={sentences}
-              marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : undefined}
+              marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : studyWords.length ? { ranges: studyWords, current: -1, cls: 'sw-mark' } : undefined}
             />
           </div>
         )}

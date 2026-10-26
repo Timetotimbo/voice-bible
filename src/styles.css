@@ -533,6 +533,9 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 /* Word study (KJV + Strong's) */
 .sw { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted var(--purple); text-underline-offset: 3px; cursor: pointer; }
 .sw.hit { background: var(--mark); border-radius: 3px; }
+/* Strong's in a note: the same dotted lines, on the words of verses written in it */
+mark.sw-mark { background: none; color: inherit; text-decoration: underline dotted var(--purple); text-underline-offset: 3px; cursor: pointer; }
+.note-tools .strongs-btn { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; }
 .word-sheet p { line-height: 1.5; margin: 0 0 12px; }
 .word-sheet .label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
 .lemma-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }

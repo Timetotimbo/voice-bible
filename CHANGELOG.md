@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.71.0 — 2026-10-26
+- **Strong's in notes.** Tap **H/G** in a note's toolbar. The words of any verse written in the note (after its reference, like "Hebrews 4:14 Seeing then…") get the same dotted lines as in a chapter with KJV + Strong's. Tap a word to see its Hebrew or Greek meaning, without going back to the chapter. Works while reading any translation: KJV + Strong's downloads in the background the first time (about 7 MB). Words you've changed in the verse are skipped. Tap **H/G** again to hide the lines; it's remembered.
+- Word study from anywhere now uses KJV + Strong's for its list of verses, even while you're reading plain KJV.
+
 ## v2.70.0 — 2026-10-26
 - **Add verses to a note as just the reference.** When you tap **To note…** (from search, a chapter or a list), choose **Full text** (the reference and the words, as before) or **Reference only** at the top. Reference only writes e.g. "John 3:16-18; Romans 8:28", and in the note each reference is a link: tap it to see the verses in a pop-up card, like Blue Letter Bible. Your choice is remembered.
 - **Insert → A verse** inside a note has a **Reference only** button next to **Insert verses**.

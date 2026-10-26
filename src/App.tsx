@@ -339,7 +339,15 @@ export default function App() {
   }, [translation]);
 
   const index = useMemo(() => (bible ? buildIndex(bible) : null), [bible]);
-  const studyVerses = useCallback((code: string) => (bible ? versesWithCode(bible, code) : []), [bible]);
+  // The Bible with Strong's numbers: the one being read if it has them, or KJV + Strong's (or the Reina-Valera)
+  // loaded alongside, for word study from a note
+  const [strongsExtra, setStrongsExtra] = useState<BibleText | null>(null);
+  const strongsBible = tagsOf(bible) ? bible : strongsExtra;
+  const loadStrongsBible = useCallback(() => {
+    const lang = TRANSLATIONS.find(x => x.id === translation)!.lang;
+    loadTranslation(lang === 'es' ? 'rv1909' : 'kjvs').then(setStrongsExtra, () => setToast(t('Couldn’t load the Strong’s numbers. Check the connection.')));
+  }, [translation]); // eslint-disable-line react-hooks/exhaustive-deps
+  const studyVerses = useCallback((code: string) => (strongsBible ? versesWithCode(strongsBible, code) : []), [strongsBible]);
   const noteChangers = useRef(new Map<string, (change: Partial<Pick<Note, 'title' | 'text'>>) => void>());
   const noteChanger = (id: string) => {
     let f = noteChangers.current.get(id);
@@ -364,7 +372,7 @@ export default function App() {
       navigator.clipboard?.writeText(url).then(() => setToast(t('Link copied')), () => prompt(t('Copy this link'), url));
     }
   };
-  const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
+  const studyRenderings = useCallback((code: string) => (strongsBible ? renderingsOf(strongsBible, code) : []), [strongsBible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
   // The search's verses, or just the highlighted ones when that's picked
   const searchHits = view.kind !== 'search' ? [] : view.hlOnly ? view.hits.filter(h => highlights.colorOf(h)) : view.hits;
@@ -941,6 +949,9 @@ export default function App() {
               initialFind={view.find}
               onTeleprompter={(title, text) => setPrompter({ title, text, at: Date.now() })}
               onToNote={text => setNoteToNote({ text, from: note.id, title: noteTitle(note) })}
+              strongsBible={strongsBible ?? null}
+              onStrongs={loadStrongsBible}
+              onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
               note={note}
               onChange={noteChanger(note.id)}
               reader={reader}
