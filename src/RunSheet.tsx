@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { VerseHit } from './bible/search';
 import { t } from './i18n';
 import { colorsOn } from './noteColors';
-import { noteSlides, verseSlides, type Section, type Slide } from './Present';
+import { noteSlides, presentSlides, verseSlides, type Section, type Slide } from './Present';
 import { noteTitle, type Note } from './useNotes';
 
 /**
@@ -112,6 +112,32 @@ export function runSheetSlides(items: RunItem[], notes: Note[]): { slides: Slide
   return { slides, starts };
 }
 
+/** The run sheet ready to present: its slides, where each item starts, and the items as sections (for ☰ Slides). */
+function runSheetShow(items: RunItem[], notes: Note[]) {
+  const { slides, starts } = runSheetSlides(items, notes);
+  const sections: Section[] = items
+    .map((item, j) => ({ title: label(item, notes).main, start: starts[j], say: item.say }))
+    .filter((_, j) => starts[j] < (starts[j + 1] ?? slides.length));
+  return { slides, starts, sections };
+}
+
+/**
+ * Adds to the run sheet and starts presenting it right away at what was added; ‹ › go on through the rest
+ * of the run sheet. For a "present it now" button outside the run sheet.
+ */
+export function addToRunSheetAndPresent(item: NewItem) {
+  addToRunSheet(item);
+  const items = load();
+  let notes: Note[] = [];
+  try {
+    notes = JSON.parse(localStorage.getItem('notes') ?? '[]');
+  } catch {
+    // just the verses, then
+  }
+  const { slides, starts, sections } = runSheetShow(items, notes);
+  if (slides.length) presentSlides(slides, starts[items.length - 1] ?? 0, sections);
+}
+
 function label(item: RunItem, notes: Note[]): { main: string; sub?: string; gone?: boolean } {
   if (item.kind === 'verses') {
     const s = verseSlides(item.verses);
@@ -175,8 +201,7 @@ export function RunSheetView({ notes, onPresent, onClose }: {
     return undefined;
   };
   const present = (i: number) => {
-    const { slides, starts } = runSheetSlides(items, notes);
-    const sections = items.map((item, j) => ({ title: label(item, notes).main, start: starts[j], say: item.say })).filter((_, j) => starts[j] < (starts[j + 1] ?? slides.length));
+    const { slides, starts, sections } = runSheetShow(items, notes);
     if (slides.length) onPresent(slides, starts[i] ?? 0, sections);
   };
   return (

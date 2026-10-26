@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.75.1 — 2026-10-26
+- **+ Run sheet ▶ on a verse's card presents straight away.** It adds the verses to the end of the open run sheet and goes into present mode at them. ‹ › (or swiping) carry on through the run sheet, and ☰ Slides jumps to any of it.
+
 ## v2.75.0 — 2026-10-26
 - **▶ Present from a verse's pop-up card.** Tap a reference in a note, and its card now has **▶ Present** (shows the verses full screen straight away, with the second screen and phone remote as usual) and **+ Run sheet** (lines them up for later).
 
