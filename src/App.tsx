@@ -1837,6 +1837,22 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       setMenuFor(row);
     },
   });
+  // List (one note a row, drag to reorder) or Grid (small cards, more on screen); remembered on this device
+  const [grid, setGridState] = useState(() => {
+    try {
+      return localStorage.getItem('notesView') === 'grid';
+    } catch {
+      return false;
+    }
+  });
+  const setGrid = (on: boolean) => {
+    setGridState(on);
+    try {
+      localStorage.setItem('notesView', on ? 'grid' : 'list');
+    } catch {
+      // lasts for this visit
+    }
+  };
   const openUnlessHeld = (id: string) => {
     if (hold.current?.fired) { hold.current = null; return; }
     onOpen(id);
@@ -1850,7 +1866,17 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   );
   return (
     <section className="tab-page">
-      <PageHead title={t('Notes')} editing={editing} onEdit={notes.length ? () => setEditing(!editing) : undefined}>
+      <PageHead title={t('Notes')} editing={editing} onEdit={notes.length && !grid ? () => setEditing(!editing) : undefined}>
+        {notes.length > 1 && (
+          <button
+            className="text-btn view-toggle"
+            aria-label={t(grid ? 'Show notes as a list' : 'Show notes as a grid')}
+            title={t(grid ? 'List' : 'Grid')}
+            onClick={() => { setGrid(!grid); setEditing(false); }}
+          >
+            {grid ? '☰' : '▦'}
+          </button>
+        )}
         <button className="text-btn" onClick={onRunSheet}>{runCount ? t('▶ Run sheet ({n})', { n: runCount }) : t('▶ Run sheet')}</button>
         {live === null && <button className="text-btn" onClick={onLive}>{t('● Live')}</button>}
       </PageHead>
@@ -1896,6 +1922,44 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       <>
       <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
       {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
+      {grid ? (
+        <>
+        <p className="grid-hint">{t('Hold a note to pin, move or delete it.')}</p>
+        <ul className="note-grid">
+          {rows.map(row => {
+            const { note: n, child, children } = row;
+            const title = noteTitle(n);
+            // The words after the title (a note's first line is often its title)
+            const body = n.text.trim().replace(/^.*\n?/, m => (m.trim() === title.trim() ? '' : m)).trim();
+            return deleting === n.id ? (
+              <li key={n.id} className="note-card confirm-card" role="alertdialog" aria-label={t('Delete note {name}?', { name: title })}>
+                <span>{children ? t(children === 1 ? 'Delete this note? The note under it stays.' : 'Delete this note? The {n} notes under it stay.', { n: children }) : t('Delete this note?')}</span>
+                <button className="danger" onClick={() => { onDelete(n.id); setDeleting(null); }}>{t('Delete')}</button>
+                <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
+              </li>
+            ) : (
+              <li key={n.id} className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''}`}>
+                <button className="note-card-open" {...holdProps(row)} onClick={() => openUnlessHeld(n.id)}>
+                  <b>{child && <span aria-hidden>⤷ </span>}{title}</b>
+                  {body && <span className="note-card-body">{body}</span>}
+                </button>
+                {n.pinned && <span className="note-card-pin" aria-label={t('Pinned')}>📌</span>}
+                {children > 0 && (
+                  <button
+                    className="note-card-fold"
+                    aria-expanded={!n.collapsed}
+                    aria-label={t(n.collapsed ? 'Show the notes under {name}' : 'Fold away the notes under {name}', { name: title })}
+                    onClick={() => onFold(n.id)}
+                  >
+                    {n.collapsed ? '▸' : '▾'} {children}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        </>
+      ) : (
       <ul className="sheet-list">
         {rows.map(({ note: n, child, children }, i) => deleting === n.id ? (
           <li key={n.id} className="confirm-row" role="alertdialog" aria-label={t('Delete note {name}?', { name: noteTitle(n) })}>
@@ -1941,6 +2005,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
           </li>
         ))}
       </ul>
+      )}
       </>
       )}
       {menuFor && (

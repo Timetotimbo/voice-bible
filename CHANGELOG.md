@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.66.0 — 2026-10-26
+- **▦ Grid view for Notes.** Tap **▦** at the top of the Notes tab to see your notes as small cards, two across on a phone (more on a wider screen), each with its title and the first few lines. Pinned notes have a 📌 and a coloured edge; a note with notes under it shows **▾ 3** (tap to fold them away). Tap a card to open it, or hold it to pin, put it under another note, or delete it. **☰** goes back to the list, where you can drag to reorder. The view you pick is remembered.
+
 ## v2.65.1 — 2026-10-25
 - **✂ Cut and 🗑 Delete for selected words in a note.** While you're reading a note (not typing in it), the phone's own menu only offers Copy. Now when you select words there, the bar above the note has **✂ Cut** (copies them, then takes them out) and **🗑 Delete**. **↶ Undo** brings them back.
 
