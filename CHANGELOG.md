@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.69.1 — 2026-10-26
+- **Sort notes by length.** ⇅ Sort & filter has **Longest first (most words)** and **Shortest first**. While sorted this way, each note shows how many words it has (in the list and on the grid cards).
+
 ## v2.69.0 — 2026-10-26
 **Recently deleted**
 - A deleted note is no longer gone for good: it's kept for 30 days. **🗑 Recently deleted (N)** at the bottom of the Notes tab lists them with the days left. **↩ Restore** puts one back at the top (under the note it was in, if that's still there); **✕** deletes one for good, and **Empty Recently deleted** clears them all. Empty notes aren't kept.

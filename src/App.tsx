@@ -1793,14 +1793,20 @@ function YourMatches({ query, hits, notes, lists, chats, colorOf, hlOnly, onHlOn
   );
 }
 
-type NoteSort = 'mine' | 'edited' | 'newest' | 'oldest' | 'az';
+type NoteSort = 'mine' | 'edited' | 'newest' | 'oldest' | 'az' | 'longest' | 'shortest';
 const NOTE_SORTS: { id: NoteSort; name: string }[] = [
   { id: 'mine', name: 'My order' },
   { id: 'edited', name: 'Last edited' },
   { id: 'newest', name: 'Newest first' },
   { id: 'oldest', name: 'Oldest first' },
   { id: 'az', name: 'A to Z' },
+  { id: 'longest', name: 'Longest first (most words)' },
+  { id: 'shortest', name: 'Shortest first' },
 ];
+// `n` is often a note in the lists below
+const plural = n;
+/** How many words a note has. */
+const wordCount = (n: Note) => (n.text.match(/\S+/g) ?? []).length;
 /** When a note was made: its id is the time, for notes made here (others go by their last edit). */
 const madeAt = (n: Note) => (/^\d{12,}$/.test(n.id) ? Number(n.id) : n.updated);
 /** The notes in the chosen order, pinned ones still first. Notes under another keep to it (see noteRows). */
@@ -1810,6 +1816,8 @@ function sortNotes(notes: Note[], sort: NoteSort): Note[] {
     sort === 'edited' ? (a, b) => b.updated - a.updated
     : sort === 'newest' ? (a, b) => madeAt(b) - madeAt(a)
     : sort === 'oldest' ? (a, b) => madeAt(a) - madeAt(b)
+    : sort === 'longest' ? (a, b) => wordCount(b) - wordCount(a)
+    : sort === 'shortest' ? (a, b) => wordCount(a) - wordCount(b)
     : (a, b) => noteTitle(a).localeCompare(noteTitle(b), undefined, { sensitivity: 'base', numeric: true });
   return [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || by(a, b));
 }
@@ -2030,7 +2038,9 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               <li key={n.id} className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''}`}>
                 <button className="note-card-open" {...holdProps(row)} onClick={() => openUnlessHeld(n.id)}>
                   <b>{child && <span aria-hidden>⤷ </span>}<TagDots tags={n.tags} names={tagNames} /> {title}</b>
-                  {body && <span className="note-card-body">{body}</span>}
+                  {sort === 'longest' || sort === 'shortest'
+                    ? <span className="note-card-body">{plural('{n} word', '{n} words', wordCount(n))}</span>
+                    : body && <span className="note-card-body">{body}</span>}
                 </button>
                 {n.pinned && <span className="note-card-pin" aria-label={t('Pinned')}>📌</span>}
                 {children > 0 && (
@@ -2074,7 +2084,9 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
             )}
             <button className="sheet-item note-row" {...holdProps({ note: n, child, children })} onClick={() => openUnlessHeld(n.id)}>
               <span>{noteTitle(n)}{children > 0 && <small className="hit-count"> {children}</small>} <TagDots tags={n.tags} names={tagNames} /></span>
-              {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
+              {sort === 'longest' || sort === 'shortest'
+                ? <small>{plural('{n} word', '{n} words', wordCount(n))}</small>
+                : n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
             </button>
             {editing && !children && (
               <button className="sheet-x" aria-label={t('Put {name} under another note', { name: noteTitle(n) })} title={t('Put under another note')} onClick={() => setTucking(n)}>⤷</button>
