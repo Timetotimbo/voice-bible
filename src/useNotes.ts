@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { t } from './i18n';
+import type { TagColor } from './noteTags';
 
 export interface Note {
   id: string;
@@ -9,6 +10,7 @@ export interface Note {
   pinned?: boolean; // kept at the top of the list
   parent?: string; // the note it's tucked under (one level deep)
   collapsed?: boolean; // its notes underneath are folded away
+  tags?: TagColor[]; // colour tags, named in noteTags
 }
 
 function load(): Note[] {
@@ -103,7 +105,12 @@ export function useNotes() {
     [],
   );
 
-  return { notes, newNote, updateNote, deleteNote, moveNote, togglePin, toggleCollapsed, setParent };
+  const setTags = useCallback(
+    (id: string, tags: TagColor[]) => setNotes(ns => ns.map(n => (n.id === id ? { ...n, tags: tags.length ? tags : undefined } : n))),
+    [],
+  );
+
+  return { notes, newNote, updateNote, deleteNote, moveNote, togglePin, toggleCollapsed, setParent, setTags };
 }
 
 /** A note's name in lists: its title, or its first line. */

@@ -404,6 +404,22 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
 /* Drag lists into order by the handle */
 .sheet-list li.note-child { padding-left: 26px; }
+/* Note tags: coloured dots, the filter chips above the notes, and the Tags sheet */
+.tag-purple { --tag: #a855f7; } .tag-blue { --tag: #3b82f6; } .tag-green { --tag: #22c55e; } .tag-yellow { --tag: #eab308; } .tag-orange { --tag: #f97316; } .tag-red { --tag: #ef4444; }
+.tag-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tag); flex: none; }
+.tag-dot.big { width: 16px; height: 16px; }
+.tag-dots { display: inline-flex; gap: 3px; vertical-align: middle; margin-left: 4px; }
+.note-card-open .tag-dots { margin: 0; }
+.tag-filter { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+.tag-filter::-webkit-scrollbar { display: none; }
+.tag-filter button { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 5px 12px; font-size: 0.82rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.tag-filter button.on { color: var(--strong, var(--text)); border-color: var(--purple-bright); background: var(--surface-2); }
+.tag-pick { display: flex; align-items: center; gap: 10px; }
+.tag-check { font-size: 1.1rem; }
+.tag-unnamed { color: var(--muted); }
+.tag-name-form { display: flex; align-items: center; gap: 8px; flex: 1; padding: 6px 4px; }
+.tag-name-form input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: inherit; font: inherit; }
+.tag-name-form button { padding: 8px 12px; border-radius: 8px; }
 /* Notes as a grid of small cards: two across on a phone, more on a wider screen */
 .view-toggle { font-size: 1.15rem; line-height: 1; padding: 6px 8px; }
 .grid-hint { margin: 2px 0 8px; font-size: 0.78rem; color: var(--muted); }

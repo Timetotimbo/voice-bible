@@ -22,6 +22,7 @@ import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { dropTarget, noteRows, noteTitle, useNotes, type Note } from './useNotes';
+import { TAG_COLORS, TagDots, TagSheet, tagLabel, useTagNames, type TagColor } from './noteTags';
 import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
 import { useChats, type Chat } from './useChats';
@@ -1046,6 +1047,7 @@ export default function App() {
             onPin={notes.togglePin}
             onFold={notes.toggleCollapsed}
             onPutUnder={notes.setParent}
+            onTags={notes.setTags}
           />
         )}
         {view.kind === 'chats' && (
@@ -1787,7 +1789,7 @@ function YourMatches({ query, hits, notes, lists, chats, colorOf, hlOnly, onHlOn
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder }: {
+function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder, onTags }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
@@ -1805,7 +1807,15 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   onPin: (id: string) => void;
   onFold: (id: string) => void; // folds away the notes under it, or shows them
   onPutUnder: (id: string, parent: string | null) => void; // null: back out to the top level
+  onTags: (id: string, tags: TagColor[]) => void;
 }) {
+  const { names: tagNames } = useTagNames();
+  // Showing only the notes with this tag (null: all of them)
+  const [tagOnly, setTagOnly] = useState<TagColor | null>(null);
+  const usedTags = TAG_COLORS.filter(c => notes.some(x => x.tags?.includes(c)));
+  const onlyTag = tagOnly && usedTags.includes(tagOnly) ? tagOnly : null;
+  // The note whose tags are being chosen
+  const [tagging, setTagging] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   // The note being tucked under another, while the Put under sheet is open
@@ -1857,12 +1867,16 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
     if (hold.current?.fired) { hold.current = null; return; }
     onOpen(id);
   };
-  const rows = useMemo(() => noteRows(notes), [notes]);
+  // With a tag picked, its notes on their own (a note under another shows by itself when its parent isn't tagged)
+  const rows = useMemo(() => noteRows(onlyTag ? notes.filter(x => x.tags?.includes(onlyTag)) : notes), [notes, onlyTag]);
   const drag = useDragOrder(rows.map(r => r.note.id), (id, to) => onMove(id, dropTarget(rows, id, to)));
   const q = query.trim();
   const found = useMemo(
-    () => (q ? notes.map(n => ({ note: n, count: findAll(noteTitle(n), q).length + findAll(n.text, q).length })).filter(x => x.count) : []),
-    [notes, q],
+    () => (q ? notes.map(n => ({
+      note: n,
+      count: findAll(noteTitle(n), q).length + findAll(n.text, q).length + (n.tags ?? []).filter(c => findAll(tagLabel(c, tagNames), q).length).length,
+    })).filter(x => x.count) : []),
+    [notes, q, tagNames],
   );
   return (
     <section className="tab-page">
@@ -1922,6 +1936,16 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       <>
       <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
       {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
+      {usedTags.length > 0 && (
+        <div className="tag-filter" role="radiogroup" aria-label={t('Show notes tagged')}>
+          <button role="radio" aria-checked={!onlyTag} className={!onlyTag ? 'on' : ''} onClick={() => setTagOnly(null)}>{t('All')}</button>
+          {usedTags.map(c => (
+            <button key={c} role="radio" aria-checked={onlyTag === c} className={onlyTag === c ? 'on' : ''} onClick={() => setTagOnly(onlyTag === c ? null : c)}>
+              <i className={`tag-dot tag-${c}`} aria-hidden /> {tagLabel(c, tagNames)}
+            </button>
+          ))}
+        </div>
+      )}
       {grid ? (
         <>
         <p className="grid-hint">{t('Hold a note to pin, move or delete it.')}</p>
@@ -1941,6 +1965,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               <li key={n.id} className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''}`}>
                 <button className="note-card-open" {...holdProps(row)} onClick={() => openUnlessHeld(n.id)}>
                   <b>{child && <span aria-hidden>⤷ </span>}{title}</b>
+                  <TagDots tags={n.tags} names={tagNames} />
                   {body && <span className="note-card-body">{body}</span>}
                 </button>
                 {n.pinned && <span className="note-card-pin" aria-label={t('Pinned')}>📌</span>}
@@ -1984,7 +2009,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               </button>
             )}
             <button className="sheet-item note-row" {...holdProps({ note: n, child, children })} onClick={() => openUnlessHeld(n.id)}>
-              <span>{noteTitle(n)}{children > 0 && <small className="hit-count"> {children}</small>}</span>
+              <span>{noteTitle(n)}{children > 0 && <small className="hit-count"> {children}</small>} <TagDots tags={n.tags} names={tagNames} /></span>
               {n.text.trim() && <small>{n.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>}
             </button>
             {editing && !children && (
@@ -2020,6 +2045,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               {!menuFor.child && (
                 <li><button className="sheet-item" onClick={() => { onPin(menuFor.note.id); setMenuFor(null); }}>{t(menuFor.note.pinned ? '📌 Unpin' : '📌 Pin to the top')}</button></li>
               )}
+              <li><button className="sheet-item" onClick={() => { setTagging(menuFor.note.id); setMenuFor(null); }}>{t('🏷 Tags…')}</button></li>
               {menuFor.child && (
                 <li><button className="sheet-item" onClick={() => { onPutUnder(menuFor.note.id, null); setMenuFor(null); }}>{t('⤴ Take out (make it a normal note)')}</button></li>
               )}
@@ -2031,6 +2057,10 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
           </div>
         </div>
       )}
+      {tagging && (() => {
+        const nt = notes.find(x => x.id === tagging);
+        return nt ? <TagSheet title={noteTitle(nt)} tags={nt.tags ?? []} onChange={tags => onTags(nt.id, tags)} onClose={() => setTagging(null)} /> : null;
+      })()}
       {tucking && (
         <div className="sheet-backdrop" onClick={() => setTucking(null)}>
           <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Put under another note')} onClick={e => e.stopPropagation()}>

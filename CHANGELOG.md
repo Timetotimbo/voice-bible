@@ -2,6 +2,12 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.67.0 — 2026-10-26
+- **🏷 Colour tags for notes, with names.** Hold a note and tap **🏷 Tags…**. Tick any of six colours (purple, blue, green, yellow, orange, red); a note can have several. Tap **✎** beside a colour to name it ("Sermons", "Prayer"); the name is used for every note with that colour.
+- Tagged notes show small coloured dots, in the list and on the grid cards.
+- **Filter by tag.** Once any note is tagged, chips appear at the top of the Notes tab (**All**, then each tag in use). Tap one to see only those notes; tap it again or **All** to see everything.
+- Searching your notes also finds tag names, so searching "Sermons" lists the notes tagged Sermons.
+
 ## v2.66.1 — 2026-10-26
 - **⤴ Take a note back out.** Hold a note that's under another note and tap **⤴ Take out (make it a normal note)**. It goes back to being a normal note, just below the one it was under.
 
