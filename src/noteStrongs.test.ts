@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BibleText } from './bible/search';
 import { untag } from './bible/strongs';
-import { strongsWords } from './noteStrongs';
+import { strongsWords, verseSpans } from './noteStrongs';
 
 // Hebrews is book 57 (0-based); just chapter 4, verses 14 and 15
 const raw: BibleText = [];
@@ -29,5 +29,26 @@ describe('strongsWords', () => {
   });
   it('leaves text that isn’t after a reference alone', () => {
     expect(words('Seeing then, a high priest')).toEqual([]);
+  });
+});
+
+describe('verseSpans', () => {
+  const verses: Record<string, string[]> = {
+    'Proverbs 4:7': ['Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.'],
+    'John 3:16-17': ['For God so loved the world', 'For God sent not his Son'],
+  };
+  const spans = (text: string) => verseSpans(text, label => (verses[label] ?? []).map(text => ({ text })))
+    .map(s => JSON.stringify(text.slice(s.start, s.end)));
+  it('finds the verse written after its reference', () => {
+    const text = 'Proverbs 4:7\nWisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.\n\nMy thoughts';
+    expect(spans(text)).toEqual([JSON.stringify('\nWisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.')]);
+  });
+  it('goes through a range with verse numbers', () => {
+    expect(spans('John 3:16-17\n16 For God so loved the world\n17 For God sent not his Son. Amen')).toEqual([
+      JSON.stringify('\n16 For God so loved the world\n17 For God sent not his Son.'),
+    ]);
+  });
+  it('leaves your own words after a reference alone', () => {
+    expect(spans('Proverbs 4:7 is my favourite verse')).toEqual([]);
   });
 });

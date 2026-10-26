@@ -9,7 +9,7 @@ import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
 import { versesAsRefs } from './shareVerses';
-import { strongsWords } from './noteStrongs';
+import { strongsWords, verseSpans } from './noteStrongs';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
@@ -91,6 +91,26 @@ export function NoteView({
   useEffect(() => {
     if (strongsOn && !strongsBible) onStrongs();
   }, [strongsOn, strongsBible]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Refs: verses written out in the note are hidden, leaving their references (tap one to see it); the text stays
+  const [refsView, setRefsViewState] = useState(() => {
+    try {
+      return localStorage.getItem('vb_note_refs_view') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setRefsView = (on: boolean) => {
+    setRefsViewState(on);
+    try {
+      localStorage.setItem('vb_note_refs_view', on ? '1' : '0');
+    } catch {
+      // lasts for this visit
+    }
+  };
+  const hiddenVerses = useMemo(
+    () => (refsView && !editing ? verseSpans(shownText, label => refVerses(label)) : []),
+    [refsView, editing, shownText], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const studyWords = useMemo(
     () => (strongsOn && strongsBible && !editing ? strongsWords(shownText, strongsBible, label => refVerses(label)) : []),
     [strongsOn, strongsBible, editing, shownText], // eslint-disable-line react-hooks/exhaustive-deps
@@ -534,7 +554,7 @@ export function NoteView({
               jumps={toc}
               onJump={jumpTo}
               sentences={sentences}
-              marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : studyWords.length ? { ranges: studyWords, current: -1, cls: 'sw-mark' } : undefined}
+              marks={finding ? { ranges: hits, current: findAt } : jumpMark ? { ranges: [jumpMark], current: -1, cls: 'jump-hit' } : pickMarks.length ? { ranges: pickMarks, current: -1, cls: 'pick-hit' } : hiddenVerses.length ? { ranges: hiddenVerses, current: -1, cls: 'verse-hidden' } : studyWords.length ? { ranges: studyWords, current: -1, cls: 'sw-mark' } : undefined}
             />
           </div>
         )}
@@ -602,6 +622,15 @@ export function NoteView({
           disabled={!reader.canReadText || (!reading && !paragraphs.length)}
         >
           <SpeakerIcon />
+        </button>
+        <button
+          className={`undo strongs-btn ${refsView ? 'on' : ''}`}
+          aria-label={t('Show verses as just their references')}
+          title={t('Show verses as just their references (tap one to see it). The note itself isn’t changed.')}
+          aria-pressed={refsView}
+          onClick={() => setRefsView(!refsView)}
+        >
+          {t('Refs')}
         </button>
         <button
           className={`undo strongs-btn ${strongsOn ? 'on' : ''}`}

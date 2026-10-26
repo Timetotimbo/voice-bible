@@ -40,3 +40,35 @@ export function strongsWords(text: string, tagged: BibleText, versesOf: (label: 
   });
   return out;
 }
+
+/**
+ * Where the verses written out in a note are, for showing it with just the references: after each reference,
+ * the text that is those verses' words (word for word, ignoring capitals and punctuation; a verse number before
+ * each one is fine), from the end of the reference to the end of the last verse found. Text that isn't the
+ * verse (a different translation, or your own words) stays.
+ */
+export function verseSpans(text: string, versesOf: (label: string) => { text: string }[]): { start: number; end: number }[] {
+  const norm = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const refs = findReferences(text);
+  const out: { start: number; end: number }[] = [];
+  refs.forEach((r, i) => {
+    const limit = refs[i + 1]?.start ?? text.length;
+    let at = r.end, last = -1;
+    for (const v of versesOf(r.label)) {
+      const words = v.text.split(/\s+/).map(norm).filter(Boolean);
+      // A verse number before it ("16 For God…")
+      const num = text.slice(at, limit).match(/^\s*\d{1,3}(?=\s)/);
+      let pos = at + (num ? num[0].length : 0), matched = 0;
+      for (const w of words) {
+        const tok = text.slice(pos, limit).match(/^\s*(\S+)/);
+        if (!tok || norm(tok[1]) !== w) break;
+        pos += tok[0].length;
+        matched++;
+      }
+      if (matched < Math.min(3, words.length)) break;
+      last = at = pos;
+    }
+    if (last > r.end) out.push({ start: r.end, end: last });
+  });
+  return out;
+}
