@@ -24,6 +24,22 @@ export function versesAsText(verses: VerseHit[]): string {
     .join('\n\n');
 }
 
+/**
+ * Just the references, without the words: "John 3:16-18; Romans 8:28". In a note each becomes a link that shows
+ * the verses when tapped.
+ */
+export function versesAsRefs(verses: VerseHit[]): string {
+  const groups: VerseHit[][] = [];
+  for (const v of verses) {
+    const last = groups[groups.length - 1]?.at(-1);
+    if (last && last.book === v.book && last.chapter === v.chapter && v.verse === last.verse + 1) groups[groups.length - 1].push(v);
+    else groups.push([v]);
+  }
+  return groups
+    .map(g => `${bookName(g[0].book)} ${g[0].chapter}:${g[0].verse}${g.length > 1 ? `-${g[g.length - 1].verse}` : ''}`)
+    .join('; ');
+}
+
 /** Opens the phone's share menu (Messages, email …) with the verses, or copies them where there isn't one. */
 export async function shareVerses(verses: VerseHit[]): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
   const text = versesAsText(verses);

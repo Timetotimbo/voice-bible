@@ -8,6 +8,7 @@ import { n, t } from './i18n';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
+import { versesAsRefs } from './shareVerses';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
 import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } from './NoteRefs';
@@ -687,9 +688,15 @@ export function NoteView({
                   ))}
                 </ul>
                 {!inChapter && found.length > shown.length && <p className="notice">{t('Showing the first {shown} of {n}. Add more words to narrow it.', { shown: shown.length, n: found.length })}</p>}
-                <button className="goto-open" disabled={!chosen.length} onClick={() => insert(versesText(chosen))}>
-                  {chosen.length ? n('Insert {n} verse', 'Insert {n} verses', chosen.length) : t('Insert verses')}
-                </button>
+                <div className="insert-choice">
+                  <button className="goto-open" disabled={!chosen.length} onClick={() => insert(versesText(chosen))}>
+                    {chosen.length ? n('Insert {n} verse', 'Insert {n} verses', chosen.length) : t('Insert verses')}
+                  </button>
+                  {/* Just "John 3:16": a link in the note that shows the verse when tapped */}
+                  <button className="goto-open refs-only" disabled={!chosen.length} onClick={() => insert(versesAsRefs(chosen))} title={t('Just the reference; tap it in the note to see the verse')}>
+                    {t('Reference only')}
+                  </button>
+                </div>
               </>
             )}
 

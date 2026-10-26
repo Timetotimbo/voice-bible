@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.70.0 — 2026-10-26
+- **Add verses to a note as just the reference.** When you tap **To note…** (from search, a chapter or a list), choose **Full text** (the reference and the words, as before) or **Reference only** at the top. Reference only writes e.g. "John 3:16-18; Romans 8:28", and in the note each reference is a link: tap it to see the verses in a pop-up card, like Blue Letter Bible. Your choice is remembered.
+- **Insert → A verse** inside a note has a **Reference only** button next to **Insert verses**.
+
 ## v2.69.1 — 2026-10-26
 - **Sort notes by length.** ⇅ Sort & filter has **Longest first (most words)** and **Shortest first**. While sorted this way, each note shows how many words it has (in the list and on the grid cards).
 

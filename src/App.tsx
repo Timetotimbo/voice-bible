@@ -17,7 +17,7 @@ import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
-import { copyVerses, makeVerseVideo, shareVerses, versesAsText } from './shareVerses';
+import { copyVerses, makeVerseVideo, shareVerses, versesAsRefs, versesAsText } from './shareVerses';
 import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
@@ -1327,14 +1327,14 @@ export default function App() {
           count={toNote.verses.length}
           notes={shownNotes}
           onClose={() => setToNote(null)}
-          onPick={noteId => {
+          onPick={(noteId, refsOnly) => {
             // At the end of the note, written out with references, like Insert in a note
             const id = noteId ?? newShownNote();
             const current = notes.notes.find(n => n.id === id);
             const title = current ? noteTitle(current) : toNote.title;
             notes.updateNote(id, {
               ...(noteId ? {} : { title }),
-              text: [current?.text.trimEnd(), versesAsText(toNote.verses)].filter(Boolean).join('\n\n'),
+              text: [current?.text.trimEnd(), refsOnly ? versesAsRefs(toNote.verses) : versesAsText(toNote.verses)].filter(Boolean).join('\n\n'),
             });
             setToNote(null);
             setSelected(new Set());
@@ -3397,9 +3397,25 @@ function NotePicker({ count = 0, heading, notes, onPick, onClose }: {
   count?: number;
   heading?: string; // instead of "Add {n} verses to a note"
   notes: Note[];
-  onPick: (noteId: string | null) => void; // null = a new note
+  onPick: (noteId: string | null, refsOnly: boolean) => void; // null = a new note; refsOnly: just "John 3:16", not the words
   onClose: () => void;
 }) {
+  // Verses go in with their words, or as just the reference (a link that shows them); the choice is remembered
+  const [refsOnly, setRefsOnlyState] = useState(() => {
+    try {
+      return localStorage.getItem('vb_verse_refs_only') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setRefsOnly = (on: boolean) => {
+    setRefsOnlyState(on);
+    try {
+      localStorage.setItem('vb_verse_refs_only', on ? '1' : '0');
+    } catch {
+      // lasts for this visit
+    }
+  };
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Add to a note')} onClick={e => e.stopPropagation()}>
@@ -3407,13 +3423,22 @@ function NotePicker({ count = 0, heading, notes, onPick, onClose }: {
           <h2>{heading ?? n('Add the verse to a note', 'Add {n} verses to a note', count)}</h2>
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
+        {count > 0 && (
+          <div className="search-mode" role="radiogroup" aria-label={t('Add as')}>
+            {([[false, 'Full text'], [true, 'Reference only']] as const).map(([on, label]) => (
+              <button key={label} type="button" role="radio" aria-checked={refsOnly === on} className={refsOnly === on ? 'on' : ''} onClick={() => setRefsOnly(on)}>
+                {t(label)}
+              </button>
+            ))}
+          </div>
+        )}
         <ul className="sheet-list">
           <li>
-            <button className="sheet-item new-chat" onClick={() => onPick(null)}>{t('+ New note')}</button>
+            <button className="sheet-item new-chat" onClick={() => onPick(null, refsOnly)}>{t('+ New note')}</button>
           </li>
           {notes.map(n => (
             <li key={n.id}>
-              <button className="sheet-item" onClick={() => onPick(n.id)}>{n.pinned ? '📌 ' : ''}{noteTitle(n)}</button>
+              <button className="sheet-item" onClick={() => onPick(n.id, refsOnly)}>{n.pinned ? '📌 ' : ''}{noteTitle(n)}</button>
             </li>
           ))}
         </ul>

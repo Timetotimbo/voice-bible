@@ -409,6 +409,9 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .v2 .notes-toolbar .new-row { flex: 1; width: auto; border-bottom: 0; }
 .sort-btn { flex: none; padding: 6px 12px; font-size: 0.85rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
 .sort-btn.on { color: var(--purple-bright); border-color: var(--purple-bright); }
+.insert-choice { display: flex; gap: 8px; }
+.insert-choice .goto-open { flex: 1; }
+.insert-choice .refs-only { flex: 0 1 auto; background: var(--surface-2); color: inherit; border: 1px solid var(--border); }
 .sheet-sub { margin: 12px 0 2px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 /* Note tags: coloured dots, the filter chips above the notes, and the Tags sheet */
 .tag-purple { --tag: #a855f7; } .tag-blue { --tag: #3b82f6; } .tag-green { --tag: #22c55e; } .tag-yellow { --tag: #eab308; } .tag-orange { --tag: #f97316; } .tag-red { --tag: #ef4444; }
