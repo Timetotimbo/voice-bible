@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.75.0 — 2026-10-26
+- **▶ Present from a verse's pop-up card.** Tap a reference in a note, and its card now has **▶ Present** (shows the verses full screen straight away, with the second screen and phone remote as usual) and **+ Run sheet** (lines them up for later).
+
 ## v2.74.0 — 2026-10-26
 - **Word study from a note goes back into that note.** Tap a word with Strong's lines in a note (**H/G**), and the word card's button is now **Add to this note**: the word's meaning goes straight into the note you're in, right after the paragraph with that word. **Another note…** under it still lets you pick a different note or a new one.
 

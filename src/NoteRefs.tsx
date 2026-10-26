@@ -5,6 +5,8 @@ import { t } from './i18n';
 import { findReferences } from './noteSpeech';
 import { SENTENCE_COLORS } from './noteColors';
 import { versesAsText } from './shareVerses';
+import { presentVerses } from './Present';
+import { addToRunSheet } from './RunSheet';
 
 /**
  * Bible references in a note, like Blue Letter Bible's: each one is underlined, and tapping it (or pointing at it
@@ -259,6 +261,9 @@ export function RefCard({ pick, verses, translation, onClose, onListen, onOpen, 
             >
               {copied ? '✓' : '📋'}
             </button>
+            {/* Full screen now, or lined up on the run sheet for later */}
+            <button className="ref-present" title={t('Show these verses full screen')} onClick={() => { onStop?.(); onClose(); presentVerses(verses); }}>{t('▶ Present')}</button>
+            <button title={t('Add these verses to the run sheet')} onClick={() => { addToRunSheet({ kind: 'verses', verses }); onClose(); }}>{t('+ Run sheet')}</button>
             {onPick && <button className="ref-pick" title={t('Add this verse to your picks (Loop, Make video, To note)')} onClick={() => { onPick(versesAsText(verses)); onClose(); }}>{t('+ Pick')}</button>}
             <button onClick={() => { onOpen(pick.label); onClose(); }} title={t('Open chapter')}>{t('Chapter')}</button>
             {onEdit && pick.end !== undefined && <button className="ref-edit" aria-label={t('Edit')} onClick={() => { onEdit(pick.end!); onClose(); }}>✎</button>}
