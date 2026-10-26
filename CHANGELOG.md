@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.65.1 — 2026-10-25
+- **✂ Cut and 🗑 Delete for selected words in a note.** While you're reading a note (not typing in it), the phone's own menu only offers Copy. Now when you select words there, the bar above the note has **✂ Cut** (copies them, then takes them out) and **🗑 Delete**. **↶ Undo** brings them back.
+
 ## v2.65.0 — 2026-10-25
 - **One search for everything.** When you search words, a box above the verses shows what of yours has them too: 📝 notes (with the words shown), 📖 verse lists named like your search or holding verses it found, and 💬 chats. Tap one to open it; a note opens with the words found in it. **More** shows the rest, and **Search in Notes** takes you to the Notes tab with the same search.
 - **🖍 Only the highlighted.** If any of the verses found are highlighted, tap **🖍 Only the N highlighted** to see just those; **Show all verses** brings the rest back.

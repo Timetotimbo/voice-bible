@@ -449,6 +449,8 @@ const ES: Record<string, string> = {
   '📌 Pin to the top': '📌 Fijar arriba',
   '⤷ Put under another note…': '⤷ Poner bajo otra nota…',
   '🗑 Delete': '🗑 Borrar',
+  '✂ Cut': '✂ Cortar',
+  'Couldn’t copy, so nothing was cut.': 'No se pudo copiar, así que no se cortó nada.',
   'Open': 'Abrir',
   'Yours': 'Lo tuyo',
   'In your notes and lists': 'En tus notas y listas',

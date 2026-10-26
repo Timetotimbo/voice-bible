@@ -127,6 +127,22 @@ export function NoteView({
     setSel(null);
     window.getSelection()?.removeAllRanges();
   };
+  // ✂ Cut and 🗑 Delete for words selected while reading the note (the phone only offers Copy there, as it isn't
+  // a text box). Undo brings them back; picks after them move up, and ones inside them go.
+  const removeSel = () => {
+    if (!sel) return;
+    const { start, end } = sel, gone = end - start;
+    setText(note.text.slice(0, start) + note.text.slice(end), 'edit');
+    setPicks(p => p.flatMap(x => (x.end <= start ? [x] : x.start >= end ? [{ ...x, start: x.start - gone, end: x.end - gone }] : [])));
+    setSel(null);
+    window.getSelection()?.removeAllRanges();
+  };
+  const cutSel = () => {
+    if (!sel) return;
+    const text = note.text.slice(sel.start, sel.end);
+    // Only taken out once it's safely on the clipboard
+    navigator.clipboard?.writeText(text).then(removeSel, () => alert(t('Couldn’t copy, so nothing was cut.')));
+  };
   const pickVerse = (text: string, at: number) => {
     const clean = text.replace(/\s+/g, ' ').trim();
     if (clean) setPicks(p => (p.some(x => x.text === clean) ? p : [...p, { start: at, end: at, text: clean, verse: true }].sort((a, b) => a.start - b.start)));
@@ -456,6 +472,13 @@ export function NoteView({
           <button className="pick-add" disabled={!sel} onClick={addPick}>{t('+ Add')}</button>
           <span className="pick-count">{picks.length ? n('{n} picked', '{n} picked', picks.length) : t('Select text, then + Add')}</span>
           <button className="pick-x" aria-label={t('Clear picks')} onClick={() => { setPicks([]); setSel(null); }}>✕</button>
+          {sel && !editing && (
+            <>
+              <span className="pick-break" aria-hidden />
+              <button className="pick-cut" onClick={cutSel}>{t('✂ Cut')}</button>
+              <button className="pick-del" onClick={removeSel}>{t('🗑 Delete')}</button>
+            </>
+          )}
           <span className="pick-break" aria-hidden />
           <button className="pick-note" disabled={!sel && !picks.length} onClick={toNote}>{t('To note…')}</button>
           <button className="pick-loop" disabled={(!sel && !picks.length) || !reader.canReadText} onClick={loopPicks} title={t('Read the picks aloud over and over')}>{t('⟳ Loop')}</button>
