@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.73.1 — 2026-10-26
+- **Fixed:** while a note was read aloud, its bottom bar of buttons overlapped the reading player. The bar now steps aside while the note is read (the player has its own Stop), and sits above the Now playing bar while a chapter plays in the background.
+
 ## v2.73.0 — 2026-10-26
 - **Refs: show verses as just their references.** Tap **Refs** in a note's bottom bar and every verse written out after its reference is hidden, leaving the reference ("Proverbs 4:7"), so the note takes far less room. Tap a reference to see the verse in its card, like Blue Letter Bible. Only the verse's own words are hidden (your thoughts after it stay), and the note itself isn't changed: tap **Refs** again, or start typing, to see everything. It's remembered.
 

@@ -1106,6 +1106,10 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .v2 .player.now-playing.over-composer { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 72px); }
 .player .np-stop { flex: none; width: 46px; padding: 0 !important; font-size: 16px; }
 .app.v2.np-on { padding-bottom: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + 90px); }
+/* While a note is read aloud its own player takes the bottom: the note's bottom bar steps aside (the player
+   has Stop); while a chapter plays on in the background, the bar sits above the Now playing bar */
+.note.has-player .note-foot { display: none; }
+.app.v2.np-on .note-foot { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 64px); }
 
 /* Live mode: the bar on the Notes tab and the face bubble */
 .live-bar { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid #e5484d; background: color-mix(in srgb, #e5484d 12%, var(--bg)); }
