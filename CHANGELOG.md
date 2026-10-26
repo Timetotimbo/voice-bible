@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.68.1 — 2026-10-26
+- **Smaller note cards in the grid**: half the height, still two across, so about twice as many fit on the screen. Each shows its title on one line (tag dots in front) and two lines of the note.
+
 ## v2.68.0 — 2026-10-26
 - **⇅ Sort & filter for Notes**, on the right of **+ New note**.
   - **Sort by:** My order (drag ⠿ to arrange), Last edited, Newest first, Oldest first, or A to Z. Pinned notes stay at the top, and notes under another stay with it. Your choice is remembered.

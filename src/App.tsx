@@ -2017,8 +2017,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
             ) : (
               <li key={n.id} className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''}`}>
                 <button className="note-card-open" {...holdProps(row)} onClick={() => openUnlessHeld(n.id)}>
-                  <b>{child && <span aria-hidden>⤷ </span>}{title}</b>
-                  <TagDots tags={n.tags} names={tagNames} />
+                  <b>{child && <span aria-hidden>⤷ </span>}<TagDots tags={n.tags} names={tagNames} /> {title}</b>
                   {body && <span className="note-card-body">{body}</span>}
                 </button>
                 {n.pinned && <span className="note-card-pin" aria-label={t('Pinned')}>📌</span>}
