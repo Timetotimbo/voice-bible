@@ -2020,8 +2020,11 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               {!menuFor.child && (
                 <li><button className="sheet-item" onClick={() => { onPin(menuFor.note.id); setMenuFor(null); }}>{t(menuFor.note.pinned ? '📌 Unpin' : '📌 Pin to the top')}</button></li>
               )}
+              {menuFor.child && (
+                <li><button className="sheet-item" onClick={() => { onPutUnder(menuFor.note.id, null); setMenuFor(null); }}>{t('⤴ Take out (make it a normal note)')}</button></li>
+              )}
               {!menuFor.children && (
-                <li><button className="sheet-item" onClick={() => { setTucking(menuFor.note); setMenuFor(null); }}>{t('⤷ Put under another note…')}</button></li>
+                <li><button className="sheet-item" onClick={() => { setTucking(menuFor.note); setMenuFor(null); }}>{t(menuFor.child ? '⤷ Move under a different note…' : '⤷ Put under another note…')}</button></li>
               )}
               <li><button className="sheet-item danger-text" onClick={() => { setDeleting(menuFor.note.id); setMenuFor(null); }}>{t('🗑 Delete')}</button></li>
             </ul>

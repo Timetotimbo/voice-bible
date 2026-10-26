@@ -450,6 +450,8 @@ const ES: Record<string, string> = {
   '⤷ Put under another note…': '⤷ Poner bajo otra nota…',
   '🗑 Delete': '🗑 Borrar',
   '✂ Cut': '✂ Cortar',
+  '⤴ Take out (make it a normal note)': '⤴ Sacar (dejarla como nota normal)',
+  '⤷ Move under a different note…': '⤷ Mover bajo otra nota…',
   'Show notes as a list': 'Ver las notas en lista',
   'Show notes as a grid': 'Ver las notas en cuadrícula',
   'List': 'Lista',
