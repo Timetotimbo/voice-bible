@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type TouchEvent as ReactTouchEvent } from 'react';
 import { bookName } from './bible/books';
 import type { BibleText, VerseHit } from './bible/search';
 import { insertDictation } from './dictation';
@@ -25,7 +25,7 @@ import { ListenBar, ReadingText, SpeakerIcon, type Listen, type Reader } from '.
 /** A note for thoughts and sermons: type, dictate (listening continuously), or bring in a list or a chat. */
 export function NoteView({
   note, onChange, speechInput, listening, interim, onDictate, lists, chats, listText, onShare, findVerses, chapterOf, versesText, reader, listen, onTeleprompter,
-  refVerses, onOpenRef, translation, onToNote, initialFind, strongsBible, onStrongs, onWord,
+  refVerses, onOpenRef, translation, onToNote, initialFind, strongsBible, onStrongs, onWord, onSwipe, slide,
 }: {
   note: Note;
   onChange: (change: Partial<Pick<Note, 'title' | 'text'>>) => void;
@@ -52,6 +52,8 @@ export function NoteView({
   strongsBible: BibleText | null; // KJV + Strong's (or the tagged Reina-Valera), once it's loaded
   onStrongs: () => void; // loads it
   onWord: (word: string, code: string, verse: VerseHit, at: number) => void; // opens the word study; at: where the word ends in the note
+  onSwipe?: (by: 1 | -1) => void; // swiped left (1: the next note) or right (-1: the one before)
+  slide?: string; // 'from-right' or 'from-left' when it came in by a swipe
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
@@ -420,8 +422,39 @@ export function NoteView({
   const chatText = (c: Chat) =>
     [`ChatGPT: ${c.title}`, ...c.messages.map(m => `${m.role === 'user' ? t('Me') : 'ChatGPT'}: ${m.content}`)].join('\n\n');
 
+  // Swipe left for the next note, right for the one before, while reading it (not while typing or choosing words)
+  const touch = useRef<{ x: number; y: number; lastX: number; lastY: number; at: number } | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    const p = e.touches[0];
+    const inField = (e.target as HTMLElement).closest('input, textarea, button, .sheet, .note-head');
+    // Swipes from the screen edge are the phone's own back gesture
+    touch.current = onSwipe && !editing && !inField && e.touches.length === 1 && p.clientX > 30 && p.clientX < window.innerWidth - 30
+      ? { x: p.clientX, y: p.clientY, lastX: p.clientX, lastY: p.clientY, at: Date.now() }
+      : null;
+  };
+  const onTouchMove = (e: ReactTouchEvent) => {
+    if (!touch.current) return;
+    touch.current.lastX = e.touches[0].clientX;
+    touch.current.lastY = e.touches[0].clientY;
+  };
+  const onTouchEnd = () => {
+    const s = touch.current;
+    touch.current = null;
+    if (!s || !onSwipe || window.getSelection()?.toString()) return; // dragging to choose words isn't a swipe
+    const dx = s.lastX - s.x;
+    const dy = s.lastY - s.y;
+    // A deliberate swipe: long, mostly sideways and quick
+    if (Math.abs(dx) > 80 && Math.abs(dx) > 2 * Math.abs(dy) && Date.now() - s.at < 600) onSwipe(dx < 0 ? 1 : -1);
+  };
+
   return (
-    <section className={`note ${reading ? 'has-player' : ''}`}>
+    <section
+      className={`note swipe-area ${reading ? 'has-player' : ''} ${slide ?? ''}`}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
       <input className="note-title" placeholder={t('Title')} value={note.title} onChange={e => onChange({ title: e.target.value })} aria-label={t('Title')} />
       {/* The buttons, the picks bar and the find bar stay at the top together while you scroll */}
       <div className="note-head">

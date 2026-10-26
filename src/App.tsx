@@ -328,6 +328,8 @@ export default function App() {
   const readingBible = !!reader.playing?.length && reader.playing[0].book !== TEXT_BOOK;
   const keepReading = useRef(readingBible);
   keepReading.current = readingBible;
+  // How a note came in when swiped to: from the right (the next one) or the left
+  const [noteSlide, setNoteSlide] = useState<'' | 'from-right' | 'from-left'>('');
   const showNowPlaying = readingBible && view.kind !== 'chapter' && view.kind !== 'search' && view.kind !== 'list';
   const listen: Listen = (paragraphs, title, from) => {
     pauseMic();
@@ -449,6 +451,7 @@ export default function App() {
       setSelected(new Set());
       if (!keepReading.current) reader.stop();
       window.scrollTo({ top: 0 });
+      setNoteSlide('');
       setView(next);
     },
     [reader.stop],
@@ -953,6 +956,17 @@ export default function App() {
               strongsBible={strongsBible ?? null}
               onStrongs={loadStrongsBible}
               onWord={(word, code, verse, at) => setStudyWord({ word, code, verse, fromNote: note.id, at })}
+              onSwipe={by => {
+                // Through the notes in the order the Notes tab shows them, the ones under another included
+                const order = swipeOrder(shownNotes);
+                const next = order[order.indexOf(note.id) + by];
+                if (!next) return setToast(by > 0 ? t('That’s the last note') : t('That’s the first note'));
+                setNoteSlide(by > 0 ? 'from-right' : 'from-left');
+                if (!keepReading.current) reader.stop();
+                window.scrollTo({ top: 0 });
+                setView({ kind: 'note', id: next }); // takes this note's place, so Back still goes to the list
+              }}
+              slide={noteSlide}
               note={note}
               onChange={noteChanger(note.id)}
               reader={reader}
@@ -1844,6 +1858,18 @@ function sortNotes(notes: Note[], sort: NoteSort): Note[] {
     : (a, b) => noteTitle(a).localeCompare(noteTitle(b), undefined, { sensitivity: 'base', numeric: true });
   // Pinned notes stay in your own order (drag them to arrange); the rest are sorted
   return [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || (a.pinned ? 0 : by(a, b)));
+}
+
+/** Note ids in the order the Notes tab shows them, with the notes under another (folded away or not) after it. */
+function swipeOrder(notes: Note[]): string[] {
+  let sort: NoteSort = 'mine';
+  try {
+    const saved = localStorage.getItem('notesSort');
+    if (NOTE_SORTS.some(x => x.id === saved)) sort = saved as NoteSort;
+  } catch {
+    // your own order
+  }
+  return noteRows(sortNotes(notes, sort).map(n => ({ ...n, collapsed: false }))).map(r => r.note.id);
 }
 
 /** The Notes tab, with a search through every note's title and words. */

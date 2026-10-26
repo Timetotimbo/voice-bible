@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.76.0 — 2026-10-26
+- **Swipe between notes.** While reading a note, swipe left for the next note and right for the one before, in the same order as your Notes list (notes under another included). It's made for flipping through sermon notes. Swipes only count while you're reading (not typing), and they need to be quick and mostly sideways, so choosing words still works. Starting at the very edge of the screen is left to your phone's back gesture. Back still goes to your Notes list.
+
 ## v2.75.1 — 2026-10-26
 - **+ Run sheet ▶ on a verse's card presents straight away.** It adds the verses to the end of the open run sheet and goes into present mode at them. ‹ › (or swiping) carry on through the run sheet, and ☰ Slides jumps to any of it.
 
