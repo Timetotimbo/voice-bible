@@ -1788,6 +1788,27 @@ function YourMatches({ query, hits, notes, lists, chats, colorOf, hlOnly, onHlOn
   );
 }
 
+type NoteSort = 'mine' | 'edited' | 'newest' | 'oldest' | 'az';
+const NOTE_SORTS: { id: NoteSort; name: string }[] = [
+  { id: 'mine', name: 'My order' },
+  { id: 'edited', name: 'Last edited' },
+  { id: 'newest', name: 'Newest first' },
+  { id: 'oldest', name: 'Oldest first' },
+  { id: 'az', name: 'A to Z' },
+];
+/** When a note was made: its id is the time, for notes made here (others go by their last edit). */
+const madeAt = (n: Note) => (/^\d{12,}$/.test(n.id) ? Number(n.id) : n.updated);
+/** The notes in the chosen order, pinned ones still first. Notes under another keep to it (see noteRows). */
+function sortNotes(notes: Note[], sort: NoteSort): Note[] {
+  if (sort === 'mine') return notes;
+  const by: (a: Note, b: Note) => number =
+    sort === 'edited' ? (a, b) => b.updated - a.updated
+    : sort === 'newest' ? (a, b) => madeAt(b) - madeAt(a)
+    : sort === 'oldest' ? (a, b) => madeAt(a) - madeAt(b)
+    : (a, b) => noteTitle(a).localeCompare(noteTitle(b), undefined, { sensitivity: 'base', numeric: true });
+  return [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || by(a, b));
+}
+
 /** The Notes tab, with a search through every note's title and words. */
 function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder, onTags }: {
   notes: Note[];
@@ -1810,10 +1831,28 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   onTags: (id: string, tags: TagColor[]) => void;
 }) {
   const { names: tagNames } = useTagNames();
-  // Showing only the notes with this tag (null: all of them)
-  const [tagOnly, setTagOnly] = useState<TagColor | null>(null);
+  // Showing only the notes with this tag, or the pinned ones (null: all of them)
+  const [tagOnly, setTagOnly] = useState<TagColor | 'pinned' | null>(null);
   const usedTags = TAG_COLORS.filter(c => notes.some(x => x.tags?.includes(c)));
-  const onlyTag = tagOnly && usedTags.includes(tagOnly) ? tagOnly : null;
+  const onlyTag = tagOnly === 'pinned' || (tagOnly && usedTags.includes(tagOnly)) ? tagOnly : null;
+  // The order they're in: your own (drag to arrange), or sorted; remembered on this device
+  const [sort, setSortState] = useState<NoteSort>(() => {
+    try {
+      const saved = localStorage.getItem('notesSort');
+      return NOTE_SORTS.some(x => x.id === saved) ? (saved as NoteSort) : 'mine';
+    } catch {
+      return 'mine';
+    }
+  });
+  const setSort = (next: NoteSort) => {
+    setSortState(next);
+    try {
+      localStorage.setItem('notesSort', next);
+    } catch {
+      // lasts for this visit
+    }
+  };
+  const [sortOpen, setSortOpen] = useState(false);
   // The note whose tags are being chosen
   const [tagging, setTagging] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -1868,7 +1907,10 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
     onOpen(id);
   };
   // With a tag picked, its notes on their own (a note under another shows by itself when its parent isn't tagged)
-  const rows = useMemo(() => noteRows(onlyTag ? notes.filter(x => x.tags?.includes(onlyTag)) : notes), [notes, onlyTag]);
+  const rows = useMemo(() => {
+    const shown = !onlyTag ? notes : notes.filter(x => (onlyTag === 'pinned' ? x.pinned : x.tags?.includes(onlyTag)));
+    return noteRows(sortNotes(shown, sort));
+  }, [notes, onlyTag, sort]);
   const drag = useDragOrder(rows.map(r => r.note.id), (id, to) => onMove(id, dropTarget(rows, id, to)));
   const q = query.trim();
   const found = useMemo(
@@ -1934,16 +1976,27 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
         </>
       ) : (
       <>
-      <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
+      <div className="notes-toolbar">
+        <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
+        {notes.length > 1 && (
+          <button className={`sort-btn ${sort !== 'mine' || onlyTag ? 'on' : ''}`} onClick={() => setSortOpen(true)}>
+            {t('⇅ Sort & filter')}
+          </button>
+        )}
+      </div>
       {!notes.length && <p className="notice">{t('Thoughts and sermons. Tap + New, then type or dictate.')}</p>}
-      {usedTags.length > 0 && (
-        <div className="tag-filter" role="radiogroup" aria-label={t('Show notes tagged')}>
-          <button role="radio" aria-checked={!onlyTag} className={!onlyTag ? 'on' : ''} onClick={() => setTagOnly(null)}>{t('All')}</button>
-          {usedTags.map(c => (
-            <button key={c} role="radio" aria-checked={onlyTag === c} className={onlyTag === c ? 'on' : ''} onClick={() => setTagOnly(onlyTag === c ? null : c)}>
-              <i className={`tag-dot tag-${c}`} aria-hidden /> {tagLabel(c, tagNames)}
+      {(onlyTag || sort !== 'mine') && (
+        <div className="tag-filter">
+          {sort !== 'mine' && (
+            <button className="on" onClick={() => setSort('mine')} aria-label={t('Back to my order')}>
+              {t(NOTE_SORTS.find(x => x.id === sort)!.name)} ✕
             </button>
-          ))}
+          )}
+          {onlyTag && (
+            <button className="on" onClick={() => setTagOnly(null)} aria-label={t('Show all notes')}>
+              {onlyTag === 'pinned' ? t('📌 Pinned') : <><i className={`tag-dot tag-${onlyTag}`} aria-hidden /> {tagLabel(onlyTag, tagNames)}</>} ✕
+            </button>
+          )}
         </div>
       )}
       {grid ? (
@@ -1997,7 +2050,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
           </li>
         ) : (
           <li key={n.id} {...drag.rowProps(n.id, i)} className={`${drag.rowProps(n.id, i).className} ${child ? 'note-child' : ''}`}>
-            {rows.length > 1 && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+            {rows.length > 1 && sort === 'mine' && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
             {children > 0 && (
               <button
                 className="note-fold"
@@ -2054,6 +2107,38 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               )}
               <li><button className="sheet-item danger-text" onClick={() => { setDeleting(menuFor.note.id); setMenuFor(null); }}>{t('🗑 Delete')}</button></li>
             </ul>
+          </div>
+        </div>
+      )}
+      {sortOpen && (
+        <div className="sheet-backdrop" onClick={() => setSortOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Sort & filter')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Sort & filter')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setSortOpen(false)}>✕</button>
+            </div>
+            <h3 className="sheet-sub">{t('Sort by')}</h3>
+            <ul className="sheet-list" role="radiogroup" aria-label={t('Sort by')}>
+              {NOTE_SORTS.map(x => (
+                <li key={x.id} className={sort === x.id ? 'on' : ''}>
+                  <button className="sheet-item" role="radio" aria-checked={sort === x.id} onClick={() => { setSort(x.id); setSortOpen(false); }}>
+                    {sort === x.id ? '● ' : '○ '}{t(x.name)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <h3 className="sheet-sub">{t('Show')}</h3>
+            <ul className="sheet-list" role="radiogroup" aria-label={t('Show')}>
+              {([null, 'pinned', ...usedTags] as (TagColor | 'pinned' | null)[]).map(x => (
+                <li key={x ?? 'all'} className={onlyTag === x ? 'on' : ''}>
+                  <button className="sheet-item tag-pick" role="radio" aria-checked={onlyTag === x} onClick={() => { setTagOnly(x); setSortOpen(false); }}>
+                    <span aria-hidden>{onlyTag === x ? '●' : '○'}</span>
+                    {x === null ? t('All notes') : x === 'pinned' ? t('📌 Pinned') : <><i className={`tag-dot big tag-${x}`} aria-hidden /> {tagLabel(x, tagNames)}</>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {!usedTags.length && <p className="notice">{t('Tag notes (hold one → 🏷 Tags…) to show just those here.')}</p>}
           </div>
         </div>
       )}

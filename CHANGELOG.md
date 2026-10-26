@@ -2,6 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.68.0 — 2026-10-26
+- **⇅ Sort & filter for Notes**, on the right of **+ New note**.
+  - **Sort by:** My order (drag ⠿ to arrange), Last edited, Newest first, Oldest first, or A to Z. Pinned notes stay at the top, and notes under another stay with it. Your choice is remembered.
+  - **Show:** all notes, just the 📌 pinned ones, or the notes with one tag.
+  - A chip under the button shows what's on (like "Last edited ✕" or "Sermons ✕"); tap ✕ to go back. The button turns purple while a sort or filter is on.
+- The row of tag chips is now in Sort & filter instead.
+
 ## v2.67.0 — 2026-10-26
 - **🏷 Colour tags for notes, with names.** Hold a note and tap **🏷 Tags…**. Tick any of six colours (purple, blue, green, yellow, orange, red); a note can have several. Tap **✎** beside a colour to name it ("Sermons", "Prayer"); the name is used for every note with that colour.
 - Tagged notes show small coloured dots, in the list and on the grid cards.

@@ -404,6 +404,12 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sheet-x { background: none; border: 0; color: var(--muted); padding: 10px; }
 /* Drag lists into order by the handle */
 .sheet-list li.note-child { padding-left: 26px; }
+/* + New note on the left, ⇅ Sort & filter on the right */
+.notes-toolbar { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.v2 .notes-toolbar .new-row { flex: 1; width: auto; border-bottom: 0; }
+.sort-btn { flex: none; padding: 6px 12px; font-size: 0.85rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+.sort-btn.on { color: var(--purple-bright); border-color: var(--purple-bright); }
+.sheet-sub { margin: 12px 0 2px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 /* Note tags: coloured dots, the filter chips above the notes, and the Tags sheet */
 .tag-purple { --tag: #a855f7; } .tag-blue { --tag: #3b82f6; } .tag-green { --tag: #22c55e; } .tag-yellow { --tag: #eab308; } .tag-orange { --tag: #f97316; } .tag-red { --tag: #ef4444; }
 .tag-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tag); flex: none; }
