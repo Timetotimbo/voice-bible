@@ -197,6 +197,12 @@ button { cursor: pointer; }
 .search { display: flex; gap: 8px; margin-bottom: 20px; }
 .search:has(+ .search-mode) { margin-bottom: 8px; }
 .search-mode { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; }
+.your-matches { margin: 0 0 16px; padding: 10px 12px 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.your-matches h3 { margin: 0 0 2px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.your-matches .sheet-list li:last-child { border-bottom: 0; }
+.your-more { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 4px 0; }
+.your-more:empty { display: none; }
+.your-more .hl-only.on { color: var(--purple-bright); }
 .search-mode button { background: none; border: 0; border-radius: 999px; padding: 5px 12px; font-size: 0.85rem; color: var(--muted); }
 .search-mode button.on { background: var(--purple-deep); color: var(--on-accent); }
 .search input {

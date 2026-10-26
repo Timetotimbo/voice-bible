@@ -42,7 +42,7 @@ import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './Ru
 type View =
   | { kind: 'home' }
   // strongs: a Strong's number search, maybe narrowed to one book or one way the KJV translates it
-  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string }
+  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string; hlOnly?: boolean } // hlOnly: just the highlighted verses
   | { kind: 'list'; id: string }
   // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
   | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
@@ -202,6 +202,7 @@ export default function App() {
   const library = useLibrary();
   const chats = useChats();
   const notes = useNotes();
+  const highlights = useHighlights();
   const [importing, setImporting] = useState(false);
   const [sheet, setSheet] = useState<null | 'browse' | VerseRef[] | { verses: VerseRef[]; from: string }>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -362,6 +363,8 @@ export default function App() {
   };
   const studyRenderings = useCallback((code: string) => (bible ? renderingsOf(bible, code) : []), [bible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
+  // The search's verses, or just the highlighted ones when that's picked
+  const searchHits = view.kind !== 'search' ? [] : view.hlOnly ? view.hits.filter(h => highlights.colorOf(h)) : view.hits;
   /** Sends the app's link to someone (the phone's share menu), or copies it where there's no share menu. */
   const shareApp = () => {
     const text = t('Voice Bible: speak a word, phrase or verse and find it in the Bible, and listen to it read aloud.');
@@ -805,6 +808,29 @@ export default function App() {
         )}
 
         {view.kind === 'search' && !view.strongs && !classic && <SearchModeSwitch mode={searchMode} onChange={setSearchMode} />}
+        {view.kind === 'search' && !view.strongs && (
+          <YourMatches
+            key={view.query}
+            query={view.query}
+            hits={view.hits}
+            notes={shownNotes} // Live mode: only the notes being shown
+            lists={library.lists}
+            chats={chats.chats}
+            colorOf={highlights.colorOf}
+            hlOnly={!!view.hlOnly}
+            onHlOnly={on => {
+              setSelected(new Set());
+              setView({ ...view, hlOnly: on });
+            }}
+            onOpenNote={id => openView({ kind: 'note', id, find: view.query })}
+            onAllNotes={() => {
+              setNotesQuery(view.query);
+              openView({ kind: 'notes' });
+            }}
+            onOpenList={id => openView({ kind: 'list', id })}
+            onOpenChat={id => openView({ kind: 'chat', id })}
+          />
+        )}
         {view.kind === 'search' && (
           <SearchResults
             onShare={shareSelected}
@@ -813,22 +839,23 @@ export default function App() {
             tagsFor={hit => tagsOf(bible)?.[hit.book]?.[hit.chapter - 1]?.[hit.verse - 1]}
             title={
               <>
-                {view.hits.length ? n('{n} verse with “{q}”', '{n} verses with “{q}”', view.hits.length, { q: view.query }) : t('No verses with “{q}”', { q: view.query })}
+                {searchHits.length ? n('{n} verse with “{q}”', '{n} verses with “{q}”', searchHits.length, { q: view.query }) : t('No verses with “{q}”', { q: view.query })}
+                {view.hlOnly && t(', highlighted')}
                 {view.inBook !== undefined && t(' in {book}', { book: bookName(view.inBook) })}
                 {view.asWord && t(' as “{word}”', { word: view.asWord })}
               </>
             }
-            hits={view.hits}
+            hits={searchHits}
             query={view.query}
             shown={shown}
             abbrev={abbrev}
-            onMore={all => setShown(s => (all ? view.hits.length : s + PAGE))}
+            onMore={all => setShown(s => (all ? searchHits.length : s + PAGE))}
             onOpen={hit => openView({ kind: 'chapter', ref: { book: hit.book, chapter: hit.chapter, verseStart: hit.verse } })}
             reader={reader}
             readAloud={readAloud}
             selected={selected}
             onToggle={toggle}
-            onSelectAll={() => setSelected(new Set(view.hits.map(hitKey)))}
+            onSelectAll={() => setSelected(new Set(searchHits.map(hitKey)))}
             selectionActions={picked => (
               <>
                 <button
@@ -1675,6 +1702,87 @@ function matchSnippet(text: string, query: string) {
     <>
       {from > 0 && '…'}{flat.slice(from, hit.start)}<mark className="find-hit">{flat.slice(hit.start, hit.end)}</mark>{flat.slice(hit.end, to)}{to < flat.length && '…'}
     </>
+  );
+}
+
+/**
+ * Above a search's verses: what else of yours has the words. Notes and chats that mention them, verse lists named
+ * like them or holding verses found, and a switch to show only the found verses you've highlighted.
+ */
+function YourMatches({ query, hits, notes, lists, chats, colorOf, hlOnly, onHlOnly, onOpenNote, onAllNotes, onOpenList, onOpenChat }: {
+  query: string;
+  hits: VerseHit[];
+  notes: Note[];
+  lists: VerseList[];
+  chats: Chat[];
+  colorOf: (v: VerseHit) => string | undefined;
+  hlOnly: boolean;
+  onHlOnly: (on: boolean) => void;
+  onOpenNote: (id: string) => void;
+  onAllNotes: () => void; // the Notes tab, searching for the same words
+  onOpenList: (id: string) => void;
+  onOpenChat: (id: string) => void;
+}) {
+  const SHOW = 3;
+  const found = useMemo(() => {
+    const q = query.trim();
+    const noteHits = notes.filter(x => findAll(noteTitle(x), q).length || findAll(x.text, q).length);
+    const keys = new Set(hits.map(h => `${h.book}.${h.chapter}.${h.verse}`));
+    const listHits = lists
+      .map(l => ({ list: l, named: findAll(l.name, q).length > 0, count: l.verses.filter(v => keys.has(v.join('.'))).length }))
+      .filter(x => x.named || x.count)
+      .sort((a, b) => Number(b.named) - Number(a.named) || b.count - a.count);
+    const chatHits = chats.filter(c => findAll(c.title, q).length || c.messages.some(m => findAll(m.content, q).length));
+    return { noteHits, listHits, chatHits };
+  }, [query, hits, notes, lists, chats]);
+  const [more, setMore] = useState(false);
+  const { noteHits, listHits, chatHits } = found;
+  const colored = hits.filter(h => colorOf(h));
+  if (!noteHits.length && !listHits.length && !chatHits.length && !colored.length) return null;
+  const cut = <T,>(xs: T[]) => (more ? xs : xs.slice(0, SHOW));
+  const hidden = Math.max(0, noteHits.length - SHOW) + Math.max(0, listHits.length - SHOW) + Math.max(0, chatHits.length - SHOW);
+  return (
+    <section className="your-matches" aria-label={t('Yours')}>
+      <h3>{t('In your notes and lists')}</h3>
+      <ul className="sheet-list">
+        {cut(noteHits).map(x => (
+          <li key={`n${x.id}`}>
+            <button className="sheet-item note-row note-hit" onClick={() => onOpenNote(x.id)}>
+              <span>📝 {noteTitle(x)}</span>
+              <small>{matchSnippet(x.text, query) ?? x.text.trim().replace(/\s+/g, ' ').slice(0, 90)}</small>
+            </button>
+          </li>
+        ))}
+        {cut(listHits).map(({ list, count }) => (
+          <li key={`l${list.id}`}>
+            <button className="sheet-item note-row" onClick={() => onOpenList(list.id)}>
+              <span>📖 {list.name}</span>
+              <small>{count ? n('{n} of these verses is in it', '{n} of these verses are in it', count) : n('{n} verse', '{n} verses', list.verses.length)}</small>
+            </button>
+          </li>
+        ))}
+        {cut(chatHits).map(c => {
+          const msg = c.messages.find(m => findAll(m.content, query).length);
+          return (
+            <li key={`c${c.id}`}>
+              <button className="sheet-item note-row note-hit" onClick={() => onOpenChat(c.id)}>
+                <span>💬 {c.title || t('Chat')}</span>
+                {msg && <small>{matchSnippet(msg.content, query)}</small>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="your-more">
+        {hidden > 0 && !more && <button className="text-btn" onClick={() => setMore(true)}>{n('{n} more', '{n} more', hidden)}</button>}
+        {noteHits.length > 1 && <button className="text-btn" onClick={onAllNotes}>{t('Search in Notes')}</button>}
+        {colored.length > 0 && (
+          <button className={`text-btn hl-only ${hlOnly ? 'on' : ''}`} aria-pressed={hlOnly} onClick={() => onHlOnly(!hlOnly)}>
+            {hlOnly ? t('Show all verses') : n('🖍 Only the {n} highlighted', '🖍 Only the {n} highlighted', colored.length)}
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
