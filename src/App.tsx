@@ -183,7 +183,8 @@ export default function App() {
   // Word study: the tapped word and its Strong's number
   // The teleprompter sits over the whole app (not inside the note), so a recording carries on while you browse
   const [prompter, setPrompter] = useState<{ title: string; text: string; at: number } | null>(null);
-  const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit } | null>(null);
+  // fromNote / at: tapped in a note, where the word is in it (its study goes in after that paragraph)
+  const [studyWord, setStudyWord] = useState<{ word: string; code: string; verse?: VerseHit; fromNote?: string; at?: number } | null>(null);
   const [bible, setBible] = useState<BibleText | null>(null);
   const [loadError, setLoadError] = useState('');
   // The app opens on the chapter last read, like an open book
@@ -951,7 +952,7 @@ export default function App() {
               onToNote={text => setNoteToNote({ text, from: note.id, title: noteTitle(note) })}
               strongsBible={strongsBible ?? null}
               onStrongs={loadStrongsBible}
-              onWord={(word, code, verse) => setStudyWord({ word, code, verse })}
+              onWord={(word, code, verse, at) => setStudyWord({ word, code, verse, fromNote: note.id, at })}
               note={note}
               onChange={noteChanger(note.id)}
               reader={reader}
@@ -1432,15 +1433,26 @@ export default function App() {
           code={studyWord.code}
           where={studyWord.verse && `${bookName(studyWord.verse.book)} ${studyWord.verse.chapter}:${studyWord.verse.verse}`}
           notes={shownNotes.map(n => ({ id: n.id, title: noteTitle(n) }))}
+          here={(() => {
+            const from = studyWord.fromNote && notes.notes.find(x => x.id === studyWord.fromNote);
+            return from ? { id: from.id, title: noteTitle(from) } : undefined;
+          })()}
           onAddToNote={(noteId, text, word) => {
             const id = noteId ?? newShownNote();
             const current = notes.notes.find(n => n.id === id);
+            const old = current?.text ?? '';
+            // Into the note it was tapped in: right after the paragraph with the word; anywhere else: at the end
+            const after = id === studyWord.fromNote && studyWord.at !== undefined ? old.indexOf('\n\n', studyWord.at) : -1;
             notes.updateNote(id, {
               ...(noteId ? {} : { title: t('Word study: {word}', { word }) }),
-              text: [current?.text.trimEnd(), text].filter(Boolean).join('\n\n'),
+              text: after >= 0
+                ? `${old.slice(0, after)}\n\n${text}${old.slice(after)}`
+                : [old.trimEnd(), text].filter(Boolean).join('\n\n'),
             });
             setStudyWord(null);
-            setToast(t('Added to “{list}”', { list: current ? noteTitle(current) : t('Word study: {word}', { word }) }), undefined, id);
+            const name = current ? noteTitle(current) : t('Word study: {word}', { word });
+            if (id === studyWord.fromNote) setToast(t('Added to “{list}”', { list: name }));
+            else setToast(t('Added to “{list}”', { list: name }), undefined, id);
           }}
           versesWith={studyVerses}
           renderingsOf={studyRenderings}

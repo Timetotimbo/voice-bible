@@ -19,12 +19,13 @@ function Codes({ text, known, onCode }: { text: string; known: (code: string) =>
 }
 
 /** Word study: the Hebrew or Greek word behind an English word, from Strong's dictionary. */
-export function WordSheet({ word, code: first, where, versesWith, renderingsOf, onClose, onSearch, onRendering, notes, onAddToNote }: {
+export function WordSheet({ word, code: first, where, versesWith, renderingsOf, onClose, onSearch, onRendering, notes, onAddToNote, here }: {
   word: string;
   code: string;
   where?: string; // the verse the word was tapped in, e.g. "John 3:16"
   notes: { id: string; title: string }[];
   onAddToNote: (noteId: string | null, text: string, word: string) => void; // null = a new note
+  here?: { id: string; title: string }; // opened from inside this note: Add to note goes straight into it
   versesWith: (code: string) => VerseHit[]; // every verse using a word
   renderingsOf: (code: string) => Rendering[]; // the English words it's translated as
   onClose: () => void;
@@ -112,9 +113,14 @@ export function WordSheet({ word, code: first, where, versesWith, renderingsOf, 
           </>
         )}
         {code !== first && <button className="sheet-link" onClick={() => setCode(first)}>{t('← Back to {code}', { code: first })}</button>}
-        {entry && !choosingNote && (
+        {entry && !choosingNote && (here ? (
+          <>
+            <button className="goto-open add-note" onClick={() => onAddToNote(here.id, asText(), word)}>{t('Add to this note')}</button>
+            <button className="sheet-link" onClick={() => setChoosingNote(true)}>{t('Another note…')}</button>
+          </>
+        ) : (
           <button className="goto-open add-note" onClick={() => setChoosingNote(true)}>{t('Add to note')}</button>
-        )}
+        ))}
         {entry && choosingNote && (
           <div className="choose-note">
             <h3 className="sheet-sub">{t('Add to which note?')}</h3>

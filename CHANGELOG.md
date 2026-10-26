@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.74.0 — 2026-10-26
+- **Word study from a note goes back into that note.** Tap a word with Strong's lines in a note (**H/G**), and the word card's button is now **Add to this note**: the word's meaning goes straight into the note you're in, right after the paragraph with that word. **Another note…** under it still lets you pick a different note or a new one.
+
 ## v2.73.1 — 2026-10-26
 - **Fixed:** while a note was read aloud, its bottom bar of buttons overlapped the reading player. The bar now steps aside while the note is read (the player has its own Stop), and sits above the Now playing bar while a chapter plays in the background.
 

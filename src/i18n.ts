@@ -508,6 +508,8 @@ const ES: Record<string, string> = {
   'Strong’s: tap a verse’s words for the Hebrew or Greek': 'Strong: toca las palabras de un versículo para ver el hebreo o el griego',
   'H/G': 'H/G',
   'Refs': 'Citas',
+  'Add to this note': 'Añadir a esta nota',
+  'Another note…': 'Otra nota…',
   'Show verses as just their references': 'Mostrar los versículos solo con su cita',
   'Show verses as just their references (tap one to see it). The note itself isn’t changed.': 'Mostrar los versículos solo con su cita (tócala para verlo). La nota no cambia.',
   'Couldn’t load the Strong’s numbers. Check the connection.': 'No se pudieron cargar los números de Strong. Revisa la conexión.',

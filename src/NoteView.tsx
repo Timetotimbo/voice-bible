@@ -51,7 +51,7 @@ export function NoteView({
   initialFind?: string; // opened from a search of all notes: those words are found in it straight away
   strongsBible: BibleText | null; // KJV + Strong's (or the tagged Reina-Valera), once it's loaded
   onStrongs: () => void; // loads it
-  onWord: (word: string, code: string, verse: VerseHit) => void; // opens the word study
+  onWord: (word: string, code: string, verse: VerseHit, at: number) => void; // opens the word study; at: where the word ends in the note
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   // References in the note are links while you're reading it; tap anywhere else in the text to edit right there
@@ -539,7 +539,7 @@ export function NoteView({
               const w = sw ? studyWords[Number(sw.dataset.hit)] : undefined;
               if (w) {
                 const text = strongsBible?.[w.verse.book]?.[w.verse.chapter - 1]?.[w.verse.verse - 1] ?? '';
-                return onWord(w.word, w.code, { ...w.verse, text });
+                return onWord(w.word, w.code, { ...w.verse, text }, w.end);
               }
               const at = textOffsetAt(viewEl.current, e.clientX, e.clientY);
               // A tap on a checkbox ticks it (or unticks it) without opening the keyboard
