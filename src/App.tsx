@@ -22,6 +22,8 @@ import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
 import { dropTarget, noteRows, noteTitle, useNotes, type Note } from './useNotes';
+import { addMyTemplate, builtInTemplates, fillTemplate, loadMyTemplates, removeMyTemplate } from './noteTemplates';
+import { TRASH_DAYS, type Trashed } from './useNotes';
 import { TAG_COLORS, TagDots, TagSheet, tagLabel, useTagNames, type TagColor } from './noteTags';
 import { useDragOrder } from './useDragOrder';
 import { THEMES, savedTheme, setTheme, type ThemeId } from './theme';
@@ -269,8 +271,8 @@ export default function App() {
   const preview = liveSheet ? faceDraft : null;
   const shownNotes = useMemo(() => (live.on ? notes.notes.filter(x => live.shown.includes(x.id)) : notes.notes), [live.on, live.shown, notes.notes]);
   // A note made during Live mode is one you're showing
-  const newShownNote = () => {
-    const id = notes.newNote();
+  const newShownNote = (start?: { title: string; text: string }) => {
+    const id = notes.newNote(start);
     if (live.on) live.update({ shown: [...live.shown, id] });
     return id;
   };
@@ -1041,7 +1043,10 @@ export default function App() {
             query={notesQuery}
             onQuery={setNotesQuery}
             onOpen={(id, find) => openView({ kind: 'note', id, find })}
-            onNew={() => openView({ kind: 'note', id: newShownNote() })}
+            onNew={start => openView({ kind: 'note', id: newShownNote(start) })}
+            trash={notes.trash}
+            onRestore={notes.restoreNote}
+            onDeleteForever={notes.deleteForever}
             onDelete={notes.deleteNote}
             onMove={moveShownNote}
             onPin={notes.togglePin}
@@ -1810,7 +1815,7 @@ function sortNotes(notes: Note[], sort: NoteSort): Note[] {
 }
 
 /** The Notes tab, with a search through every note's title and words. */
-function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder, onTags }: {
+function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onRunSheet, query, onQuery, onOpen, onNew, onDelete, onMove, onPin, onFold, onPutUnder, onTags, trash, onRestore, onDeleteForever }: {
   notes: Note[];
   live: number | null; // Live mode: how many notes are shown; null when it's off
   onLive: () => void;
@@ -1822,7 +1827,10 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   query: string;
   onQuery: (q: string) => void;
   onOpen: (id: string, find?: string) => void; // find: the searched words, found again inside the note
-  onNew: () => void;
+  onNew: (start?: { title: string; text: string }) => void; // start: from a template
+  trash: Trashed[]; // Recently deleted
+  onRestore: (id: string) => void;
+  onDeleteForever: (id: string | 'all') => void;
   onDelete: (id: string) => void;
   onMove: (id: string, onto: string) => void; // takes the place of the note `onto`
   onPin: (id: string) => void;
@@ -1855,6 +1863,9 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
   const [sortOpen, setSortOpen] = useState(false);
   // The note whose tags are being chosen
   const [tagging, setTagging] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [myTemplates, setMyTemplates] = useState(loadMyTemplates);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   // The note being tucked under another, while the Put under sheet is open
@@ -1977,7 +1988,8 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       ) : (
       <>
       <div className="notes-toolbar">
-        <button className="new-row" onClick={onNew}>{t('+ New note')}</button>
+        <button className="new-row" onClick={() => onNew()}>{t('+ New note')}</button>
+        <button className="sort-btn" onClick={() => setTemplatesOpen(true)} title={t('Start a note from a template')}>{t('📋 Template')}</button>
         {notes.length > 1 && (
           <button className={`sort-btn ${sort !== 'mine' || onlyTag ? 'on' : ''}`} onClick={() => setSortOpen(true)}>
             {t('⇅ Sort & filter')}
@@ -2083,6 +2095,9 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
         ))}
       </ul>
       )}
+      {trash.length > 0 && (
+        <button className="sheet-link trash-link" onClick={() => setTrashOpen(true)}>{t('🗑 Recently deleted ({n})', { n: trash.length })}</button>
+      )}
       </>
       )}
       {menuFor && (
@@ -2098,6 +2113,15 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
                 <li><button className="sheet-item" onClick={() => { onPin(menuFor.note.id); setMenuFor(null); }}>{t(menuFor.note.pinned ? '📌 Unpin' : '📌 Pin to the top')}</button></li>
               )}
               <li><button className="sheet-item" onClick={() => { setTagging(menuFor.note.id); setMenuFor(null); }}>{t('🏷 Tags…')}</button></li>
+              <li>
+                <button className="sheet-item" onClick={() => {
+                  const nt = menuFor.note;
+                  addMyTemplate(noteTitle(nt), nt.title, nt.text);
+                  setMyTemplates(loadMyTemplates());
+                  setMenuFor(null);
+                  alert(t('Saved “{name}” as a template. Tap 📋 Template to start a note from it.', { name: noteTitle(nt) }));
+                }}>{t('📋 Save as a template')}</button>
+              </li>
               {menuFor.child && (
                 <li><button className="sheet-item" onClick={() => { onPutUnder(menuFor.note.id, null); setMenuFor(null); }}>{t('⤴ Take out (make it a normal note)')}</button></li>
               )}
@@ -2106,6 +2130,64 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
               )}
               <li><button className="sheet-item danger-text" onClick={() => { setDeleting(menuFor.note.id); setMenuFor(null); }}>{t('🗑 Delete')}</button></li>
             </ul>
+          </div>
+        </div>
+      )}
+      {templatesOpen && (
+        <div className="sheet-backdrop" onClick={() => setTemplatesOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Start from a template')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Start from a template')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setTemplatesOpen(false)}>✕</button>
+            </div>
+            <ul className="sheet-list">
+              {[...myTemplates, ...builtInTemplates()].map(tp => (
+                <li key={tp.id}>
+                  <button className="sheet-item note-row" onClick={() => { setTemplatesOpen(false); onNew(fillTemplate(tp)); }}>
+                    <span>{tp.mine ? `⭐ ${tp.name}` : tp.name}</span>
+                    <small>{tp.text.trim().replace(/\s+/g, ' ').slice(0, 80)}</small>
+                  </button>
+                  {tp.mine && (
+                    <button className="sheet-x" aria-label={t('Remove template {name}', { name: tp.name })} onClick={() => {
+                      if (!confirm(t('Remove the template “{name}”? Notes made from it stay.', { name: tp.name }))) return;
+                      removeMyTemplate(tp.id);
+                      setMyTemplates(loadMyTemplates());
+                    }}>✕</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="notice">{t('To make your own, hold a note and tap 📋 Save as a template.')}</p>
+          </div>
+        </div>
+      )}
+      {trashOpen && (
+        <div className="sheet-backdrop" onClick={() => setTrashOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Recently deleted')} onClick={e => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>{t('Recently deleted')}</h2>
+              <button className="sheet-close" aria-label={t('Close')} onClick={() => setTrashOpen(false)}>✕</button>
+            </div>
+            <p className="notice">{t('Deleted notes are kept for {n} days, then removed for good.', { n: TRASH_DAYS })}</p>
+            {!trash.length && <p className="notice">{t('Nothing here.')}</p>}
+            <ul className="sheet-list">
+              {trash.map(({ note: nt, deleted }) => {
+                const left = Math.max(1, TRASH_DAYS - Math.floor((Date.now() - deleted) / 864e5));
+                return (
+                  <li key={nt.id}>
+                    <span className="sheet-item note-row">
+                      <span>{noteTitle(nt)}</span>
+                      <small>{n('{n} day left', '{n} days left', left)}</small>
+                    </span>
+                    <button className="sort-btn" onClick={() => onRestore(nt.id)}>{t('↩ Restore')}</button>
+                    <button className="sheet-x" aria-label={t('Delete {name} for good', { name: noteTitle(nt) })} onClick={() => confirm(t('Delete “{name}” for good? This can’t be undone.', { name: noteTitle(nt) })) && onDeleteForever(nt.id)}>✕</button>
+                  </li>
+                );
+              })}
+            </ul>
+            {trash.length > 1 && (
+              <button className="sheet-link danger-text" onClick={() => confirm(t('Delete all {n} for good? This can’t be undone.', { n: trash.length })) && onDeleteForever('all')}>{t('Empty Recently deleted')}</button>
+            )}
           </div>
         </div>
       )}

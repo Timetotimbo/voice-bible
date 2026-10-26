@@ -21,6 +21,22 @@ function load(): Note[] {
   }
 }
 
+/** A deleted note, kept in Recently deleted for TRASH_DAYS so it can be brought back. */
+export interface Trashed {
+  note: Note;
+  deleted: number;
+}
+export const TRASH_DAYS = 30;
+
+function loadTrash(): Trashed[] {
+  try {
+    const all: Trashed[] = JSON.parse(localStorage.getItem('vb_notes_trash') ?? '[]');
+    return all.filter(x => Date.now() - x.deleted < TRASH_DAYS * 864e5);
+  } catch {
+    return [];
+  }
+}
+
 /** Notes (thoughts, sermons), kept on this device in the order they're arranged, pinned ones first. */
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>(load);
@@ -31,13 +47,21 @@ export function useNotes() {
       // storage full or unavailable; keeps for this visit
     }
   }, [notes]);
+  const [trash, setTrash] = useState<Trashed[]>(loadTrash);
+  useEffect(() => {
+    try {
+      localStorage.setItem('vb_notes_trash', JSON.stringify(trash));
+    } catch {
+      // storage full or unavailable; keeps for this visit
+    }
+  }, [trash]);
 
-  const newNote = useCallback(() => {
+  /** A new note at the top (below any pinned ones), empty or started from a template. */
+  const newNote = useCallback((start?: { title: string; text: string }) => {
     const id = `${Date.now()}`;
-    // At the top, below any pinned notes
     setNotes(ns => {
       const at = ns.filter(n => n.pinned).length;
-      return [...ns.slice(0, at), { id, title: '', text: '', updated: Date.now() }, ...ns.slice(at)];
+      return [...ns.slice(0, at), { id, title: start?.title ?? '', text: start?.text ?? '', updated: Date.now() }, ...ns.slice(at)];
     });
     return id;
   }, []);
@@ -46,11 +70,31 @@ export function useNotes() {
       setNotes(ns => ns.map(n => (n.id === id ? { ...n, ...change, updated: Date.now() } : n))),
     [],
   );
-  // Notes tucked under a deleted note come back out to the top level
+  // A deleted note goes to Recently deleted (an empty one just goes); notes tucked under it come back out to the top level
   const deleteNote = useCallback(
-    (id: string) => setNotes(ns => ns.filter(n => n.id !== id).map(n => (n.parent === id ? { ...n, parent: undefined } : n))),
+    (id: string) =>
+      setNotes(ns => {
+        const gone = ns.find(n => n.id === id);
+        if (gone && (gone.title.trim() || gone.text.trim())) {
+          const kept = { note: gone, deleted: Date.now() };
+          setTrash(tr => [kept, ...tr.filter(x => x.note.id !== id)]);
+        }
+        return ns.filter(n => n.id !== id).map(n => (n.parent === id ? { ...n, parent: undefined } : n));
+      }),
     [],
   );
+  /** Brings a deleted note back, at the top below the pinned ones (on its own if the note it was under is gone). */
+  const restoreNote = useCallback((id: string) => {
+    const back = trash.find(x => x.note.id === id);
+    if (!back) return;
+    setTrash(tr => tr.filter(x => x.note.id !== id));
+    setNotes(ns => {
+      const note = { ...back.note, parent: ns.some(n => n.id === back.note.parent && !n.parent) ? back.note.parent : undefined };
+      const at = note.pinned ? 0 : ns.filter(n => n.pinned).length;
+      return [...ns.filter(n => n.id !== id).slice(0, at), note, ...ns.filter(n => n.id !== id).slice(at)];
+    });
+  }, [trash]);
+  const deleteForever = useCallback((id: string | 'all') => setTrash(tr => (id === 'all' ? [] : tr.filter(x => x.note.id !== id))), []);
   const moveNote = useCallback(
     (id: string, to: number) =>
       setNotes(ns => {
@@ -110,7 +154,7 @@ export function useNotes() {
     [],
   );
 
-  return { notes, newNote, updateNote, deleteNote, moveNote, togglePin, toggleCollapsed, setParent, setTags };
+  return { notes, newNote, updateNote, deleteNote, moveNote, togglePin, toggleCollapsed, setParent, setTags, trash, restoreNote, deleteForever };
 }
 
 /** A note's name in lists: its title, or its first line. */

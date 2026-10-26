@@ -2,6 +2,14 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.69.0 — 2026-10-26
+**Recently deleted**
+- A deleted note is no longer gone for good: it's kept for 30 days. **🗑 Recently deleted (N)** at the bottom of the Notes tab lists them with the days left. **↩ Restore** puts one back at the top (under the note it was in, if that's still there); **✕** deletes one for good, and **Empty Recently deleted** clears them all. Empty notes aren't kept.
+
+**Templates**
+- **📋 Template**, beside + New note, starts a note from an outline: **🎤 Sermon outline** (text, big idea, introduction, three points, illustration, application, close), **📖 Bible study (SOAP)** (Scripture, Observation, Application, Prayer), **📝 Notes on a sermon I heard** (speaker, date, key points, verses, takeaway) and **🙏 Prayer list** (with checkboxes).
+- **Make your own.** Hold any note and tap **📋 Save as a template**; it's listed first with a ⭐, and **✕** removes it. Today's date fills in wherever a template has {date}.
+
 ## v2.68.1 — 2026-10-26
 - **Smaller note cards in the grid**: half the height, still two across, so about twice as many fit on the screen. Each shows its title on one line (tag dots in front) and two lines of the note.
 
