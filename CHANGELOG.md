@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.71.1 — 2026-10-26
+- **Arrange your pinned notes.** Pinned notes now always stay in your own order, whatever the sort (Shortest first, A to Z…); only the other notes are sorted. Drag a pinned note by its **⠿** to move it, in the list or the grid.
+- **Drag in the grid.** Cards have a **⠿** grip on their left edge: hold it and drag the card onto another card's place. In **My order** every card has one; in other sorts, just the pinned ones.
+
 ## v2.71.0 — 2026-10-26
 - **Strong's in notes.** Tap **H/G** in a note's toolbar. The words of any verse written in the note (after its reference, like "Hebrews 4:14 Seeing then…") get the same dotted lines as in a chapter with KJV + Strong's. Tap a word to see its Hebrew or Greek meaning, without going back to the chapter. Works while reading any translation: KJV + Strong's downloads in the background the first time (about 7 MB). Words you've changed in the verse are skipped. Tap **H/G** again to hide the lines; it's remembered.
 - Word study from anywhere now uses KJV + Strong's for its list of verses, even while you're reading plain KJV.

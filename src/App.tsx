@@ -1820,7 +1820,7 @@ const plural = n;
 const wordCount = (n: Note) => (n.text.match(/\S+/g) ?? []).length;
 /** When a note was made: its id is the time, for notes made here (others go by their last edit). */
 const madeAt = (n: Note) => (/^\d{12,}$/.test(n.id) ? Number(n.id) : n.updated);
-/** The notes in the chosen order, pinned ones still first. Notes under another keep to it (see noteRows). */
+/** The notes in the chosen order, pinned ones first and in your own order. Notes under another keep to it (see noteRows). */
 function sortNotes(notes: Note[], sort: NoteSort): Note[] {
   if (sort === 'mine') return notes;
   const by: (a: Note, b: Note) => number =
@@ -1830,7 +1830,8 @@ function sortNotes(notes: Note[], sort: NoteSort): Note[] {
     : sort === 'longest' ? (a, b) => wordCount(b) - wordCount(a)
     : sort === 'shortest' ? (a, b) => wordCount(a) - wordCount(b)
     : (a, b) => noteTitle(a).localeCompare(noteTitle(b), undefined, { sensitivity: 'base', numeric: true });
-  return [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || by(a, b));
+  // Pinned notes stay in your own order (drag them to arrange); the rest are sorted
+  return [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || (a.pinned ? 0 : by(a, b)));
 }
 
 /** The Notes tab, with a search through every note's title and words. */
@@ -1932,6 +1933,34 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       // lasts for this visit
     }
   };
+  // Dragging a card in the grid by its ⠿ grip: it follows the finger, and lands in the place of the card it's over
+  const [cardDrag, setCardDrag] = useState<{ id: string; x: number; y: number; dx: number; dy: number; over: string | null } | null>(null);
+  const gripProps = (id: string, title: string) => ({
+    className: 'card-grip',
+    'aria-label': t('Move {name}', { name: title }),
+    onPointerDown: (e: ReactPointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      setCardDrag({ id, x: e.clientX, y: e.clientY, dx: 0, dy: 0, over: null });
+    },
+    onPointerMove: (e: ReactPointerEvent) => {
+      if (!cardDrag) return;
+      const under = document.elementsFromPoint(e.clientX, e.clientY)
+        .map(el => el.closest<HTMLElement>('li[data-note]'))
+        .find(li => li && li.dataset.note !== cardDrag.id);
+      setCardDrag({ ...cardDrag, dx: e.clientX - cardDrag.x, dy: e.clientY - cardDrag.y, over: under?.dataset.note ?? null });
+    },
+    onPointerUp: () => {
+      if (cardDrag?.over) {
+        const to = rows.findIndex(r => r.note.id === cardDrag.over);
+        if (to >= 0) onMove(cardDrag.id, dropTarget(rows, cardDrag.id, to));
+      }
+      setCardDrag(null);
+    },
+    onPointerCancel: () => setCardDrag(null),
+    onClick: (e: ReactMouseEvent) => e.stopPropagation(),
+  });
   const openUnlessHeld = (id: string) => {
     if (hold.current?.fired) { hold.current = null; return; }
     onOpen(id);
@@ -2032,7 +2061,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
       )}
       {grid ? (
         <>
-        <p className="grid-hint">{t('Hold a note to pin, move or delete it.')}</p>
+        <p className="grid-hint">{t('Hold a note to pin, move or delete it. Drag ⠿ to arrange.')}</p>
         <ul className="note-grid">
           {rows.map(row => {
             const { note: n, child, children } = row;
@@ -2046,7 +2075,13 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
                 <button onClick={() => setDeleting(null)} autoFocus>{t('Cancel')}</button>
               </li>
             ) : (
-              <li key={n.id} className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''}`}>
+              <li
+                key={n.id}
+                data-note={n.id}
+                className={`note-card ${child ? 'child' : ''} ${n.pinned ? 'pinned' : ''} ${cardDrag?.id === n.id ? 'dragging' : ''} ${cardDrag?.over === n.id ? 'drop-here' : ''} ${(sort === 'mine' || n.pinned) && rows.length > 1 ? 'has-grip' : ''}`}
+                style={cardDrag?.id === n.id ? { transform: `translate(${cardDrag.dx}px, ${cardDrag.dy}px)` } : undefined}
+              >
+                {(sort === 'mine' || n.pinned) && rows.length > 1 && <button {...gripProps(n.id, title)}>⠿</button>}
                 <button className="note-card-open" {...holdProps(row)} onClick={() => openUnlessHeld(n.id)}>
                   <b>{child && <span aria-hidden>⤷ </span>}<TagDots tags={n.tags} names={tagNames} /> {title}</b>
                   {sort === 'longest' || sort === 'shortest'
@@ -2082,7 +2117,7 @@ function NotesPage({ notes, live, onLive, face, onFace, onEndLive, runCount, onR
           </li>
         ) : (
           <li key={n.id} {...drag.rowProps(n.id, i)} className={`${drag.rowProps(n.id, i).className} ${child ? 'note-child' : ''}`}>
-            {rows.length > 1 && sort === 'mine' && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
+            {rows.length > 1 && (sort === 'mine' || n.pinned) && <button {...drag.handleProps(n.id, i, noteTitle(n))}>⠿</button>}
             {children > 0 && (
               <button
                 className="note-fold"
