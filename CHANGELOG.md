@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.72.0 — 2026-10-26
+- **Tidier note buttons.** The row at the top of a note now has just what you use while writing: 🎤 Dictate, **Insert**, ↶ Undo, ↷ Redo and 🔍 Find. The rest are in a bar along the bottom of the screen, just above the tabs: 🔊 Read aloud, **H/G** (Strong's), 🎨 colours, ▶ Present, 📹 Teleprompter and Share.
+- Strong's words in a note no longer have extra space around them.
+
 ## v2.71.1 — 2026-10-26
 - **Arrange your pinned notes.** Pinned notes now always stay in your own order, whatever the sort (Shortest first, A to Z…); only the other notes are sorted. Drag a pinned note by its **⠿** to move it, in the list or the grid.
 - **Drag in the grid.** Cards have a **⠿** grip on their left edge: hold it and drag the card onto another card's place. In **My order** every card has one; in other sorts, just the pinned ones.

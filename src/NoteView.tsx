@@ -420,70 +420,9 @@ export function NoteView({
           </svg>
           <span>{t(listening ? 'Listening' : 'Dictate')}</span>
         </button>
-        <button
-          className={`undo listen ${reading ? 'on' : ''}`}
-          aria-label={t(reading ? 'Stop reading aloud' : 'Read aloud')}
-          title={t(reading ? 'Stop reading aloud' : 'Read aloud')}
-          // From the paragraph the cursor is in; from the top if it's at the end or hasn't been placed
-          onClick={() => {
-            if (reading) return reader.stop();
-            const at = caret.current;
-            readFrom(at === null || at >= note.text.trimEnd().length ? 0 : paragraphAt(note.text, at));
-          }}
-          disabled={!reader.canReadText || (!reading && !paragraphs.length)}
-        >
-          <SpeakerIcon />
-        </button>
         <button onClick={openInsert} disabled={reading}>{t('Insert')}</button>
-        <button
-          className="undo"
-          aria-label={t('Teleprompter')}
-          title={t('Teleprompter: read this note to the camera and record a video')}
-          disabled={!note.text.trim() || !navigator.mediaDevices?.getUserMedia}
-          onClick={() => {
-            if (reading) reader.stop();
-            if (listening) onDictate(false); // the camera needs the microphone
-            onTeleprompter(note.title || noteTitle(note), note.text);
-          }}
-        >
-          <svg className="cam-icon" viewBox="0 0 24 24" aria-hidden>
-            <rect x="2.5" y="6.5" width="13" height="11" rx="2.5" />
-            <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
-          </svg>
-        </button>
-        <button
-          className="undo present-btn"
-          aria-label={t('Present')}
-          title={t('Present this note full screen, or add it to the run sheet')}
-          disabled={!note.text.trim()}
-          onClick={() => setPresentMenu(true)}
-        >
-          ▶
-        </button>
-        <button
-          className={`undo strongs-btn ${strongsOn ? 'on' : ''}`}
-          aria-label={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
-          title={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
-          aria-pressed={strongsOn}
-          onClick={() => setStrongsOn(!strongsOn)}
-        >
-          {t('H/G')}
-        </button>
         <button className="undo" aria-label={t('Undo')} title={t('Undo')} disabled={!history.canUndo} onClick={undo}>↶</button>
         <button className="undo" aria-label={t('Redo')} title={t('Redo')} disabled={!history.canRedo} onClick={redo}>↷</button>
-        <button
-          className={`undo ${colored ? 'on' : ''}`}
-          aria-label={t('Colour each sentence')}
-          title={t('Colour each sentence')}
-          aria-pressed={colored}
-          disabled={!note.text.trim()}
-          onClick={() => {
-            setColorsOn(note.id, !colored);
-            setColored(!colored);
-          }}
-        >
-          🎨
-        </button>
         <button
           className={`undo ${finding ? 'on' : ''}`}
           aria-label={t('Find in note')}
@@ -496,12 +435,6 @@ export function NoteView({
           }}
         >
           <svg className="share-icon" viewBox="0 0 24 24" aria-hidden><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5.5 5.5" /></svg>
-        </button>
-        <button className="undo" aria-label={t('Share')} title={t('Share')} onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
-          <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
-            <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
-            <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
-          </svg>
         </button>
       </div>
       {!reading && (sel || picks.length > 0) && (
@@ -654,6 +587,77 @@ export function NoteView({
         />
         </div>
       )}
+      {/* Listening, Strong's, colours, presenting and sharing: along the bottom, so the top stays for writing */}
+      <div className="note-tools note-foot">
+        <button
+          className={`undo listen ${reading ? 'on' : ''}`}
+          aria-label={t(reading ? 'Stop reading aloud' : 'Read aloud')}
+          title={t(reading ? 'Stop reading aloud' : 'Read aloud')}
+          // From the paragraph the cursor is in; from the top if it's at the end or hasn't been placed
+          onClick={() => {
+            if (reading) return reader.stop();
+            const at = caret.current;
+            readFrom(at === null || at >= note.text.trimEnd().length ? 0 : paragraphAt(note.text, at));
+          }}
+          disabled={!reader.canReadText || (!reading && !paragraphs.length)}
+        >
+          <SpeakerIcon />
+        </button>
+        <button
+          className={`undo strongs-btn ${strongsOn ? 'on' : ''}`}
+          aria-label={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
+          title={t('Strong’s: tap a verse’s words for the Hebrew or Greek')}
+          aria-pressed={strongsOn}
+          onClick={() => setStrongsOn(!strongsOn)}
+        >
+          {t('H/G')}
+        </button>
+        <button
+          className={`undo ${colored ? 'on' : ''}`}
+          aria-label={t('Colour each sentence')}
+          title={t('Colour each sentence')}
+          aria-pressed={colored}
+          disabled={!note.text.trim()}
+          onClick={() => {
+            setColorsOn(note.id, !colored);
+            setColored(!colored);
+          }}
+        >
+          🎨
+        </button>
+        <button
+          className="undo present-btn"
+          aria-label={t('Present')}
+          title={t('Present this note full screen, or add it to the run sheet')}
+          disabled={!note.text.trim()}
+          onClick={() => setPresentMenu(true)}
+        >
+          ▶
+        </button>
+        <button
+          className="undo"
+          aria-label={t('Teleprompter')}
+          title={t('Teleprompter: read this note to the camera and record a video')}
+          disabled={!note.text.trim() || !navigator.mediaDevices?.getUserMedia}
+          onClick={() => {
+            if (reading) reader.stop();
+            if (listening) onDictate(false); // the camera needs the microphone
+            onTeleprompter(note.title || noteTitle(note), note.text);
+          }}
+        >
+          <svg className="cam-icon" viewBox="0 0 24 24" aria-hidden>
+            <rect x="2.5" y="6.5" width="13" height="11" rx="2.5" />
+            <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
+          </svg>
+        </button>
+        <button className="undo" aria-label={t('Share')} title={t('Share')} onClick={() => onShare([note.title.trim(), note.text.trim()].filter(Boolean).join('\n\n'))} disabled={!note.text.trim()}>
+          <svg className="share-icon" viewBox="0 0 24 24" aria-hidden>
+            <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
+            <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" />
+          </svg>
+        </button>
+
+      </div>
       {refPick && (
         <RefCard
           pick={refPick}

@@ -539,7 +539,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .sw { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted var(--purple); text-underline-offset: 3px; cursor: pointer; }
 .sw.hit { background: var(--mark); border-radius: 3px; }
 /* Strong's in a note: the same dotted lines, on the words of verses written in it */
-mark.sw-mark { background: none; color: inherit; text-decoration: underline dotted var(--purple); text-underline-offset: 3px; cursor: pointer; }
+mark.sw-mark { background: none; color: inherit; padding: 0; border-radius: 0; text-decoration: underline dotted var(--purple); text-underline-offset: 3px; cursor: pointer; }
 .note-tools .strongs-btn { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; }
 .word-sheet p { line-height: 1.5; margin: 0 0 12px; }
 .word-sheet .label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
@@ -593,6 +593,8 @@ mark.sw-mark { background: none; color: inherit; text-decoration: underline dott
 .note-title { font-size: 1.15rem; font-weight: 600; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 8px 2px; color: var(--purple-bright); }
 .note-title:focus { outline: none; border-bottom-color: var(--purple); }
 .note-tools { display: flex; gap: 6px; }
+/* The second row of a note's buttons, kept at the bottom of the screen */
+.note-foot { position: sticky; bottom: 0; z-index: 13; justify-content: space-around; margin-top: 10px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); background: var(--bg); box-shadow: 0 -6px 10px -8px rgba(0, 0, 0, 0.6); }
 /* The note's buttons stay at the top of the screen while you scroll a long note */
 .note-head { position: sticky; top: 0; z-index: 32; background: var(--bg); padding: 8px 0; margin: -8px 0 0; box-shadow: 0 6px 10px -8px rgba(0, 0, 0, 0.6); }
 .note-tools button { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
@@ -889,6 +891,8 @@ mark.sw-mark { background: none; color: inherit; text-decoration: underline dott
 /* The tabs */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 14; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   min-height: var(--tabbar-h); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
+/* A note's bottom row of buttons sits just above the tab bar */
+.v2 .note-foot { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: 8px; }
 .tabbar button { display: grid; justify-items: center; align-content: center; gap: 2px; background: none; border: 0; padding: 4px 0; color: var(--muted); font-size: 0.7rem; font-weight: 700; white-space: nowrap; min-width: 0; }
 .tabbar button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tabbar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -1176,9 +1180,9 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .run-btn:disabled { opacity: 0.3; }
 
 /* Clean screen: in Live mode, when the mouse or a finger has been still, the pointer and the buttons fade away */
-.live-clean :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { transition: opacity 0.4s; }
+.live-clean :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .note-foot, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { transition: opacity 0.4s; }
 .live-clean.idle, .live-clean.idle * { cursor: none !important; }
-.live-clean.idle :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { opacity: 0; pointer-events: none; }
+.live-clean.idle :is(header.top, .tabbar, .drag-handle, .new-row, .notes-search, .note-head, .note-foot, .live-bar, .page-head .text-btn, .present-bar, .selection-bar) { opacity: 0; pointer-events: none; }
 
 /* Present: options on its bar, the banner, the presenter view's Next and timer */
 .present-bar .present-opt { width: auto; padding: 0 12px; border-radius: 999px; font-size: 0.85rem; }
