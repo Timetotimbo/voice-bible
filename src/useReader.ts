@@ -32,9 +32,12 @@ const SILENCE = (() => {
   text(36, 'data'); view.setUint32(40, 800, true);
   return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
 })();
-// Plays silence on a loop while a device voice reads, so the phone treats the page as playing audio and keeps it
-// running with the screen off (speech itself doesn't count)
+// Plays silence on a loop while reading, so the phone treats the page as playing audio and keeps it running with
+// the screen off: a device voice's speech doesn't count, and a recording goes quiet between the reference clips and
+// while the next chapter loads. iPhones pause one sound for another, so there it's only for device voices.
 const keepAliveEl = makeAudio();
+const IPHONE = typeof navigator !== 'undefined' &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 function keepAwake(on: boolean) {
   if (!keepAliveEl) return;
   if (on) {
@@ -103,6 +106,15 @@ function playSegment(el: HTMLAudioElement, src: string, start: number, end: numb
       el.load();
     } else begin();
   });
+}
+/** Loads a chapter's timings and recording ahead of time, so moving on to it doesn't wait on the network. */
+const prefetched = new Set<string>();
+function prefetchChapter(voice: string, book: number, chapter: number) {
+  verseStarts(voice, book, chapter).catch(() => {});
+  const src = chapterAudio(voice, book, chapter);
+  if (prefetched.has(src)) return;
+  prefetched.add(src);
+  fetch(src, { mode: 'cors', priority: 'low' } as RequestInit).then(r => r.blob(), () => prefetched.delete(src)).catch(() => prefetched.delete(src));
 }
 const REC = 'rec:';
 // Chrome can garbage-collect an utterance mid-speech and never fire its end, which stalls reading, so hold on to them
@@ -365,6 +377,8 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         index.current = i;
         const verse = verses[i];
         const next = verses[i + 1];
+        // Last verse of a chapter: fetch the next chapter now, so it starts straight away (no quiet gap with the screen off)
+        if (next && (next.book !== verse.book || next.chapter !== verse.chapter)) prefetchChapter(voiceName, next.book, next.chapter);
         setCurrent(verse);
         showWord(null);
         lastProgress.current = Date.now();
@@ -590,7 +604,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         unlockAudio();
         speakHeart(from, resumeAt?.char ?? 0);
       } else if (recorded) {
-        keepAwake(false);
+        keepAwake(!IPHONE);
         unlockAudio();
         speakRecorded(from, recorded, resumeAt);
       } else {
@@ -666,7 +680,20 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
         play(queue.current, index.current);
       }
     }, 5000);
-    return () => clearInterval(check);
+    // Back on screen after the phone held reading up with the screen off: carry on now rather than after the 45 s wait
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || !queue.current.length || pausedRef.current) return;
+      if (allEls.some(el => !el.paused) || synth?.speaking) return;
+      if (Date.now() - lastProgress.current > 8000) {
+        lastProgress.current = Date.now();
+        play(queue.current, index.current);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(check);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [playing, play]);
 
   // Keep the screen awake while reading, so the phone doesn't put the page to sleep partway through the night

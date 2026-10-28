@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.77.0 — 2026-10-28
+- **Keeps reading with the screen off, on into the next chapter.** With the Heart voice, the phone now keeps hold of the sound for the whole time you're listening: between "John 3, verse 16" and the verse, and while the next chapter loads. Before, it could go quiet there and the phone would put the page to sleep. The next chapter is now fetched while the last verse of this one plays, so it starts straight away. If the phone does hold reading up anyway, it carries on the moment you turn the screen back on, instead of waiting 45 seconds.
+- For listening with the screen off, the **Heart** voice works best (Settings → Reading voice). Your phone's built-in voices are kept awake as before, but some phones still stop them when the screen goes off.
+
 ## v2.76.0 — 2026-10-26
 - **Swipe between notes.** While reading a note, swipe left for the next note and right for the one before, in the same order as your Notes list (notes under another included). It's made for flipping through sermon notes. Swipes only count while you're reading (not typing), and they need to be quick and mostly sideways, so choosing words still works. Starting at the very edge of the screen is left to your phone's back gesture. Back still goes to your Notes list.
 
