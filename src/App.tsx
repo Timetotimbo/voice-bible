@@ -539,12 +539,28 @@ export default function App() {
     }
   };
 
+  // ▶ Play on a verse notification: read that verse aloud once the Bible text is loaded
+  const playWhenReady = useRef<string | null>(null);
+  const [playTick, setPlayTick] = useState(0);
+  useEffect(() => {
+    // After the verse has opened (opening a screen stops reading), so not while it's still waiting to
+    const ref = playWhenReady.current && bible && index && !pending.current ? parseReference(playWhenReady.current, bible) : null;
+    if (!ref || !bible) return;
+    playWhenReady.current = null;
+    const chapter = bible[ref.book][ref.chapter - 1];
+    const from = ref.verseStart ?? 1;
+    const to = Math.min(ref.verseEnd ?? (ref.verseStart ?? chapter.length), chapter.length);
+    const verses = chapter.slice(from - 1, to).map((text, i) => ({ book: ref.book, chapter: ref.chapter, verse: from + i, text }));
+    if (verses.length) readAloud(verses);
+  }, [bible, index, view, playTick]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // A verse notification was tapped: open that verse (?ref=John+3:16 when the app opens, or a message when it's open)
   const runRef = useRef(run);
   runRef.current = run;
   useEffect(() => {
     const ref = new URLSearchParams(location.search).get('ref');
     if (ref) {
+      if (new URLSearchParams(location.search).has('play')) playWhenReady.current = ref;
       history.replaceState(null, '', location.pathname + location.hash);
       runRef.current(ref);
     }
@@ -554,7 +570,11 @@ export default function App() {
       setPlanOpen(true);
     }
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'open-ref' && typeof e.data.ref === 'string') runRef.current(e.data.ref);
+      if (e.data?.type === 'open-ref' && typeof e.data.ref === 'string') {
+        if (e.data.play) playWhenReady.current = e.data.ref;
+        runRef.current(e.data.ref);
+        setPlayTick(x => x + 1);
+      }
       else if (e.data?.type === 'open-plan') setPlanOpen(true);
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);

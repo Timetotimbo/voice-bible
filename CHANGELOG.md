@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.78.0 — 2026-10-28
+- **▶ Play on verse notifications.** Each verse notification now has a **▶ Play** button (pull the notification down a little if you don't see it). Tap it and Voice Bible opens at that verse and reads it out loud straight away. Tapping the notification itself still just opens the verse. Works from the next notification after you open the app once (so it picks up the update).
+
 ## v2.77.0 — 2026-10-28
 - **Keeps reading with the screen off, on into the next chapter.** With the Heart voice, the phone now keeps hold of the sound for the whole time you're listening: between "John 3, verse 16" and the verse, and while the next chapter loads. Before, it could go quiet there and the phone would put the page to sleep. The next chapter is now fetched while the last verse of this one plays, so it starts straight away. If the phone does hold reading up anyway, it carries on the moment you turn the screen back on, instead of waiting 45 seconds.
 - For listening with the screen off, the **Heart** voice works best (Settings → Reading voice). Your phone's built-in voices are kept awake as before, but some phones still stop them when the screen goes off.

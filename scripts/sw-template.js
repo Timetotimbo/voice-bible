@@ -200,6 +200,8 @@ self.addEventListener('push', event => {
       badge: SCOPE + 'icon-192.png',
       tag: d.tag || 'verse', // a new verse replaces the last one instead of piling up
       renotify: true,
+      // A verse can be heard straight from the notification
+      actions: /[?&]ref=/.test(d.url || '') ? [{ action: 'play', title: '▶ Play' }] : [],
       data: { url: d.url || SCOPE },
     }),
   );
@@ -212,6 +214,8 @@ self.addEventListener('notificationclick', event => {
   const ref = url.searchParams.get('ref');
   const target = new URL(SCOPE, self.location.origin);
   if (ref) target.searchParams.set('ref', ref);
+  const play = !!ref && event.action === 'play'; // ▶ Play: read the verse aloud as it opens
+  if (play) target.searchParams.set('play', '1');
   const plan = url.searchParams.has('plan'); // a reading-plan reminder: open the plan
   if (plan) target.searchParams.set('plan', '1');
   event.waitUntil(
@@ -219,7 +223,7 @@ self.addEventListener('notificationclick', event => {
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const mine = wins.find(w => new URL(w.url).pathname.startsWith(SCOPE) && !new URL(w.url).pathname.startsWith(SCOPE + 'clipforge'));
       if (mine) {
-        if (ref) mine.postMessage({ type: 'open-ref', ref });
+        if (ref) mine.postMessage({ type: 'open-ref', ref, play });
         if (plan) mine.postMessage({ type: 'open-plan' });
         return mine.focus();
       }
