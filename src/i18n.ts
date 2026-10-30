@@ -135,6 +135,7 @@ const ES: Record<string, string> = {
   'Couldn’t share from this browser': 'No se pudo compartir desde este navegador',
   'Note copied': 'Nota copiada',
   'Which books': 'Qué libros',
+  'More ways to play': 'Más formas de reproducir',
   'All Bible ({n})': 'Toda la Biblia ({n})',
   'That’s the last note': 'Es la última nota',
   'That’s the first note': 'Es la primera nota',

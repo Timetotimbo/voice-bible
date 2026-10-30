@@ -362,6 +362,8 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .player .player-split .split-stop { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .player .player-split .split-skip { flex: none; padding: 0 8px; font-size: 1.15rem; border-right: 1px solid currentColor; }
 .player .player-split .split-next { border-right: 0; border-left: 1px solid currentColor; padding-right: 14px; }
+.player .player-split .split-play { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player .player-split .split-more { flex: none; padding: 0 18px; font-size: 1.1rem; border-left: 1px solid currentColor; }
 .speed { min-width: 58px; font-variant-numeric: tabular-nums; }
 .repeat.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: var(--on-accent); }
 

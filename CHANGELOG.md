@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.80.0 — 2026-10-30
+- **Play button split in two.** With verses chosen (or opened at a verse), the left part, **▶ Play 27:17**, now reads them once straight away. The **▾** on the right opens the other choices as before: play and repeat, begin with that verse and read on, or the whole chapter.
+
 ## v2.79.0 — 2026-10-30
 - **Search one book.** Search results now have a menu to the right of "152 verses with “Zion”": **All Bible (152)**, or scroll and pick a book, each with how many verses it has ("Isaiah (47)", "Psalms (38)"…). Pick one and you see just that book's verses, and the title says "in Isaiah". Play, Select all and the rest work on what's shown. Pick All Bible to go back.
 

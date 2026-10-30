@@ -2934,9 +2934,13 @@ function Chapter({
               <NextButton reader={reader} />
             </div>
           ) : picked.length || askedLabel ? (
-            <button className="player-main" onClick={() => setPlayMenu(true)}>
-              ▶ {picked.length ? t('Play {n}', { n: picked.length }) : t('Play {ref}', { ref: askedLabel })} ▾
-            </button>
+            // Left: plays those verses once, straight away; right: ▾ the other ways to play
+            <div className="player-main player-split">
+              <button className="split-play" onClick={() => playChoice(chosen, false)}>
+                ▶ {picked.length ? t('Play {n}', { n: picked.length }) : t('Play {ref}', { ref: askedLabel })}
+              </button>
+              <button className="split-more" aria-label={t('More ways to play')} aria-haspopup="menu" onClick={() => setPlayMenu(true)}>▾</button>
+            </div>
           ) : (
             <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
           )}
