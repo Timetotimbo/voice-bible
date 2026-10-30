@@ -134,6 +134,8 @@ const ES: Record<string, string> = {
   'Copied {n} verses to paste into a text or email': '{n} versículos copiados para pegarlos en un mensaje o correo',
   'Couldn’t share from this browser': 'No se pudo compartir desde este navegador',
   'Note copied': 'Nota copiada',
+  'Which books': 'Qué libros',
+  'All Bible ({n})': 'Toda la Biblia ({n})',
   'That’s the last note': 'Es la última nota',
   'That’s the first note': 'Es la primera nota',
   'This note was deleted.': 'Esta nota se borró.',

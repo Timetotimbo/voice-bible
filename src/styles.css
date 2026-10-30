@@ -259,6 +259,10 @@ button { cursor: pointer; }
 .loose-divider { list-style: none; text-align: center; color: var(--muted); font-size: 0.85rem; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; }
 .loose-divider::before, .loose-divider::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
 .result-title { font-size: 1.05rem; color: var(--purple-bright); margin: 0 0 12px; }
+/* A search's title with the All Bible / one book menu on its right */
+.result-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.result-head .result-title { flex: 1; min-width: 0; margin: 0; }
+.book-filter { flex: none; max-width: 46%; min-height: 40px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); -webkit-text-fill-color: var(--text); font: inherit; font-size: 0.9rem; text-shadow: none; }
 .quick-save { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-title small, .ref small { color: var(--muted); font-weight: normal; font-size: 0.75em; }
 

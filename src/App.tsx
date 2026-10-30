@@ -45,7 +45,7 @@ import { RunSheetView, addToRunSheet, useRunSheet, useRunSheetAdded } from './Ru
 type View =
   | { kind: 'home' }
   // strongs: a Strong's number search, maybe narrowed to one book or one way the KJV translates it
-  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string; hlOnly?: boolean } // hlOnly: just the highlighted verses
+  | { kind: 'search'; query: string; hits: VerseHit[]; strongs?: string; inBook?: number; asWord?: string; hlOnly?: boolean; only?: number } // hlOnly: just the highlighted verses; only: just this book's
   | { kind: 'list'; id: string }
   // fromList: opened from a verse in a list, so verses around it can be added to that list beside it
   | { kind: 'chapter'; ref: Reference; fromList?: { id: string; anchor: VerseRef } }
@@ -378,7 +378,15 @@ export default function App() {
   const studyRenderings = useCallback((code: string) => (strongsBible ? renderingsOf(strongsBible, code) : []), [strongsBible]);
   const abbrev = TRANSLATIONS.find(t => t.id === translation)!.abbrev;
   // The search's verses, or just the highlighted ones when that's picked
-  const searchHits = view.kind !== 'search' ? [] : view.hlOnly ? view.hits.filter(h => highlights.colorOf(h)) : view.hits;
+  const searchHits = view.kind !== 'search' ? []
+    : view.hits.filter(h => (!view.hlOnly || highlights.colorOf(h)) && (view.only === undefined || h.book === view.only));
+  // The books a search found verses in, with how many in each, for the All Bible / one book menu
+  const searchBooks = useMemo(() => {
+    if (view.kind !== 'search') return [];
+    const counts = new Map<number, number>();
+    for (const h of view.hits) if (!view.hlOnly || highlights.colorOf(h)) counts.set(h.book, (counts.get(h.book) ?? 0) + 1);
+    return [...counts].sort((a, b) => a[0] - b[0]);
+  }, [view, highlights.colorOf]);
   /** Sends the app's link to someone (the phone's share menu), or copies it where there's no share menu. */
   const shareApp = () => {
     const text = t('Voice Bible: speak a word, phrase or verse and find it in the Bible, and listen to it read aloud.');
@@ -876,10 +884,25 @@ export default function App() {
               <>
                 {searchHits.length ? n('{n} verse with “{q}”', '{n} verses with “{q}”', searchHits.length, { q: view.query }) : t('No verses with “{q}”', { q: view.query })}
                 {view.hlOnly && t(', highlighted')}
-                {view.inBook !== undefined && t(' in {book}', { book: bookName(view.inBook) })}
+                {(view.inBook ?? view.only) !== undefined && t(' in {book}', { book: bookName((view.inBook ?? view.only)!) })}
                 {view.asWord && t(' as “{word}”', { word: view.asWord })}
               </>
             }
+            titleExtra={view.inBook === undefined && (searchBooks.length > 1 || view.only !== undefined) && (
+              <select
+                className="book-filter"
+                aria-label={t('Which books')}
+                value={view.only ?? ''}
+                onChange={e => {
+                  setSelected(new Set());
+                  setShown(PAGE);
+                  setView({ ...view, only: e.target.value === '' ? undefined : Number(e.target.value) });
+                }}
+              >
+                <option value="">{t('All Bible ({n})', { n: searchBooks.reduce((a, [, c]) => a + c, 0) })}</option>
+                {searchBooks.map(([b, c]) => <option key={b} value={b}>{`${bookName(b)} (${c})`}</option>)}
+              </select>
+            )}
             hits={searchHits}
             query={view.query}
             shown={shown}
@@ -2417,8 +2440,9 @@ const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
-  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onCopy, onMoveVerse,
+  onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onCopy, onMoveVerse, titleExtra,
 }: {
+  titleExtra?: ReactNode; // beside the title (a search's All Bible / one book menu)
   onMoveVerse?: (hit: VerseHit, to: number) => void; // a saved list: drag a verse by its handle to reorder
   title: ReactNode;
   strongs?: string; // a Strong's number search: mark the words that translate it
@@ -2486,7 +2510,12 @@ function SearchResults({
 
   return (
     <section className={reader.supported && count ? `has-player ${picked.length || count > 1 ? 'selecting' : ''}` : ''}>
-      <h2 className="result-title">{title}</h2>
+      {titleExtra ? (
+        <div className="result-head">
+          <h2 className="result-title">{title}</h2>
+          {titleExtra}
+        </div>
+      ) : <h2 className="result-title">{title}</h2>}
       {!count && empty && <p className="notice">{empty}</p>}
       <ol className="verses">
         {hits.slice(0, shown).map((hit, i) => {
