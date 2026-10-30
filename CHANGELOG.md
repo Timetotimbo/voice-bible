@@ -2,6 +2,9 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.78.1 — 2026-10-30
+- **Fixed:** at the bottom of a long search, **Show all** was too wide. It squeezed **Show more** and pushed the page past the right edge of the screen, cutting off the player's speed button and the ✎ button. The two buttons now share the row properly, and nothing can push the page wider than the screen.
+
 ## v2.78.0 — 2026-10-28
 - **▶ Play on verse notifications.** Each verse notification now has a **▶ Play** button (pull the notification down a little if you don't see it). Tap it and Voice Bible opens at that verse and reads it out loud straight away. Tapping the notification itself still just opens the verse. Works from the next notification after you open the app once (so it picks up the update).
 

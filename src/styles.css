@@ -1092,8 +1092,10 @@ mark.jump-hit { background: #ffd54a; color: #111; border-radius: 3px; box-shadow
 .list-bar button { flex: 1; min-width: 0; padding: 6px 8px; font-size: 0.85rem; white-space: nowrap; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
 .list-bar span { font-weight: 700; color: var(--purple); }
 .more-row { display: flex; gap: 8px; margin-top: 14px; }
-.more-row .more { margin-top: 0; flex: 1; }
+.more-row .more { margin-top: 0; flex: 1; width: auto; min-width: 0; }
 .more-row .more + .more { flex: 0 0 auto; }
+/* Nothing may stick out sideways: it would widen the page, pushing the bottom bars and buttons off the right edge */
+.app { overflow-x: clip; }
 /* 🎨 Colour by sentence in a note: bright on the dark themes, deeper on the light ones */
 /* (and while it's read aloud) */
 .note-view, .note-reading, .present { --sc0: #ffd166; --sc1: #7fd4ff; --sc2: #ff8fb8; --sc3: #8ee59b; --sc4: #c7a6ff; }
