@@ -7,9 +7,13 @@ export const TRANSLATIONS = [
   { id: 'kjv', abbrev: 'KJV', name: 'King James Version', file: 'bibles/kjv.json', tagged: false, lang: 'en' },
   { id: 'kjvs', abbrev: 'KJV+S', name: "King James Version with Strong's numbers", file: 'bibles/kjvs.json', tagged: true, lang: 'en' },
   { id: 'rv1909', abbrev: 'RV1909', name: 'Reina-Valera 1909 (Español)', file: 'bibles/rv1909.json', tagged: true, lang: 'es' },
+  { id: 'vi1934', abbrev: 'VI1934', name: 'Kinh Thánh 1934 (Tiếng Việt)', file: 'bibles/vi1934.json', tagged: false, lang: 'vi' },
 ] as const;
 
 export type TranslationId = (typeof TRANSLATIONS)[number]['id'];
+
+/** The Bible for a language, to show verse text in it (English: the KJV). */
+export const translationFor = (lang: string): TranslationId => (lang === 'es' ? 'rv1909' : lang === 'vi' ? 'vi1934' : 'kjv');
 
 const cache = new Map<string, Promise<BibleText>>();
 

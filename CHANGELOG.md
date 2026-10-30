@@ -2,6 +2,15 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.81.0 — 2026-10-30
+- **Vietnamese (Tiếng Việt).** Settings → Translation → **Kinh Thánh 1934 (Tiếng Việt)**, the traditional Vietnamese Bible (public domain). With it chosen, the whole app speaks Vietnamese:
+  - Every button and message is in Vietnamese, and book names are the Vietnamese ones (Sáng Thế Ký, Thi Thiên, Ma-thi-ơ, Giăng…).
+  - The mic listens in Vietnamese. Say or type "Giăng 3:16", "Thi Thiên 23" or "Đa-ni-ên chương 6 câu 22". Accents and hyphens are optional ("giang 3 16", "mathio 5").
+  - Search finds words with or without their marks. "yeu thuong" finds every form; type "yêu thương" with its marks and you get just that word.
+  - Reading aloud uses your phone's Vietnamese voice ("Giăng chương 3, câu 16" before each verse). If you don't have one, add it in Android Settings → Text-to-speech → Google → Install voice data → Tiếng Việt.
+  - Dictating notes understands "chấm", "phẩy", "xuống dòng"… and Chat answers in Vietnamese.
+- Share **voicebible.eefavorbooks.com/?lang=vi** and it opens straight in Vietnamese. A phone set to Vietnamese starts there too.
+
 ## v2.80.0 — 2026-10-30
 - **Play button split in two.** With verses chosen (or opened at a verse), the left part, **▶ Play 27:17**, now reads them once straight away. The **▾** on the right opens the other choices as before: play and repeat, begin with that verse and read on, or the whole chapter.
 

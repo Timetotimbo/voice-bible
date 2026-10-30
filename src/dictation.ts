@@ -24,6 +24,18 @@ const COMMANDS_ES: [RegExp, string][] = [
   [/\b(signo de )?interrogaci[oó]n\b/gi, '?'],
   [/\b(signo de )?exclamaci[oó]n\b/gi, '!'],
 ];
+// Vietnamese ("chấm phẩy" before "chấm" and "phẩy")
+const COMMANDS_VI: [RegExp, string][] = [
+  [/(?<!\p{L})đoạn mới(?!\p{L})/giu, '\n\n'],
+  [/(?<!\p{L})xuống dòng(?!\p{L})/giu, '\n'],
+  [/(?<!\p{L})chấm phẩy(?!\p{L})/giu, ';'],
+  [/(?<!\p{L})chấm than(?!\p{L})/giu, '!'],
+  [/(?<!\p{L})dấu hai chấm(?!\p{L})/giu, ':'],
+  [/(?<!\p{L})(dấu )?chấm hỏi(?!\p{L})/giu, '?'],
+  [/(?<!\p{L})dấu hỏi(?!\p{L})/giu, '?'],
+  [/(?<!\p{L})(dấu )?chấm(?!\p{L})/giu, '.'],
+  [/(?<!\p{L})(dấu )?phẩy(?!\p{L})/giu, ','],
+];
 
 /**
  * Adds a dictated phrase to the end of `before`: spoken commands become punctuation or new lines, spacing is
@@ -32,7 +44,7 @@ const COMMANDS_ES: [RegExp, string][] = [
 export function appendDictation(before: string, phrase: string): string {
   let text = phrase.trim();
   if (!text) return before;
-  for (const [said, mark] of uiLanguage() === 'es' ? COMMANDS_ES : COMMANDS) text = text.replace(said, mark);
+  for (const [said, mark] of uiLanguage() === 'es' ? COMMANDS_ES : uiLanguage() === 'vi' ? COMMANDS_VI : COMMANDS) text = text.replace(said, mark);
   text = text
     .replace(/[ \t]+([.,?!:;])/g, '$1') // "word ." → "word."
     .replace(/[ \t]*\n[ \t]*/g, '\n') // no spaces around line breaks

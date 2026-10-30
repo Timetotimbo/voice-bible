@@ -1,9 +1,12 @@
 /**
- * The app's words in the language of the Bible being read: English, or Spanish for the Reina-Valera.
+ * The app's words in the language of the Bible being read: English, Spanish for the Reina-Valera, or Vietnamese
+ * for the Kinh Thánh (src/i18n.vi.ts).
  * Each English phrase is its own key; {name} marks a value filled in, e.g. t('Play all {n}', { n: 12 }).
- * A phrase missing from the Spanish list shows in English.
+ * A phrase missing from the Spanish or Vietnamese list shows in English.
  */
-export type UiLanguage = 'en' | 'es';
+import { VI } from './i18n.vi';
+
+export type UiLanguage = 'en' | 'es' | 'vi';
 
 let language: UiLanguage = 'en';
 export const setUiLanguage = (lang: UiLanguage) => {
@@ -13,7 +16,7 @@ export const setUiLanguage = (lang: UiLanguage) => {
 export const uiLanguage = () => language;
 
 export function t(en: string, values?: Record<string, string | number>): string {
-  const text = language === 'es' ? ES[en] ?? en : en;
+  const text = language === 'es' ? ES[en] ?? en : language === 'vi' ? VI[en] ?? en : en;
   return values ? text.replace(/\{(\w+)\}/g, (_, k) => (k in values ? fmt(values[k]) : `{${k}}`)) : text;
 }
 
@@ -22,7 +25,7 @@ export function n(one: string, many: string, count: number, values?: Record<stri
   return t(count === 1 ? one : many, { n: count, ...values });
 }
 
-const fmt = (v: string | number) => (typeof v === 'number' ? v.toLocaleString(language === 'es' ? 'es' : 'en') : v);
+const fmt = (v: string | number) => (typeof v === 'number' ? v.toLocaleString(language) : v);
 
 const ES: Record<string, string> = {
   // Top bar and front page

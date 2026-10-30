@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { bookName, bookNames } from './bible/books';
+import { bookName } from './bible/books';
 import type { BibleText, VerseHit } from './bible/search';
-import { loadTranslation } from './bible/translations';
-import { t } from './i18n';
+import { loadTranslation, translationFor } from './bible/translations';
+import { t, uiLanguage } from './i18n';
 import { presentVerses } from './Present';
 import { addToRunSheet } from './RunSheet';
 
@@ -117,8 +117,7 @@ export function RelatedHost() {
     setFound(null);
     setFailed(false);
     setPicked(new Set());
-    const spanish = bookNames()[0] !== 'Genesis';
-    Promise.all([loadXrefs(), loadTranslation(spanish ? 'rv1909' : 'kjv')]).then(([x, bible]) => {
+    Promise.all([loadXrefs(), loadTranslation(translationFor(uiLanguage()))]).then(([x, bible]) => {
       setFound(verses.map(from => {
         const flat = x[`${from.book}.${from.chapter}.${from.verse}`] ?? [];
         const refs: Related['refs'] = [];

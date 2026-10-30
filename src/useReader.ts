@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BOOKS, BOOKS_ES, bookName } from './bible/books';
+import { BOOKS, BOOKS_ES, BOOKS_VI, bookName } from './bible/books';
 import type { VerseHit } from './bible/search';
 import { RECORDED_VOICES, SPEECH_GAP, SPEECH_LEAD, SPEECH_TAIL, chapterAudio, refSpans, refsAudio, verseStarts } from './recorded';
 import { heartCancel, heartSay, heartTextSaved } from './heartText';
@@ -126,7 +126,7 @@ type ResumePoint = { char: number; time: number | null };
 
 const ORDINAL: Record<string, string> = { '1': 'First', '2': 'Second', '3': 'Third' };
 
-export type ReadingLanguage = 'en' | 'es';
+export type ReadingLanguage = 'en' | 'es' | 'vi';
 
 // Text that isn't a verse (a note, a chat) is read as "verses" of this book: one per paragraph or message,
 // numbered from 1. It's read by a device voice, or by Heart made on the phone (src/heartText.ts) once downloaded.
@@ -141,6 +141,7 @@ const ORDINAL_ES: Record<string, [string, string]> = { '1': ['Primero', 'Primera
  * list of numbers.
  */
 function spokenReference(v: VerseHit, language: ReadingLanguage): string {
+  if (language === 'vi') return `${BOOKS_VI[v.book].replace(/-/g, ' ')} chương ${v.chapter}, câu ${v.verse}.`;
   if (language === 'es') {
     const book = BOOKS_ES[v.book].replace(/^([123]) /, (_, n) => `${ORDINAL_ES[n][v.book < 39 ? 0 : 1]} de `);
     return `${book} ${v.chapter}, versículo ${v.verse}.`;
@@ -156,7 +157,9 @@ const lang = (v: SpeechSynthesisVoice) => (v.lang || '').replace('_', '-');
 const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Pipe Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical)\b/i;
 
 const speaks = (v: SpeechSynthesisVoice, language: ReadingLanguage) =>
-  language === 'es' ? /^es\b/i.test(lang(v)) || /spanish|español/i.test(v.name) : /^en\b/i.test(lang(v)) || /english/i.test(v.name);
+  language === 'es' ? /^es\b/i.test(lang(v)) || /spanish|español/i.test(v.name)
+  : language === 'vi' ? /^vi\b/i.test(lang(v)) || /vietnam|tiếng việt/i.test(v.name)
+  : /^en\b/i.test(lang(v)) || /english/i.test(v.name);
 
 /** Voices on this device for the language (or every voice, if none say they speak it), sorted by accent then name. */
 function voicesFor(language: ReadingLanguage): SpeechSynthesisVoice[] {
@@ -166,7 +169,7 @@ function voicesFor(language: ReadingLanguage): SpeechSynthesisVoice[] {
 }
 
 function defaultVoice(voices: SpeechSynthesisVoice[], language: ReadingLanguage = 'en'): SpeechSynthesisVoice | undefined {
-  const preferred = language === 'es' ? ['es-US', 'es-MX', 'es-ES'] : ['en-US'];
+  const preferred = language === 'es' ? ['es-US', 'es-MX', 'es-ES'] : language === 'vi' ? ['vi-VN'] : ['en-US'];
   for (const code of preferred) {
     const found = voices.find(v => lang(v) === code && v.localService) ?? voices.find(v => lang(v) === code);
     if (found) return found;
@@ -467,7 +470,7 @@ export function useReader(onDone: () => void, language: ReadingLanguage = 'en') 
           const u = new SpeechSynthesisUtterance(text && isText(verses) ? text.replace(/[*#_`~>|]/g, ' ') : text);
           const voice = voiceRef.current;
           if (voice) u.voice = voice;
-          u.lang = voice?.lang ?? (languageRef.current === 'es' ? 'es-ES' : 'en-US');
+          u.lang = voice?.lang ?? (languageRef.current === 'es' ? 'es-ES' : languageRef.current === 'vi' ? 'vi-VN' : 'en-US');
           u.rate = 0.95 * speedRef.current;
           const spans = at < 0 ? [] : wordSpans(verse.text, at, at + text.length);
           let began = 0;

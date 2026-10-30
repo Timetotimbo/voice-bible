@@ -16,6 +16,14 @@ const SYSTEM_ES = [
   'Donde los cristianos tienen opiniones distintas, dilo con justicia.',
 ].join(' ');
 
+// With the Vietnamese Bible open: answer in Vietnamese from it, with Vietnamese references ("Rô-ma 8:28")
+const SYSTEM_VI = [
+  'Bạn là một người giúp học Kinh Thánh ân cần và cẩn thận trong một ứng dụng Kinh Thánh tiếng Việt.',
+  'Luôn trả lời bằng tiếng Việt. Trích Kinh Thánh bản Truyền Thống 1934 và luôn ghi câu Kinh Thánh theo dạng Sách Chương:Câu (ví dụ "Rô-ma 8:28" hoặc "1 Giăng 4:7-8") để có thể chạm vào mà mở.',
+  'Trả lời bằng văn bản thường, không dùng định dạng Markdown như ** hoặc #. Trả lời rõ ràng và khá ngắn gọn trừ khi được hỏi thêm.',
+  'Khi các Cơ Đốc nhân có những quan điểm khác nhau, hãy nói điều đó một cách công bằng.',
+].join(' ');
+
 export class ChatError extends Error {}
 
 /**
@@ -35,7 +43,7 @@ export async function askChatGPT(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       // Long chats (imported ones especially) send only their recent part, to stay quick and cheap
-      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: uiLanguage() === 'es' ? SYSTEM_ES : SYSTEM }, ...messages.slice(-40)] }),
+      body: JSON.stringify({ model, stream: true, messages: [{ role: 'system', content: uiLanguage() === 'es' ? SYSTEM_ES : uiLanguage() === 'vi' ? SYSTEM_VI : SYSTEM }, ...messages.slice(-40)] }),
       signal,
     });
   } catch (e) {

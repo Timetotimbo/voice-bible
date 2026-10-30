@@ -162,11 +162,14 @@ const APP_URL = 'https://voicebible.eefavorbooks.com/';
 
 export default function App() {
   const [translation, setTranslationState] = useState<TranslationId>(() => {
+    // A link with ?lang=vi (or es) opens in that language's Bible and stays on it; a phone set to Vietnamese starts there
+    const asked = TRANSLATIONS.find(t => t.lang !== 'en' && t.lang === new URLSearchParams(location.search).get('lang'))?.id;
     try {
+      if (asked) localStorage.setItem('translation', asked);
       const saved = localStorage.getItem('translation');
-      return TRANSLATIONS.find(t => t.id === saved)?.id ?? 'kjv';
+      return TRANSLATIONS.find(t => t.id === saved)?.id ?? (/^vi\b/i.test(navigator.language) ? 'vi1934' : 'kjv');
     } catch {
-      return 'kjv';
+      return asked ?? 'kjv';
     }
   });
   const setTranslation = (id: TranslationId) => {
@@ -3771,7 +3774,7 @@ function VoiceSheet({ reader, onClose }: { reader: ReturnType<typeof useReader>;
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Reading voice')} onClick={e => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>{t(reader.language === 'es' ? 'Reading voice · Español' : 'Reading voice')}</h2>
+          <h2>{t(reader.language === 'es' ? 'Reading voice · Español' : reader.language === 'vi' ? 'Reading voice · Tiếng Việt' : 'Reading voice')}</h2>
           <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
         </div>
         {RECORDED_VOICES.length > 0 && reader.language === 'en' && (

@@ -33,6 +33,7 @@ export function normalize(s: string): string {
     .replace(/æ/g, 'ae')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // accents don't matter: "corazon" finds "corazón"
+    .replace(/đ/g, 'd') // Vietnamese đ has no accent to take off
     .replace(/æ/g, 'ae')
     .replace(/['’]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
@@ -91,12 +92,14 @@ const ORDINALS: Record<string, string> = {
  * "first John chapter 4 verse 8", "Psalm 23", "Genesis 1:1-3", "Romans 8 28 through 30".
  */
 export function parseReference(input: string, bible?: BibleText): Reference | null {
-  const cleaned = plainName(input).replace(/[:.,]/g, ' ').replace(/[–—-]/g, ' - ');
+  // Hyphens inside a Vietnamese name ("Ma-thi-ơ") are spaces; between numbers they're a range
+  const cleaned = plainName(input).replace(/(?<=[a-z])-(?=[a-z])/g, ' ').replace(/[:.,]/g, ' ').replace(/[–—-]/g, ' - ');
   let words = cleaned
     .split(/\s+/)
     .filter(Boolean)
-    .filter(w => !['chapter', 'verse', 'verses', 'capitulo', 'versiculo', 'versiculos', 'verso'].includes(w))
-    .map(w => (['through', 'to', 'thru', 'al', 'hasta'].includes(w) ? '-' : w))
+    .filter(w => !['chapter', 'verse', 'verses', 'capitulo', 'versiculo', 'versiculos', 'verso', 'chuong', 'doan', 'cau'].includes(w))
+    // "8 28 through 30": a range, but only after a number ("Cô-rinh-tô" ends in "to")
+    .map((w, i, all) => (['through', 'to', 'thru', 'al', 'hasta', 'den'].includes(w) && i > 0 && (/^\d+$/.test(all[i - 1]) || all[i - 1] in ONES || all[i - 1] in TENS) ? '-' : w))
     .map(w => ORDINALS[w] ?? w);
   // A leading "one/two/three" before a book name is a book number ("one John")
   if (['one', 'two', 'three'].includes(words[0]) && words.length > 1 && !(words[1] in ONES)) {
@@ -149,6 +152,20 @@ export function buildIndex(bible: BibleText): IndexedVerse[] {
 export type SearchMode = 'words' | 'exact';
 
 export function searchVerses(index: IndexedVerse[], query: string, mode: SearchMode = 'words'): VerseHit[] {
+  const hits = searchFolded(index, query, mode);
+  // Typed with its accents (Vietnamese "yêu", not "yếu"): just the verses with it written that way, when there are any
+  const marked = exactForm(query);
+  if (!marked) return hits;
+  const exact = hits.filter(h => exactForm(h.text).includes(marked));
+  return exact.length ? exact : hits;
+}
+/** Lowercase with accents kept, or '' when the query has no Vietnamese tone or vowel marks to match exactly. */
+function exactForm(s: string): string {
+  const t = s.normalize('NFC').toLowerCase().replace(/ð/g, 'đ').replace(/\s+/g, ' ').trim();
+  return /[ăâđêôơưàảãạằẳẵặầẩẫậèẻẽẹềểễệìỉĩịòỏõọồổỗộờởỡợùủũụừửữựỳỷỹỵ]/.test(t) || /[ắấếốớứ]/.test(t) ? t : '';
+}
+
+function searchFolded(index: IndexedVerse[], query: string, mode: SearchMode): VerseHit[] {
   const q = normalize(query);
   if (!q) return [];
   const whole = index.filter(v => v.norm.includes(` ${q} `));
@@ -180,7 +197,11 @@ const formsOf = (w: string, pattern = (x: string) => x) => {
 };
 
 // A plain letter in a search also matches its accented forms in the text ("corazon" marks "corazón")
-const ACCENTED: Record<string, string> = { a: 'aáàâä', e: 'eéèêë', i: 'iíìîï', o: 'oóòôö', u: 'uúùûü', n: 'nñ', c: 'cç' };
+// (Vietnamese letters too: "yeu" marks "yêu", "duc" marks "Đức")
+const ACCENTED: Record<string, string> = {
+  a: 'aáàâäảãạăắằẳẵặấầẩẫậ', e: 'eéèêëẻẽẹếềểễệ', i: 'iíìîïỉĩị', o: 'oóòôöỏõọốồổỗộơớờởỡợ', u: 'uúùûüủũụưứừửữự',
+  y: 'yýỳỷỹỵ', d: 'dđ', n: 'nñ', c: 'cç',
+};
 const wordPattern = (w: string) =>
   (w.match(/ae|./g) ?? [])
     .map(t => (t === 'ae' ? '(?:ae|æ)' : ACCENTED[t] ? `[${ACCENTED[t]}]` : t))

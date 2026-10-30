@@ -34,9 +34,9 @@ export const TAP_TO_TALK =
  * start() listens until the browser stops and then waits for the next tap.
  */
 /** `onPhrase` gets each finished phrase, as its new words only (see createResultReader). */
-export function useSpeech(onPhrase: (newWords: string) => void, language: 'en' | 'es' = 'en') {
+export function useSpeech(onPhrase: (newWords: string) => void, language: 'en' | 'es' | 'vi' = 'en') {
   // Listen in the language of the Bible being read
-  const speechLang = language === 'es' ? 'es-ES' : 'en-US';
+  const speechLang = language === 'es' ? 'es-ES' : language === 'vi' ? 'vi-VN' : 'en-US';
   const speechLangRef = useRef(speechLang);
   speechLangRef.current = speechLang;
   const [status, setStatus] = useState<SpeechStatus>(Recognition ? 'idle' : 'unsupported');

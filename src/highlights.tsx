@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { bookName, bookNames } from './bible/books';
+import { bookName } from './bible/books';
 import type { Reference, VerseHit } from './bible/search';
-import { loadTranslation } from './bible/translations';
-import { t } from './i18n';
+import { loadTranslation, translationFor } from './bible/translations';
+import { t, uiLanguage } from './i18n';
 
 /**
  * Highlights: verses marked in one of five colours, shown behind the verse in the chapter, and all together in
@@ -69,7 +69,7 @@ export function HighlightsSheet({ onGo, onClose }: { onGo: (ref: Reference) => v
   const [only, setOnly] = useState<HighlightColor | null>(null);
   const [bible, setBible] = useState<string[][][] | null>(null);
   useEffect(() => {
-    loadTranslation(bookNames()[0] !== 'Genesis' ? 'rv1909' : 'kjv').then(setBible, () => {});
+    loadTranslation(translationFor(uiLanguage())).then(setBible, () => {});
   }, []);
   const list = useMemo(
     () => Object.entries(marks)

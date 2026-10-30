@@ -38,15 +38,35 @@ const BOOK_ABBREVS_ES = [
   'Tit', 'Flm', 'He', 'Stg', '1 P', '2 P', '1 Jn', '2 Jn', '3 Jn', 'Jud', 'Ap',
 ];
 
-// Book names are shown in the language of the Bible being read
-let language: 'en' | 'es' = 'en';
-export const setBookLanguage = (lang: 'en' | 'es') => (language = lang);
-export const bookNames = () => (language === 'es' ? BOOKS_ES : BOOKS);
-export const bookName = (i: number) => bookNames()[i];
-export const bookAbbrev = (i: number) => (language === 'es' ? BOOK_ABBREVS_ES : BOOK_ABBREVS)[i];
+/** Vietnamese names, in the same order (as the 1934 Kinh Thánh has them). */
+export const BOOKS_VI = [
+  'Sáng Thế Ký', 'Xuất Ê-díp-tô Ký', 'Lê-vi Ký', 'Dân Số Ký', 'Phục Truyền Luật Lệ Ký', 'Giô-suê', 'Các Quan Xét', 'Ru-tơ',
+  '1 Sa-mu-ên', '2 Sa-mu-ên', '1 Các Vua', '2 Các Vua', '1 Sử Ký', '2 Sử Ký', 'E-xơ-ra', 'Nê-hê-mi', 'Ê-xơ-tê', 'Gióp',
+  'Thi Thiên', 'Châm Ngôn', 'Truyền Đạo', 'Nhã Ca', 'Ê-sai', 'Giê-rê-mi', 'Ca Thương', 'Ê-xê-chi-ên', 'Đa-ni-ên', 'Ô-sê',
+  'Giô-ên', 'A-mốt', 'Áp-đia', 'Giô-na', 'Mi-chê', 'Na-hum', 'Ha-ba-cúc', 'Sô-phô-ni', 'A-ghê', 'Xa-cha-ri', 'Ma-la-chi',
+  'Ma-thi-ơ', 'Mác', 'Lu-ca', 'Giăng', 'Công Vụ Các Sứ Đồ', 'Rô-ma', '1 Cô-rinh-tô', '2 Cô-rinh-tô', 'Ga-la-ti', 'Ê-phê-sô',
+  'Phi-líp', 'Cô-lô-se', '1 Tê-sa-lô-ni-ca', '2 Tê-sa-lô-ni-ca', '1 Ti-mô-thê', '2 Ti-mô-thê', 'Tít', 'Phi-lê-môn', 'Hê-bơ-rơ',
+  'Gia-cơ', '1 Phi-e-rơ', '2 Phi-e-rơ', '1 Giăng', '2 Giăng', '3 Giăng', 'Giu-đe', 'Khải Huyền',
+];
 
-/** Lowercase without accents, for matching typed or spoken names: "Génesis" → "genesis". */
-export const plainName = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const BOOK_ABBREVS_VI = [
+  'Sáng', 'Xuất', 'Lê-vi', 'Dân', 'Phục', 'Giô-suê', 'Quan', 'Ru-tơ', '1 Sa', '2 Sa', '1 Vua', '2 Vua', '1 Sử', '2 Sử',
+  'E-xơ-ra', 'Nê-hê', 'Ê-xơ-tê', 'Gióp', 'Thi', 'Châm', 'Truyền', 'Nhã Ca', 'Ê-sai', 'Giê-rê', 'Ca Thương', 'Ê-xê', 'Đa-ni',
+  'Ô-sê', 'Giô-ên', 'A-mốt', 'Áp-đia', 'Giô-na', 'Mi-chê', 'Na-hum', 'Ha-ba', 'Sô-phô', 'A-ghê', 'Xa-cha', 'Ma-la', 'Ma-thi',
+  'Mác', 'Lu-ca', 'Giăng', 'Công Vụ', 'Rô-ma', '1 Cô', '2 Cô', 'Ga-la', 'Ê-phê', 'Phi-líp', 'Cô-lô', '1 Tê', '2 Tê', '1 Ti',
+  '2 Ti', 'Tít', 'Phi-lê', 'Hê-bơ', 'Gia-cơ', '1 Phi', '2 Phi', '1 Giăng', '2 Giăng', '3 Giăng', 'Giu-đe', 'Khải',
+];
+
+// Book names are shown in the language of the Bible being read
+export type BookLanguage = 'en' | 'es' | 'vi';
+let language: BookLanguage = 'en';
+export const setBookLanguage = (lang: BookLanguage) => (language = lang);
+export const bookNames = () => (language === 'es' ? BOOKS_ES : language === 'vi' ? BOOKS_VI : BOOKS);
+export const bookName = (i: number) => bookNames()[i];
+export const bookAbbrev = (i: number) => (language === 'es' ? BOOK_ABBREVS_ES : language === 'vi' ? BOOK_ABBREVS_VI : BOOK_ABBREVS)[i];
+
+/** Lowercase without accents, for matching typed or spoken names: "Génesis" → "genesis", "Đa-ni-ên" → "da-ni-en". */
+export const plainName = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
 
 const EXTRA_ALIASES: Record<string, string> = {
   psalm: 'Psalms',
@@ -75,3 +95,20 @@ BOOKS_ES.forEach((name, i) => {
   if (!BOOK_LOOKUP.has(key)) BOOK_LOOKUP.set(key, i);
 });
 for (const [alias, name] of Object.entries(SPANISH_ALIASES)) BOOK_LOOKUP.set(alias, BOOKS_ES.indexOf(name));
+
+// Vietnamese names are looked up with spaces for their hyphens ("ma thi o"), and also run together ("mathio")
+const VIETNAMESE_ALIASES: Record<string, string> = {
+  'sang the': 'Sáng Thế Ký', 'xuat hanh ky': 'Xuất Ê-díp-tô Ký', 'xuat ai cap ky': 'Xuất Ê-díp-tô Ký', 'xuat e dip to': 'Xuất Ê-díp-tô Ký',
+  'so dem ky': 'Dân Số Ký', 'dan so': 'Dân Số Ký', 'phuc truyen': 'Phục Truyền Luật Lệ Ký', 'cac thu lanh': 'Các Quan Xét',
+  'quan xet': 'Các Quan Xét', 'thi thien': 'Thi Thiên', 'thanh thi': 'Thi Thiên', 'cham ngon': 'Châm Ngôn',
+  'truyen dao': 'Truyền Đạo', 'nha ca': 'Nhã Ca', 'diem ca': 'Nhã Ca', 'ai ca': 'Ca Thương', 'ca thuong': 'Ca Thương',
+  'ho sea': 'Ô-sê', 'a ge': 'A-ghê', 'mat thi o': 'Ma-thi-ơ', 'cong vu': 'Công Vụ Các Sứ Đồ', 'khai huyen': 'Khải Huyền',
+  'giu da': 'Giu-đe', 'gia co': 'Gia-cơ',
+};
+const viKey = (name: string) => plainName(name).replace(/-/g, ' ');
+const viSet = (key: string, i: number) => {
+  for (const k of [key, key.replace(/^([123]) /, '$1 ').replace(/(?<=[a-z]) (?=[a-z])/g, '')]) if (!BOOK_LOOKUP.has(k)) BOOK_LOOKUP.set(k, i);
+};
+BOOKS_VI.forEach((name, i) => viSet(viKey(name), i));
+for (const [alias, name] of Object.entries(VIETNAMESE_ALIASES)) viSet(alias, BOOKS_VI.indexOf(name));
+for (const [i, name] of ['Sáng Thế Ký', 'Xuất Hành Ký', 'Lê-vi Ký', 'Số Đếm Ký', 'Phục Truyền Luật Lệ Ký', 'Giô-suê', 'Các Thủ Lãnh'].entries()) viSet(viKey(name), i);
