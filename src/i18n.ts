@@ -382,6 +382,8 @@ const ES: Record<string, string> = {
   'Make video ▸': 'Hacer video ▸',
   '🖼 Make picture': '🖼 Hacer imagen',
   'Make picture': 'Hacer imagen',
+  'Picture in ClipForge': 'Imagen en ClipForge',
+  'Picture in ClipForge ▸': 'Imagen en ClipForge ▸',
   'Make video': 'Hacer video',
   'Post it': 'Publicarlo',
   'Sending… {pct}%': 'Enviando… {pct}%',

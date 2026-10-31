@@ -338,6 +338,8 @@ export const VI: Record<string, string> = {
   'Make video ▸': 'Làm video ▸',
   '🖼 Make picture': '🖼 Làm hình',
   'Make picture': 'Làm hình',
+  'Picture in ClipForge': 'Làm hình trong ClipForge',
+  'Picture in ClipForge ▸': 'Làm hình trong ClipForge ▸',
   'Make video': 'Làm video',
   'Post it': 'Đăng',
   'Sending… {pct}%': 'Đang gửi… {pct}%',

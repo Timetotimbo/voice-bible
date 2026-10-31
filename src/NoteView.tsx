@@ -8,7 +8,7 @@ import { n, t } from './i18n';
 import type { Chat } from './useChats';
 import type { VerseList } from './useLibrary';
 import { noteTitle, type Note } from './useNotes';
-import { versesAsRefs } from './shareVerses';
+import { pictureInClipForge, versesAsRefs } from './shareVerses';
 import { strongsWords, verseSpans } from './noteStrongs';
 import { flushSync } from 'react-dom';
 import { FastScroll } from './FastScroll';
@@ -208,6 +208,8 @@ export function NoteView({
     }
     location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=tv`);
   };
+  // The picked bits, or the selection when nothing is picked yet
+  const pickedText = () => (picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end).trim() : '');
   // To note: the picked bits (or the selection, when nothing is picked yet), each its own paragraph
   const toNote = () => {
     const text = picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end).trim() : '';
@@ -506,7 +508,8 @@ export function NoteView({
           <span className="pick-break" aria-hidden />
           <button className="pick-note" disabled={!sel && !picks.length} onClick={toNote}>{t('To note…')}</button>
           <button className="pick-loop" disabled={(!sel && !picks.length) || !reader.canReadText} onClick={loopPicks} title={t('Read the picks aloud over and over')}>{t('⟳ Loop')}</button>
-          <button className="pick-pic" disabled={!sel && !picks.length} onClick={() => makePicture(picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end) : '')}>{t('🖼 Make picture')}</button>
+          <button className="pick-pic" disabled={!sel && !picks.length} onClick={() => makePicture(pickedText())}>{t('🖼 Make picture')}</button>
+          <button className="pick-pic" disabled={!sel && !picks.length} onClick={() => pictureInClipForge(pickedText())}>{t('Picture in ClipForge ▸')}</button>
           {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
         </div>
       )}

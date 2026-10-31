@@ -18,7 +18,7 @@ import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, remove
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
 import { makeVersePicture } from './versePicture';
-import { copyVerses, makeVerseVideo, shareVerses, versesAsRefs, versesAsText } from './shareVerses';
+import { copyVerses, makeVerseVideo, pictureInClipForge, versesAsPictureText, shareVerses, versesAsRefs, versesAsText } from './shareVerses';
 import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
 import { NoteView } from './NoteView';
@@ -2640,6 +2640,7 @@ function SearchResults({
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
+              <button onClick={() => pictureInClipForge(versesAsPictureText(picked))}>{t('Picture in ClipForge')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -2917,6 +2918,7 @@ function Chapter({
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
               <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
+              <button onClick={() => pictureInClipForge(versesAsPictureText(picked))}>{t('Picture in ClipForge')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>

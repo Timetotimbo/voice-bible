@@ -92,3 +92,25 @@ export function makeVerseVideo(verses: VerseHit[]): boolean {
   location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=tv`);
   return true;
 }
+
+/** The verses as ClipForge pictures: one per run of verses, its reference on top and the words under it. */
+export function versesAsPictureText(verses: VerseHit[]): string {
+  return versesAsText(verses)
+    .split('\n\n')
+    .map(g => {
+      const [heading, ...body] = g.split('\n');
+      return `${heading}\n${body.map(l => l.replace(/^\d+ /, '')).join(' ')}`;
+    })
+    .join('\n\n');
+}
+
+/** Opens ClipForge's Pictures with these words, to design the picture there. */
+export function pictureInClipForge(text: string): boolean {
+  try {
+    localStorage.setItem('cf_pp_in', JSON.stringify({ text, at: Date.now() }));
+  } catch {
+    return false;
+  }
+  location.assign(`${import.meta.env.BASE_URL}clipforge/?tab=pp`);
+  return true;
+}

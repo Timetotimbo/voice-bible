@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.83.0 — 2026-10-30
+
+- **Picture in ClipForge**: next to Make picture, send what you picked (or selected verses) to ClipForge's Pictures, to design it there with its styles, photos and colours. Each verse or pick becomes its own picture, with the reference on top.
+
 ## v2.82.0 — 2026-10-30
 
 - **Make picture**: next to Make video, turn what you picked in a note (or selected verses) into a picture to post or send. The words are as large as fit, with the verse references under them. It opens your phone's share menu, or saves the picture.
