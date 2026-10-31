@@ -918,8 +918,8 @@ export default function App() {
             selected={selected}
             onToggle={toggle}
             onSelectAll={() => setSelected(new Set(searchHits.map(hitKey)))}
-            selectionActions={picked => (
-              <>
+            selectionActions={picked => ({
+              primary: (
                 <button
                   className="quick-save"
                   onClick={() => {
@@ -933,10 +933,12 @@ export default function App() {
                 >
                   {t('Save to “{q}”', { q: view.query })}
                 </button>
-                <button onClick={() => setSheet(picked.map(toRef))}>{t('Other list…')}</button>
-                <button onClick={() => setToNote({ verses: picked, title: view.query })}>{t('To note…')}</button>
-              </>
-            )}
+              ),
+              more: [
+                { label: t('Other list…'), onClick: () => setSheet(picked.map(toRef)) },
+                { label: t('To note…'), onClick: () => setToNote({ verses: picked, title: view.query }) },
+              ],
+            })}
             onClearSelection={() => setSelected(new Set())}
           />
         )}
@@ -973,20 +975,13 @@ export default function App() {
             selected={selected}
             onToggle={toggle}
             onSelectAll={() => setSelected(new Set(savedHits.map(hitKey)))}
-            selectionActions={picked => (
-              <>
-                <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>{t('Copy to list…')}</button>
-                <button onClick={() => setToNote({ verses: picked, title: savedList.name })}>{t('To note…')}</button>
-                <button
-                  onClick={() => {
-                    library.removeFromList(savedList.id, picked.map(toRef));
-                    setSelected(new Set());
-                  }}
-                >
-                  {t('Remove')}
-                </button>
-              </>
-            )}
+            selectionActions={picked => ({
+              primary: <button onClick={() => setSheet({ verses: picked.map(toRef), from: savedList.id })}>{t('Copy to list…')}</button>,
+              more: [
+                { label: t('To note…'), onClick: () => setToNote({ verses: picked, title: savedList.name }) },
+                { label: t('Remove'), onClick: () => { library.removeFromList(savedList.id, picked.map(toRef)); setSelected(new Set()); } },
+              ],
+            })}
             onClearSelection={() => setSelected(new Set())}
             empty={t('This list is empty. Search, check verses, then tap “Save to list”.')}
           />
@@ -2442,6 +2437,30 @@ const hitKey = (h: VerseHit) => `${h.book}-${h.chapter}-${h.verse}`;
 
 const toRef = (h: VerseHit): VerseRef => [h.book, h.chapter, h.verse];
 
+/** The selection bar's overflow: everything beyond Save / Share / Clear, so the bar itself doesn't have to hold 13+ buttons. */
+function MoreActionsSheet({ actions, extra, onClose }: {
+  actions: { label: string; onClick: () => void }[];
+  extra?: ReactNode; // a widget that isn't a plain click-and-close action (e.g. the highlight colour picker)
+  onClose: () => void;
+}) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={t('More actions')} onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <h2>{t('More')}</h2>
+          <button className="sheet-close" aria-label={t('Close')} onClick={onClose}>✕</button>
+        </div>
+        <ul className="sheet-list">
+          {actions.map(a => (
+            <li key={a.label}><button className="sheet-item" onClick={() => { a.onClick(); onClose(); }}>{a.label}</button></li>
+          ))}
+          {extra && <li>{extra}</li>}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function SearchResults({
   title, hits, query, shown, abbrev, onMore, onOpen, reader, readAloud, selected, onToggle,
   onSelectAll, selectionActions, onClearSelection, empty, strongs, tagsFor, onShare, onCopy, onMoveVerse, titleExtra,
@@ -2464,7 +2483,7 @@ function SearchResults({
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSelectAll: () => void;
-  selectionActions: (picked: VerseHit[]) => ReactNode;
+  selectionActions: (picked: VerseHit[]) => { primary: ReactNode; more: { label: string; onClick: () => void }[] };
   onClearSelection: () => void;
   empty?: string;
 }) {
@@ -2473,6 +2492,8 @@ function SearchResults({
   const classic = useContext(ClassicContext);
   const count = hits.length;
   const picked = hits.filter(h => selected.has(hitKey(h)));
+  const sel = picked.length ? selectionActions(picked) : null;
+  const [moreOpen, setMoreOpen] = useState(false);
   const queue = picked.length ? picked : hits;
   const current = reader.current && hitKey(reader.current);
   const currentEl = useRef<HTMLLIElement | null>(null);
@@ -2628,27 +2649,36 @@ function SearchResults({
       {reader.supported && count > 0 && (
         <div className="player">
           {/* In the bar pinned to the bottom, so it's in reach however far down a long search you are */}
-          {picked.length > 0 ? (
+          {picked.length > 0 && sel ? (
             <div className="selection-bar">
               <span>{t('{n} selected', { n: picked.length })}</span>
-              {selectionActions(picked)}
-              <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
-              <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
-              <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
-              <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
-              <HighlightButton verses={picked} onDone={onClearSelection} />
-              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
-              <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
-              <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
-              <button onClick={() => pictureInClipForge(versesAsPictureText(picked))}>{t('Picture in ClipForge')}</button>
+              {sel.primary}
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
-              {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
+              <button onClick={() => setMoreOpen(true)}>{t('More ⋯')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
           ) : count > 1 && (
             <div className="selection-bar">
               <button onClick={onSelectAll}>{t('Select all {n}', { n: count })}</button>
             </div>
+          )}
+          {moreOpen && sel && (
+            <MoreActionsSheet
+              onClose={() => setMoreOpen(false)}
+              actions={[
+                ...sel.more,
+                { label: t('Present'), onClick: () => presentVerses(picked) },
+                { label: t('+ Run sheet'), onClick: () => addToRunSheet({ kind: 'verses', verses: picked }) },
+                { label: t('Compare'), onClick: () => compareVerses(picked) },
+                { label: t('Related'), onClick: () => relatedVerses(picked) },
+                { label: t('Copy'), onClick: () => onCopy(picked) },
+                { label: t('Make video'), onClick: () => makeVerseVideo(picked) },
+                { label: t('Make picture'), onClick: () => makeVersePicture(picked) },
+                { label: t('Picture in ClipForge'), onClick: () => pictureInClipForge(versesAsPictureText(picked)) },
+                ...(picked.length < count ? [{ label: t('Select all {n}', { n: count }), onClick: onSelectAll }] : []),
+              ]}
+              extra={<HighlightButton verses={picked} onDone={() => { onClearSelection(); setMoreOpen(false); }} />}
+            />
           )}
           {reader.playing ? (
             <div className="player-main player-split">
@@ -2709,6 +2739,7 @@ function Chapter({
   // The book and chapter stay on screen once the big heading has scrolled away
   const headRef = useRef<HTMLDivElement>(null);
   const [headGone, setHeadGone] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     const el = headRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
@@ -2909,19 +2940,27 @@ function Chapter({
               <span>{t('{n} selected', { n: picked.length })}</span>
               {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>{t('Add around {ref}', { ref: aroundList.label })}</button>}
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
-              <button onClick={() => onToNote(picked)}>{t('To note…')}</button>
-              <button onClick={() => presentVerses(picked)}>{t('Present')}</button>
-              <button onClick={() => addToRunSheet({ kind: 'verses', verses: picked })}>{t('+ Run sheet')}</button>
-              <button onClick={() => compareVerses(picked)}>{t('Compare')}</button>
-              <button onClick={() => relatedVerses(picked)}>{t('Related')}</button>
-              <HighlightButton verses={picked} onDone={onClearSelection} />
-              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
-              <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
-              <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
-              <button onClick={() => pictureInClipForge(versesAsPictureText(picked))}>{t('Picture in ClipForge')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
+              <button onClick={() => setMoreOpen(true)}>{t('More ⋯')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
+          )}
+          {moreOpen && (
+            <MoreActionsSheet
+              onClose={() => setMoreOpen(false)}
+              actions={[
+                { label: t('To note…'), onClick: () => onToNote(picked) },
+                { label: t('Present'), onClick: () => presentVerses(picked) },
+                { label: t('+ Run sheet'), onClick: () => addToRunSheet({ kind: 'verses', verses: picked }) },
+                { label: t('Compare'), onClick: () => compareVerses(picked) },
+                { label: t('Related'), onClick: () => relatedVerses(picked) },
+                { label: t('Copy'), onClick: () => onCopy(picked) },
+                { label: t('Make video'), onClick: () => makeVerseVideo(picked) },
+                { label: t('Make picture'), onClick: () => makeVersePicture(picked) },
+                { label: t('Picture in ClipForge'), onClick: () => pictureInClipForge(versesAsPictureText(picked)) },
+              ]}
+              extra={<HighlightButton verses={picked} onDone={() => { onClearSelection(); setMoreOpen(false); }} />}
+            />
           )}
           {reader.playing && readingAt >= 0 && readingAt !== shownAt ? (
             // Reading another chapter while you look at this one: tap to go back to it
