@@ -336,6 +336,8 @@ export const VI: Record<string, string> = {
   '{n} picked': 'Đã chọn {n}',
   'Select text, then + Add': 'Chọn chữ, rồi + Thêm',
   'Make video ▸': 'Làm video ▸',
+  '🖼 Make picture': '🖼 Làm hình',
+  'Make picture': 'Làm hình',
   'Make video': 'Làm video',
   'Post it': 'Đăng',
   'Sending… {pct}%': 'Đang gửi… {pct}%',

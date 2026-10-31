@@ -380,6 +380,8 @@ const ES: Record<string, string> = {
   '{n} picked': '{n} elegidos',
   'Select text, then + Add': 'Selecciona texto y toca + Añadir',
   'Make video ▸': 'Hacer video ▸',
+  '🖼 Make picture': '🖼 Hacer imagen',
+  'Make picture': 'Hacer imagen',
   'Make video': 'Hacer video',
   'Post it': 'Publicarlo',
   'Sending… {pct}%': 'Enviando… {pct}%',

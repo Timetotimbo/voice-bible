@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.82.0 — 2026-10-30
+
+- **Make picture**: next to Make video, turn what you picked in a note (or selected verses) into a picture to post or send. The words are as large as fit, with the verse references under them. It opens your phone's share menu, or saves the picture.
+
 ## v2.81.0 — 2026-10-30
 - **Vietnamese (Tiếng Việt).** Settings → Translation → **Kinh Thánh 1934 (Tiếng Việt)**, the traditional Vietnamese Bible (public domain). With it chosen, the whole app speaks Vietnamese:
   - Every button and message is in Vietnamese, and book names are the Vietnamese ones (Sáng Thế Ký, Thi Thiên, Ma-thi-ơ, Giăng…).

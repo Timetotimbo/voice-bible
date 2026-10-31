@@ -16,6 +16,7 @@ import { RefCard, RefText, findAll, rangeOffsets, textOffsetAt, type RefPick } f
 import { needsTidy, tidySpacing } from './noteSpeech';
 import { continueList, toggleCheck, toggleList, type ListKind } from './noteLists';
 import { colorsOn, sentenceRanges, setColorsOn } from './noteColors';
+import { makePicture } from './versePicture';
 import { tocLinks } from './noteToc';
 import { socialBloomLinked, videoSendOn } from './socialBloom';
 import { noteSlides, presentSlides } from './Present';
@@ -505,6 +506,7 @@ export function NoteView({
           <span className="pick-break" aria-hidden />
           <button className="pick-note" disabled={!sel && !picks.length} onClick={toNote}>{t('To note…')}</button>
           <button className="pick-loop" disabled={(!sel && !picks.length) || !reader.canReadText} onClick={loopPicks} title={t('Read the picks aloud over and over')}>{t('⟳ Loop')}</button>
+          <button className="pick-pic" disabled={!sel && !picks.length} onClick={() => makePicture(picks.length ? picks.map(p => p.text).join('\n\n') : sel ? note.text.slice(sel.start, sel.end) : '')}>{t('🖼 Make picture')}</button>
           {picks.length > 0 && <button className="pick-send" onClick={sendPicks}>{t('Make video ▸')}</button>}
         </div>
       )}

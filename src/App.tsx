@@ -17,6 +17,7 @@ import { RECORDED_VOICES, describeRecorded } from './recorded';
 import { NEW_TESTAMENT, WHOLE_BIBLE, aboutMb, canSaveOffline, chaptersIn, removeSaved, saveBooks, savedChapters, sizeText, stopSaving, useOfflineAudio } from './offlineAudio';
 import { listLink, sharedListInLink } from './share';
 import { ChatView } from './Chat';
+import { makeVersePicture } from './versePicture';
 import { copyVerses, makeVerseVideo, shareVerses, versesAsRefs, versesAsText } from './shareVerses';
 import { setVideoSend, videoSendOn } from './socialBloom';
 import { ImportChats } from './ImportChats';
@@ -2638,6 +2639,7 @@ function SearchResults({
               <HighlightButton verses={picked} onDone={onClearSelection} />
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
+              <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               {picked.length < count && <button onClick={onSelectAll}>{t('All')}</button>}
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -2914,6 +2916,7 @@ function Chapter({
               <HighlightButton verses={picked} onDone={onClearSelection} />
               <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => makeVerseVideo(picked)}>{t('Make video')}</button>
+              <button onClick={() => makeVersePicture(picked)}>{t('Make picture')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
             </div>
