@@ -2653,6 +2653,7 @@ function SearchResults({
             <div className="selection-bar">
               <span>{t('{n} selected', { n: picked.length })}</span>
               {sel.primary}
+              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={() => setMoreOpen(true)}>{t('More ⋯')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -2671,7 +2672,6 @@ function SearchResults({
                 { label: t('+ Run sheet'), onClick: () => addToRunSheet({ kind: 'verses', verses: picked }) },
                 { label: t('Compare'), onClick: () => compareVerses(picked) },
                 { label: t('Related'), onClick: () => relatedVerses(picked) },
-                { label: t('Copy'), onClick: () => onCopy(picked) },
                 { label: t('Make video'), onClick: () => makeVerseVideo(picked) },
                 { label: t('Make picture'), onClick: () => makeVersePicture(picked) },
                 { label: t('Picture in ClipForge'), onClick: () => pictureInClipForge(versesAsPictureText(picked)) },
@@ -2940,6 +2940,7 @@ function Chapter({
               <span>{t('{n} selected', { n: picked.length })}</span>
               {aroundList && onMain && <button onClick={() => aroundList.onAdd(picked)}>{t('Add around {ref}', { ref: aroundList.label })}</button>}
               <button onClick={() => onSave(picked)}>{t(aroundList && onMain ? 'Other list…' : 'Save to list')}</button>
+              <button onClick={() => onCopy(picked)}>{t('Copy')}</button>
               <button onClick={() => onShare(picked)}>{t('Share')}</button>
               <button onClick={() => setMoreOpen(true)}>{t('More ⋯')}</button>
               <button onClick={onClearSelection}>{t('Clear')}</button>
@@ -2954,7 +2955,6 @@ function Chapter({
                 { label: t('+ Run sheet'), onClick: () => addToRunSheet({ kind: 'verses', verses: picked }) },
                 { label: t('Compare'), onClick: () => compareVerses(picked) },
                 { label: t('Related'), onClick: () => relatedVerses(picked) },
-                { label: t('Copy'), onClick: () => onCopy(picked) },
                 { label: t('Make video'), onClick: () => makeVerseVideo(picked) },
                 { label: t('Make picture'), onClick: () => makeVersePicture(picked) },
                 { label: t('Picture in ClipForge'), onClick: () => pictureInClipForge(versesAsPictureText(picked)) },
