@@ -2,9 +2,13 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.84.1 — 2026-11-14
+
+- The 🔍 on the play button now opens the book/chapter/verse wheel (not a separate icon by Loop and speed).
+
 ## v2.84.0 — 2026-11-14
 
-- **Search while a chapter plays**: the play bar now has a search button next to Loop and speed, so you can look up another verse without stopping what's reading. Playback keeps going in the background — tap the chapter you were in (📖) to come back to it.
+- **Go to a verse from the play button**: the blue play pill now has a 🔍 next to it, opening the book/chapter/verse wheel without stopping what's reading. Playback keeps going in the background — tap the chapter you were in (📖) to come back to it.
 
 ## v2.83.0 — 2026-10-30
 

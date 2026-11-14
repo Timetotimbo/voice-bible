@@ -1138,7 +1138,6 @@ export default function App() {
           <Chapter
             onShare={shareSelected}
             onCopy={copySelected}
-            onSearch={() => goTab('search')}
             aroundList={(() => {
               const from = view.fromList && library.lists.find(l => l.id === view.fromList!.id);
               if (!from) return undefined;
@@ -2701,7 +2700,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, onCopy, aroundList, hints, onSearch,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, onCopy, aroundList, hints,
 }: {
   hints: boolean; // show the "Tap a word… Swipe…" line
   bible: BibleText;
@@ -2709,7 +2708,6 @@ function Chapter({
   abbrev: string;
   reader: ReturnType<typeof useReader>;
   readAloud: (verses: VerseHit[], char?: number) => void;
-  onSearch: () => void; // jump to the Search tab without stopping playback
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSave: (picked: VerseHit[]) => void;
@@ -2983,17 +2981,25 @@ function Chapter({
               <NextButton reader={reader} />
             </div>
           ) : picked.length || askedLabel ? (
-            // Left: plays those verses once, straight away; right: ▾ the other ways to play
+            // Left: plays those verses once, straight away; middle: 🔍 go to a different book/chapter/verse; right: ▾ the other ways to play
             <div className="player-main player-split">
               <button className="split-play" onClick={() => playChoice(chosen, false)}>
                 ▶ {picked.length ? t('Play {n}', { n: picked.length }) : t('Play {ref}', { ref: askedLabel })}
               </button>
+              <button className="split-goto" title={t('Go to a book, chapter or verse')} aria-label={t('Go to a book, chapter or verse')} onClick={onPick}>
+                <svg viewBox="0 0 24 24" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+              </button>
               <button className="split-more" aria-label={t('More ways to play')} aria-haspopup="menu" onClick={() => setPlayMenu(true)}>▾</button>
             </div>
           ) : (
-            <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
+            <div className="player-main player-split">
+              <button className="split-play" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
+              <button className="split-goto" title={t('Go to a book, chapter or verse')} aria-label={t('Go to a book, chapter or verse')} onClick={onPick}>
+                <svg viewBox="0 0 24 24" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+              </button>
+            </div>
           )}
-          <PlayerControls reader={reader} onSearch={onSearch} />
+          <PlayerControls reader={reader} />
         </div>
       )}
       {playMenu && (picked.length > 0 || !!askedLabel) && (
@@ -3903,16 +3909,11 @@ function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; fu
 }
 
 /** Repeat and speed on every play bar; ⋯ holds reading the reference first, and the voice. */
-function PlayerControls({ reader, onSearch }: { reader: ReturnType<typeof useReader>; onSearch?: () => void }) {
+function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
   const [more, setMore] = useState(false);
   const classic = useContext(ClassicContext);
   return (
     <>
-      {onSearch && (
-        <button className="speed" aria-label={t('Search while this plays')} title={t('Search')} onClick={onSearch}>
-          <svg viewBox="0 0 24 24" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        </button>
-      )}
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}
         aria-pressed={reader.repeat}
