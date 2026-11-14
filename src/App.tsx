@@ -1138,6 +1138,7 @@ export default function App() {
           <Chapter
             onShare={shareSelected}
             onCopy={copySelected}
+            onSearch={() => goTab('search')}
             aroundList={(() => {
               const from = view.fromList && library.lists.find(l => l.id === view.fromList!.id);
               if (!from) return undefined;
@@ -2700,7 +2701,7 @@ function SearchResults({
 }
 
 function Chapter({
-  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, onCopy, aroundList, hints,
+  bible, view, abbrev, reader, readAloud, selected, onToggle, onSave, onToNote, onClearSelection, onShown, onPick, onWord, onShare, onCopy, aroundList, hints, onSearch,
 }: {
   hints: boolean; // show the "Tap a word… Swipe…" line
   bible: BibleText;
@@ -2708,6 +2709,7 @@ function Chapter({
   abbrev: string;
   reader: ReturnType<typeof useReader>;
   readAloud: (verses: VerseHit[], char?: number) => void;
+  onSearch: () => void; // jump to the Search tab without stopping playback
   selected: Set<string>;
   onToggle: (key: string) => void;
   onSave: (picked: VerseHit[]) => void;
@@ -2991,7 +2993,7 @@ function Chapter({
           ) : (
             <button className="player-main" onClick={() => readAloud(onward(shownAt))}>▶ {t('Play chapter')}</button>
           )}
-          <PlayerControls reader={reader} />
+          <PlayerControls reader={reader} onSearch={onSearch} />
         </div>
       )}
       {playMenu && (picked.length > 0 || !!askedLabel) && (
@@ -3901,11 +3903,16 @@ function StopDetail({ reader, full }: { reader: ReturnType<typeof useReader>; fu
 }
 
 /** Repeat and speed on every play bar; ⋯ holds reading the reference first, and the voice. */
-function PlayerControls({ reader }: { reader: ReturnType<typeof useReader> }) {
+function PlayerControls({ reader, onSearch }: { reader: ReturnType<typeof useReader>; onSearch?: () => void }) {
   const [more, setMore] = useState(false);
   const classic = useContext(ClassicContext);
   return (
     <>
+      {onSearch && (
+        <button className="speed" aria-label={t('Search while this plays')} title={t('Search')} onClick={onSearch}>
+          <svg viewBox="0 0 24 24" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        </button>
+      )}
       <button
         className={`repeat ${reader.repeat ? 'on' : ''}`}
         aria-pressed={reader.repeat}

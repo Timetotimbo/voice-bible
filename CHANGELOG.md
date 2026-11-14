@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.84.0 — 2026-11-14
+
+- **Search while a chapter plays**: the play bar now has a search button next to Loop and speed, so you can look up another verse without stopping what's reading. Playback keeps going in the background — tap the chapter you were in (📖) to come back to it.
+
 ## v2.83.0 — 2026-10-30
 
 - **Picture in ClipForge**: next to Make picture, send what you picked (or selected verses) to ClipForge's Pictures, to design it there with its styles, photos and colours. Each verse or pick becomes its own picture, with the reference on top.

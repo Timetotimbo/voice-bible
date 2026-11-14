@@ -365,6 +365,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; pad
 .player .player-split .split-play { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player .player-split .split-more { flex: none; padding: 0 18px; font-size: 1.1rem; border-left: 1px solid currentColor; }
 .speed { min-width: 58px; font-variant-numeric: tabular-nums; }
+.player .speed svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 .repeat.on { background: var(--purple) !important; border-color: var(--purple-bright) !important; color: var(--on-accent); }
 
 .version { text-align: center; color: var(--muted); font-size: 0.75rem; opacity: 0.6; margin-top: 32px; }
