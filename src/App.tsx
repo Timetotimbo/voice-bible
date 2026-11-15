@@ -2908,7 +2908,7 @@ function Chapter({
                   },
                 })}
               >
-                <sup>{isSelected ? '✓' : ''}{v}</sup>{' '}
+                <sup>{v}</sup>{' '}
                 <span className="vt">
                   {key === readingKey && reader.word ? (
                     <ReadingText text={h.text} word={reader.word} />

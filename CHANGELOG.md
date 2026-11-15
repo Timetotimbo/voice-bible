@@ -2,6 +2,10 @@
 
 Each version is tagged in git and published as a GitHub release. To see or restore an older version, open the repo's Releases page.
 
+## v2.84.2 — 2026-11-15
+
+- Selecting a verse no longer shifts the words around: the ✓ in front of the verse number is gone (the underline and tint still show it's selected).
+
 ## v2.84.1 — 2026-11-14
 
 - The 🔍 on the play button now opens the book/chapter/verse wheel (not a separate icon by Loop and speed).
